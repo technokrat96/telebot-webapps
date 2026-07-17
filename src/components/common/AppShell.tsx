@@ -1,6 +1,6 @@
 'use client';
 
-import {Button, Flex, Layout, Menu, Tag, Typography} from 'antd';
+import {Button, Divider, Flex, Layout, Menu, Tag, Typography} from 'antd';
 import {
   DashboardOutlined,
   FileTextOutlined,
@@ -12,10 +12,24 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useTelegramAuth } from './TelegramProvider';
 import useBreakpoint from "antd/lib/grid/hooks/useBreakpoint";
 import Sider from "antd/lib/layout/Sider";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 
 const { Header, Content, Footer } = Layout;
 const { Text } = Typography;
+
+
+const layoutStyle: React.CSSProperties = {
+  position: 'relative',
+  minHeight: "100vh",
+};
+
+const siderStyle: React.CSSProperties = {
+  position: 'absolute',
+  top: 0,
+  bottom: 0,
+  insetInlineStart: 0,
+  zIndex: 10,
+};
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { name, roles } = useTelegramAuth();
@@ -41,28 +55,45 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     { key: '/whoami', icon: <UserOutlined />, label: 'Who Am I' },
   ];
 
+  useEffect(() => {
+    if (!collapsed) setCollapsed(true);
+  }, [breakpoint.xl]);
+
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Sider trigger={null} collapsible collapsed={collapsed} collapsedWidth="0" breakpoint="xl">
-        <div>
-          <Text style={{ color: '#fff', whiteSpace: 'nowrap', display: "block" }}>
-            {name}
-          </Text>
-          {roles.map((r) => (
-            <Tag key={r} color={r === 'ADMIN' ? 'gold' : r === 'FLORIST' ? 'green' : 'blue'}>
-              {r}
-            </Tag>
-          ))}
+    <Layout hasSider={!breakpoint.xl} style={layoutStyle}>
+      {!breakpoint.xl && (<Sider trigger={null} style={siderStyle} collapsible collapsed={collapsed} width={"100%"} collapsedWidth="0">
+        <div style={{ padding: "12px" }}>
+          <Flex align={"center"} justify={"space-between"}>
+            <Flex align={"start"} justify={"center"} vertical>
+              <Text style={{color: '#fff', whiteSpace: 'nowrap', display: "block"}}>
+                {name}
+              </Text>
+              <div>
+                {roles.map((r) => (
+                  <Tag key={r} color={r === 'ADMIN' ? 'gold' : r === 'FLORIST' ? 'green' : 'blue'}>
+                    {r}
+                  </Tag>
+                ))}
+              </div>
+            </Flex>
+            {!collapsed && (<Button
+              type="text"
+              variant={"solid"}
+              color={"primary"}
+              size={"large"}
+              icon={collapsed ? <MenuUnfoldOutlined/> : <MenuFoldOutlined/>}
+              onClick={() => setCollapsed(!collapsed)}
+            />)}
+          </Flex>
         </div>
+        <Divider style={{ borderColor: 'white' }} size={"small"} />
         <Menu
           theme="dark"
           mode="inline"
-          selectedKeys={[pathname]}
           items={items}
-          onClick={(e) => router.push(e.key)}
         />
-      </Sider>
-      <Layout style={{ minHeight: '100vh' }}>
+      </Sider>)}
+      <Layout style={layoutStyle}>
         <Header
           style={{
             display: 'flex',
@@ -71,7 +102,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             paddingInline: 16,
             position: 'sticky',
             top: 0,
-            zIndex: 10,
+            zIndex: 9,
           }}
         >
           {
@@ -101,20 +132,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               </>
             ) : (
               <>
-                <Flex justify={"space-between"}>
+                <Flex align={"center"} justify={"space-between"} style={{ width: "100%" }}>
                   <Text strong style={{ color: '#fff', whiteSpace: 'nowrap' }}>
                     🌸 Florist App
                   </Text>
-                  <Button
+                  {collapsed && (<Button
                     type="text"
-                    icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                    variant={"solid"}
+                    color={"primary"}
+                    size={"large"}
+                    icon={collapsed ? <MenuUnfoldOutlined/> : <MenuFoldOutlined/>}
                     onClick={() => setCollapsed(!collapsed)}
-                    style={{
-                      fontSize: '16px',
-                      width: 64,
-                      height: 64,
-                    }}
-                  />
+                  />)}
                 </Flex>
               </>
             )
