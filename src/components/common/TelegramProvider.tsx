@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { Alert, Spin } from 'antd';
 import { UserRole } from '@/types';
-import {retrieveRawLaunchParams} from "@tma.js/bridge";
+import {retrieveLaunchParams} from "@tma.js/sdk-react";
 import {init} from "@tma.js/sdk";
 
 interface AuthState {
@@ -51,7 +51,7 @@ export default function TelegramProvider({
     let initDataRaw: string | undefined;
     try {
       init();
-      initDataRaw = retrieveRawLaunchParams();
+      initDataRaw = JSON.stringify(retrieveLaunchParams());
     } catch {
       initDataRaw = undefined;
     }
