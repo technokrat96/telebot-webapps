@@ -3,8 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { Alert, Spin } from 'antd';
 import { UserRole } from '@/types';
-import {retrieveLaunchParams} from "@tma.js/sdk-react";
-import {init} from "@tma.js/sdk";
+import {init, retrieveLaunchParams} from "@tma.js/sdk-react";
 
 interface AuthState {
   loading: boolean;
