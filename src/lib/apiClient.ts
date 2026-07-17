@@ -1,6 +1,6 @@
 'use client';
 
-import {retrieveRawLaunchParams} from "@tma.js/bridge";
+import { retrieveRawLaunchParams} from "@tma.js/sdk";
 
 function getInitData(): string {
   try {

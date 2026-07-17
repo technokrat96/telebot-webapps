@@ -33,7 +33,8 @@ export function validateTelegramInitData(
     // considered valid. 1 hour is a reasonable session-open window for a
     // Mini App; tighten this if you want shorter-lived sessions.
     validate(initDataRaw, botToken, { expiresIn: 3600 });
-  } catch {
+  } catch (e) {
+    console.error(e);
     return null;
   }
 
