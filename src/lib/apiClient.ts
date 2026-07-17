@@ -1,11 +1,11 @@
 'use client';
 
-import { retrieveLaunchParams} from "@tma.js/sdk-react";
+import { retrieveRawInitData } from "@tma.js/sdk-react";
 
 function getInitData(): string {
   try {
-    const { tgWebAppData: initData } = retrieveLaunchParams();
-    return new URLSearchParams(initData as any).toString();
+    const retrieveRawInitDataResult = retrieveRawInitData();
+    return retrieveRawInitDataResult ?? "";
   } catch {
     // Not running inside Telegram (e.g. local dev in a plain browser).
     return '';

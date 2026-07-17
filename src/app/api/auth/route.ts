@@ -19,6 +19,7 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       );
     }
+    console.log("Telegram user", telegramUser);
 
     if (!telegramUser.username) {
       return NextResponse.json(
