@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing initData' }, { status: 400 });
     }
     console.log(initData, typeof initData);
-    const telegramUser = validateTelegramInitData(typeof initData !== 'string' ? JSON.stringify(initData) : initData);
+    const telegramUser = validateTelegramInitData(typeof initData !== 'string' ? new URLSearchParams(initData).toString() : initData);
     if (!telegramUser) {
       return NextResponse.json(
         { error: 'Invalid Telegram signature' },
