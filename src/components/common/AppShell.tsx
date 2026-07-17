@@ -43,7 +43,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider trigger={null} collapsible collapsed={collapsed} collapsedWidth="0" breakpoint="lg">
+      <Sider trigger={null} collapsible collapsed={collapsed} collapsedWidth="0" breakpoint="xl">
         <div>
           <Text style={{ color: '#fff', whiteSpace: 'nowrap', display: "block" }}>
             {name}
