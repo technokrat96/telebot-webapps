@@ -5,7 +5,6 @@
 // instead" (both come from the same Telegram-Mini-Apps/tma.js monorepo,
 // just published under a newer scope). Function names/behavior are the same.
 import { validate, parse } from '@tma.js/init-data-node';
-import {initData} from "@tma.js/sdk";
 
 export interface TelegramUserPayload {
   id: number;

@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import { Alert, Spin } from 'antd';
 import { UserRole } from '@/types';
 import {init} from "@tma.js/sdk";
-import { retrieveLaunchParams, RetrieveLaunchParamsResult} from "@tma.js/sdk-react";
+import { retrieveRawInitData } from "@tma.js/sdk-react";
 
 interface AuthState {
   loading: boolean;
@@ -48,16 +48,16 @@ export default function TelegramProvider({
     // Binds the SDK to the current Telegram WebApp environment (safe to
     // call more than once). Throws outside of Telegram — that's expected
     // in local/dev browsing, so we fall through to the dev fallback below.
-    let retrieveLaunchParamsResult: RetrieveLaunchParamsResult | undefined;
+    let retrieveRawInitDataResult: string | undefined;
     try {
       init();
-      retrieveLaunchParamsResult = retrieveLaunchParams();
+      retrieveRawInitDataResult = retrieveRawInitData();
     } catch {
-      retrieveLaunchParamsResult = undefined;
+      retrieveRawInitDataResult = undefined;
     }
 
     // Local/dev fallback: allow testing outside Telegram by skipping auth.
-    if (!retrieveLaunchParamsResult) {
+    if (!retrieveRawInitDataResult) {
       if (process.env.NODE_ENV !== 'production') {
         // Has all 3 roles so you can click around every page locally
         // without going through Telegram. Narrow this down (e.g.
@@ -82,11 +82,10 @@ export default function TelegramProvider({
     }
 
     try {
-      const { tgWebAppData: initData } = retrieveLaunchParamsResult
       const res = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ initData }),
+        body: JSON.stringify({ initData: retrieveRawInitDataResult }),
       });
       const data = await res.json();
 
