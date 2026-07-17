@@ -4,7 +4,8 @@ import { retrieveLaunchParams} from "@tma.js/sdk-react";
 
 function getInitData(): string {
   try {
-    return JSON.stringify(retrieveLaunchParams());
+    const { tgWebAppData: initData } = retrieveLaunchParams();
+    return JSON.stringify(initData);
   } catch {
     // Not running inside Telegram (e.g. local dev in a plain browser).
     return '';
