@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     if (!initData) {
       return NextResponse.json({ error: 'Missing initData' }, { status: 400 });
     }
-
+    console.log(initData);
     const telegramUser = validateTelegramInitData(initData);
     if (!telegramUser) {
       return NextResponse.json(
