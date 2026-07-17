@@ -5,6 +5,7 @@
 // instead" (both come from the same Telegram-Mini-Apps/tma.js monorepo,
 // just published under a newer scope). Function names/behavior are the same.
 import { validate, parse } from '@tma.js/init-data-node';
+import {initData} from "@tma.js/sdk";
 
 export interface TelegramUserPayload {
   id: number;
@@ -32,6 +33,8 @@ export function validateTelegramInitData(
     // expiresIn: how many seconds after `auth_date` the initData is
     // considered valid. 1 hour is a reasonable session-open window for a
     // Mini App; tighten this if you want shorter-lived sessions.
+    console.log('Telegram initData:', initDataRaw);
+    console.log('botToken:', botToken);
     validate(initDataRaw, botToken, { expiresIn: 3600 });
   } catch (e) {
     console.error(e);
