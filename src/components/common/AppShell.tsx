@@ -1,6 +1,6 @@
 'use client';
 
-import {Button, Divider, Flex, Layout, Menu, Tag, Typography} from 'antd';
+import {Avatar, Button, Divider, Flex, Layout, Menu, Tag, Typography} from 'antd';
 import {
   DashboardOutlined,
   FileTextOutlined,
@@ -24,7 +24,7 @@ const layoutStyle: React.CSSProperties = {
 };
 
 const siderStyle: React.CSSProperties = {
-  position: 'absolute',
+  position: 'fixed',
   top: 0,
   bottom: 0,
   insetInlineStart: 0,
@@ -36,7 +36,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const breakpoint = useBreakpoint();
   const pathname = usePathname();
   const router = useRouter();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
 
   const items = [
     { key: '/', icon: <DashboardOutlined />, label: 'Home' },
@@ -52,7 +52,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     ...(roles.includes('KURIR')
       ? [{ key: '/kurir', icon: <CarOutlined />, label: 'Kurir' }]
       : []),
-    { key: '/whoami', icon: <UserOutlined />, label: 'Who Am I' },
   ];
 
   useEffect(() => {
@@ -60,22 +59,30 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, [breakpoint.xl]);
 
   return (
-    <Layout hasSider={!breakpoint.xl} style={layoutStyle}>
-      {!breakpoint.xl && (<Sider trigger={null} style={siderStyle} collapsible collapsed={collapsed} width={"100%"} collapsedWidth="0">
+    <Layout hasSider={!breakpoint.xl} style={{position:"relative" }}>
+      {!breakpoint.xl && (<Sider trigger={null} style={siderStyle} styles={{ body: { maxHeight: "100vh", overflowY: "auto", } }} collapsible collapsed={collapsed} width={"100%"} collapsedWidth="0">
         <div style={{ padding: "12px" }}>
           <Flex align={"center"} justify={"space-between"}>
-            <Flex align={"start"} justify={"center"} vertical>
-              <Text style={{color: '#fff', whiteSpace: 'nowrap', display: "block"}}>
-                {name}
-              </Text>
-              <div>
-                {roles.map((r) => (
-                  <Tag key={r} color={r === 'ADMIN' ? 'gold' : r === 'FLORIST' ? 'green' : 'blue'}>
-                    {r}
-                  </Tag>
-                ))}
-              </div>
-            </Flex>
+            <Button type={"text"} onClick={() => {
+              router.push("/whoami")
+              setCollapsed(!collapsed)
+            }}>
+              <Avatar icon={<UserOutlined/>} shape={"circle"} />
+              <Flex align={"start"} justify={"center"} vertical>
+                <div>
+                  <Text style={{color: '#fff', whiteSpace: 'nowrap', display: "block"}}>
+                    {name}
+                  </Text>
+                </div>
+                <div>
+                  {roles.map((r) => (
+                    <Tag key={r} color={r === 'ADMIN' ? 'gold' : r === 'FLORIST' ? 'green' : 'blue'}>
+                      {r}
+                    </Tag>
+                  ))}
+                </div>
+              </Flex>
+            </Button>
             {!collapsed && (<Button
               type="text"
               variant={"solid"}
@@ -91,9 +98,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           theme="dark"
           mode="inline"
           items={items}
+          selectedKeys={[pathname]}
+          onClick={(e) => {
+            router.push(e.key)
+            setCollapsed(!collapsed)
+          }}
         />
       </Sider>)}
-      <Layout style={layoutStyle}>
+      <Layout style={{ minHeight: "100vh", maxHeight: "100vh", overflowY: "auto",  marginBottom: '16px' }}>
         <Header
           style={{
             display: 'flex',
@@ -120,14 +132,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   style={{ flex: 1, minWidth: 0 }}
                 />
                 {roles.length > 0 && (
-                  <Text style={{ color: '#fff', whiteSpace: 'nowrap' }}>
-                    {name}{' '}
-                    {roles.map((r) => (
-                      <Tag key={r} color={r === 'ADMIN' ? 'gold' : r === 'FLORIST' ? 'green' : 'blue'}>
-                        {r}
-                      </Tag>
-                    ))}
-                  </Text>
+                  <Button type={"text"} onClick={() => router.push("/whoami")}>
+                    <Avatar icon={<UserOutlined/>} shape={"circle"} />
+                    <Text style={{ color: '#fff', whiteSpace: 'nowrap' }}>
+                      {name}{' '}
+                      {roles.map((r) => (
+                        <Tag key={r} color={r === 'ADMIN' ? 'gold' : r === 'FLORIST' ? 'green' : 'blue'}>
+                          {r}
+                        </Tag>
+                      ))}
+                    </Text>
+                  </Button>
                 )}
               </>
             ) : (
@@ -149,10 +164,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             )
           }
         </Header>
-        <Content style={{ padding: '16px' }}>
+        <Content style={{ padding: '16px', minHeight: 'auto' }}>
           <div style={{ maxWidth: 1100, margin: '0 auto' }}>{children}</div>
         </Content>
-        <Footer style={{ textAlign: 'center' }}>Florist Telegram Mini App</Footer>
       </Layout>
     </Layout>
   );
