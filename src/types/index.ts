@@ -22,7 +22,7 @@ export const DELIVERY_STATUSES: DeliveryStatus[] = ['PICKUP', 'ON DELIVERY', 'DE
 export const CARD_STATUSES: CardStatus[] = ['NEW ORDER', 'ON PROGRESS', 'DONE', 'CANCELLED'];
 export const INVOICE_STATUSES: InvoiceStatus[] = ['UNPAID', 'PARTIALLY_PAID', 'PAID'];
 
-export interface Transaction {
+export type Transaction = {
   ORDER_ID: string;
   ORDER_SOURCE: OrderSource;
   SALES_NAME: string;
@@ -36,7 +36,7 @@ export interface Transaction {
   PAYMENT_METHOD: PaymentMethod;
 }
 
-export interface TransactionDetail {
+export type TransactionDetail = {
   ORDER_ITEM_ID: string;
   ORDER_ID: string;
   ITEM_NAME: string;
@@ -62,7 +62,7 @@ export interface TransactionDetail {
   RECEIVER_PHONE: string;
 }
 
-export interface Invoice {
+export type Invoice = {
   INVOICE_ID: string;
   INVOICE_NUMBER: string;
   INVOICE_DATE: string;
@@ -75,7 +75,7 @@ export interface Invoice {
   BILLED_PHONE: string;
 }
 
-export interface InvoiceDetail {
+export type InvoiceDetail = {
   INVOICE_ITEM_ID: string;
   INVOICE_ID: string;
   ORDER_ITEM_ID: string;
@@ -83,10 +83,10 @@ export interface InvoiceDetail {
   PRICE_BILLED: number;
 }
 
-export interface TransactionWithDetails extends Transaction {
+export type TransactionWithDetails = Transaction & {
   details: TransactionDetail[];
 }
 
-export interface InvoiceWithDetails extends Invoice {
+export type InvoiceWithDetails = Invoice & {
   details: InvoiceDetail[];
 }
