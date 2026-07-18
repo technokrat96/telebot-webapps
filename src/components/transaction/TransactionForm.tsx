@@ -13,12 +13,12 @@ export interface TransactionFormValues extends Omit<Transaction, 'ORDER_ID'> {
 
 export default function TransactionForm({
   initialValues,
-  onSubmit,
+  onSubmitAction,
   submitting,
   isEdit = false,
 }: {
   initialValues?: Partial<TransactionFormValues>;
-  onSubmit: (values: TransactionFormValues) => void;
+  onSubmitAction: (values: TransactionFormValues) => void;
   submitting?: boolean;
   isEdit?: boolean;
 }) {
@@ -32,7 +32,7 @@ export default function TransactionForm({
         details: [{}],
         ...initialValues,
       }}
-      onFinish={onSubmit}
+      onFinish={onSubmitAction}
     >
       <Card style={{ marginBottom: 16 }}>
         <Title level={5}>Data Transaksi</Title>

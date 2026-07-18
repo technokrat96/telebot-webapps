@@ -46,7 +46,7 @@ function CreateTransactionContent() {
   return (
     <div>
       <Title level={3}>Buat Transaksi</Title>
-      <TransactionForm onSubmit={handleSubmit} submitting={submitting} />
+      <TransactionForm onSubmitAction={handleSubmit} submitting={submitting} />
     </div>
   );
 }
