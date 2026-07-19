@@ -1,11 +1,5 @@
 import {ROLES, UserRole} from '@/types';
 
-/**
- * Parses the raw ROLE cell from the "Users" sheet into a list of roles.
- * Accepts one or many roles separated by comma, semicolon, slash, or
- * pipe, in any case: "ADMIN", "ADMIN, FLORIST", "admin/florist", etc.
- * Unknown tokens are silently dropped.
- */
 export function parseRoles(raw: string): UserRole[] {
   return raw
     .split(/[,;/|]+/)

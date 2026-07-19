@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import {Button, Card, Space, Tag, Typography, Popconfirm, App} from 'antd';
+import {Button, Card, Space, Tag, Typography, Popconfirm, App, GetProp} from 'antd';
 import RoleGuard from '@/components/common/RoleGuard';
 import { useTelegramAuth } from '@/components/common/TelegramProvider';
 import { apiClient } from '@/lib/apiClient';
@@ -10,13 +10,14 @@ import { isOrderFullyDone } from '@/lib/statusUtils';
 
 const { Title, Text, Paragraph } = Typography;
 
-const STATUS_COLORS: Record<string, string> = {
-  NEW: 'default',
-  WIP: 'processing',
+const STATUS_COLORS: Record<ItemStatus, GetProp<typeof Tag, "color">> = {
+  "NEW ORDER": 'default',
+  "ON PROGRESS": 'processing',
   DONE: 'success',
-  READY_TO_PICKUP: 'gold',
+  CANCELLED: "red",
+  PENDING: "cyan",
+  RESCHEDULED: "gold",
 };
-
 export default function FloristPage() {
   return (
     <RoleGuard allow={['FLORIST']}>
@@ -93,7 +94,7 @@ function FloristContent() {
         Update status tiap item bunga, lalu tandai transaksi selesai jika semua item sudah DONE.
       </Paragraph>
 
-      <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      <Space orientation="vertical" size={16} style={{ width: '100%' }}>
         {orders.map((order) => (
           <Card
             key={order.ORDER_ID}
@@ -116,17 +117,17 @@ function FloristContent() {
               </Popconfirm>
             }
           >
-            <Space direction="vertical" style={{ width: '100%' }}>
+            <Space orientation="vertical" style={{ width: '100%' }}>
               {order.details.map((item) => (
                 <Card key={item.ORDER_ITEM_ID} type="inner" size="small" title={item.ITEM_NAME}>
-                  <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                  <Space orientation="vertical" size={4} style={{ width: '100%' }}>
                     <Text>Qty: {item.QUANTITY}</Text>
                     {item.CUSTOM_NOTES && <Text type="secondary">Catatan: {item.CUSTOM_NOTES}</Text>}
                     {item.CARD_TO && <Text type="secondary">Kartu untuk: {item.CARD_TO}</Text>}
                     {item.CARD_MESSAGE && <Text type="secondary">Pesan: {item.CARD_MESSAGE}</Text>}
                     <Space>
                       <Tag color={STATUS_COLORS[item.ITEM_STATUS] ?? 'default'}>
-                        {item.ITEM_STATUS || 'NEW'}
+                        {item.ITEM_STATUS || 'NEW ORDER'}
                       </Tag>
                       <Button
                         size="small"

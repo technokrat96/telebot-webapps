@@ -2,11 +2,11 @@ import { NextRequest } from 'next/server';
 import { validateTelegramInitData } from '@/lib/telegram';
 import { findUserByUsername } from '@/lib/sheets/users';
 import { hasAnyRole, parseRoles } from '@/lib/roles';
-import { AppUser, UserRole } from '@/types';
+import { User, UserRole } from '@/types';
 
 export interface AuthContext {
   telegramUsername: string;
-  user: AppUser;
+  user: User;
   /** Parsed from user.ROLE — a user can hold more than one role. */
   roles: UserRole[];
 }

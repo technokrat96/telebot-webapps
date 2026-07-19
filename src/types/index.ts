@@ -7,21 +7,11 @@ export type DeliveryStatus = 'PICKUP' | 'ON DELIVERY' | 'DELIVERED' | 'RECEIVED'
 export type CardStatus = 'NEW ORDER' | 'ON PROGRESS' | 'DONE' | 'CANCELLED';
 export type InvoiceStatus = 'UNPAID' | 'PARTIALLY_PAID' | 'PAID';
 
-export interface AppUser {
+export interface User {
   USERNAME: string;
   NAME: string;
   ROLE: string;
 }
-
-export const ROLES: UserRole[] = ['ADMIN', 'FLORIST', 'KURIR'];
-export const PAYMENT_METHODS: PaymentMethod[] = ['CASH', 'BCA', 'MANDIRI', 'PAYPAL'];
-export const ORDER_SOURCES: OrderSource[] = ['WA', 'WEB'];
-export const ITEM_STATUSES: ItemStatus[] = ['NEW ORDER', 'ON PROGRESS', 'DONE', 'PENDING', 'CANCELLED', 'RESCHEDULED'];
-export const DELIVERY_METHODS: DeliveryMethod[] = ['DELIVERY', 'PICKUP'];
-export const DELIVERY_STATUSES: DeliveryStatus[] = ['PICKUP', 'ON DELIVERY', 'DELIVERED', 'RECEIVED', 'RETURNED'];
-export const CARD_STATUSES: CardStatus[] = ['NEW ORDER', 'ON PROGRESS', 'DONE', 'CANCELLED'];
-export const INVOICE_STATUSES: InvoiceStatus[] = ['UNPAID', 'PARTIALLY_PAID', 'PAID'];
-
 export type Transaction = {
   ORDER_ID: string;
   ORDER_SOURCE: OrderSource;
@@ -90,3 +80,12 @@ export type TransactionWithDetails = Transaction & {
 export type InvoiceWithDetails = Invoice & {
   details: InvoiceDetail[];
 }
+
+export const ROLES: UserRole[] = ['ADMIN', 'FLORIST', 'KURIR'];
+export const PAYMENT_METHODS: PaymentMethod[] = ['CASH', 'BCA', 'MANDIRI', 'PAYPAL'];
+export const ORDER_SOURCES: OrderSource[] = ['WA', 'WEB'];
+export const ITEM_STATUSES: ItemStatus[] = ['NEW ORDER', 'ON PROGRESS', 'DONE', 'PENDING', 'CANCELLED', 'RESCHEDULED'];
+export const DELIVERY_METHODS: DeliveryMethod[] = ['DELIVERY', 'PICKUP'];
+export const DELIVERY_STATUSES: DeliveryStatus[] = ['PICKUP', 'ON DELIVERY', 'DELIVERED', 'RECEIVED', 'RETURNED'];
+export const CARD_STATUSES: CardStatus[] = ['NEW ORDER', 'ON PROGRESS', 'DONE', 'CANCELLED'];
+export const INVOICE_STATUSES: InvoiceStatus[] = ['UNPAID', 'PARTIALLY_PAID', 'PAID'];

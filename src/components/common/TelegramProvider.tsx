@@ -125,8 +125,8 @@ export default function TelegramProvider({
   return (
     <TelegramContext.Provider value={{ ...state, retry: authenticate }}>
       {state.loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}>
-          <Spin size="large" description="Memuat..." />
+        <div style={{ display: 'flex', justifyContent: 'center', minHeight: "100vh", alignItems: "center" }}>
+          <Spin size="large" description="Memuat data..." />
         </div>
       ) : state.error ? (
         <div style={{ padding: 24 }}>

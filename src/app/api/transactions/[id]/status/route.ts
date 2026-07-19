@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
-import { updateAllItemsStatusForOrder } from '@/lib/sheets/transaction';
+import { updateAllItemStatusForOrder } from '@/lib/sheets/transaction';
 import { ITEM_STATUSES } from '@/types';
 
 // PATCH body: { status: ItemStatus }
@@ -21,6 +21,6 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
   }
 
-  await updateAllItemsStatusForOrder(id, status);
+  await updateAllItemStatusForOrder(id, status);
   return NextResponse.json({ ok: true });
 }

@@ -12,7 +12,7 @@ const STATUS_COLORS: Record<ItemStatus, GetProp<typeof Tag, "color">> = {
   DONE: 'success',
   CANCELLED: "red",
   PENDING: "cyan",
-  RESCHEDULED: "red",
+  RESCHEDULED: "gold",
 };
 
 export default function TransactionListTable({

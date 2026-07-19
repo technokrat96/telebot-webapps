@@ -5,7 +5,7 @@ import {Button, Card, Space, Tag, Typography, App} from 'antd';
 import RoleGuard from '@/components/common/RoleGuard';
 import { apiClient } from '@/lib/apiClient';
 import {DeliveryStatus, ItemStatus, TransactionWithDetails} from '@/types';
-import { filterOrdersByStatus } from '@/lib/statusUtils';
+import { filterOrdersByDeliveryStatus } from '@/lib/statusUtils';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -53,7 +53,7 @@ function KurirContent() {
         'DELIVERED',
       ];
       const relevant = relevantStatuses.flatMap((status) =>
-        filterOrdersByStatus(res.orders, status)
+        filterOrdersByDeliveryStatus(res.orders, status)
       );
       setOrders(relevant);
     } catch (err) {
@@ -87,13 +87,13 @@ function KurirContent() {
         Daftar pesanan yang siap diambil dan sedang dalam proses pengiriman.
       </Paragraph>
 
-      <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      <Space orientation="vertical" size={16} style={{ width: '100%' }}>
         {orders.map((order) => {
           const currentStatus = order.details[0]?.ITEM_STATUS as ItemStatus;
           const actions = NEXT_ACTION[currentStatus] ?? [];
           return (
             <Card key={order.ORDER_ID} loading={loading} title={`${order.ORDER_ID} · ${order.CUSTOMER_NAME}`}>
-              <Space direction="vertical" style={{ width: '100%' }}>
+              <Space orientation="vertical" style={{ width: '100%' }}>
                 <Text>Alamat: {order.CUSTOMER_ADDRESS}</Text>
                 <Text>Telepon: {order.CUSTOMER_PHONE}</Text>
                 <Tag color={STATUS_COLORS[currentStatus] ?? 'default'}>{currentStatus}</Tag>

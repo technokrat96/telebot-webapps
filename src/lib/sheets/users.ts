@@ -1,15 +1,19 @@
 import { readSheet } from '@/lib/googleSheets';
-import { AppUser } from '@/types';
+import { User } from '@/types';
 
 const SHEET_NAME = 'Users';
 
+function normalizedUsername(username: string) {
+  return username.replace(/^@/, '').toLowerCase();
+}
+
 export async function findUserByUsername(
   username: string
-): Promise<AppUser | null> {
-  const users = await readSheet<AppUser>(SHEET_NAME);
-  const normalized = username.replace(/^@/, '').toLowerCase();
+): Promise<User | null> {
+  const users = await readSheet<User>(SHEET_NAME);
+  const normalized = normalizedUsername(username);
   const found = users.find(
-    (u) => u.USERNAME?.replace(/^@/, '').toLowerCase() === normalized
+    (u) => normalizedUsername(u.USERNAME) === normalized
   );
   return found ?? null;
 }

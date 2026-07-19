@@ -8,6 +8,8 @@ import TransactionForm, {
   TransactionFormValues,
 } from '@/components/transaction/TransactionForm';
 import { apiClient } from '@/lib/apiClient';
+import {ItemStatus} from "@/types";
+import {useTelegramAuth} from "@/components/common/TelegramProvider";
 
 const { Title } = Typography;
 
@@ -22,6 +24,7 @@ export default function CreateTransactionPage() {
 function CreateTransactionContent() {
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
+  const { name, roles, username } = useTelegramAuth();
 
   async function handleSubmit(values: TransactionFormValues) {
     setSubmitting(true);
@@ -31,7 +34,7 @@ function CreateTransactionContent() {
         transaction: { ...transaction, ORDER_ID: values.ORDER_ID },
         details: (details ?? []).map((d) => ({
           ...d,
-          ITEM_STATUS: 'NEW',
+          ITEM_STATUS: 'NEW ORDER' as ItemStatus,
         })),
       });
       message.success('Transaksi berhasil dibuat');

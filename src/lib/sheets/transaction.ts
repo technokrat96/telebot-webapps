@@ -1,8 +1,22 @@
 import { appendRow, readSheet, updateRow } from '@/lib/googleSheets';
-import { Transaction, TransactionDetail, TransactionWithDetails } from '@/types';
+import {ItemStatus, Transaction, TransactionDetail, TransactionWithDetails} from '@/types';
 
 const TRANSACTION_SHEET = 'Transaction';
 const TRANSACTION_DETAIL_SHEET = 'Transaction Detail';
+
+export function generateOrderId(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `ORD-${y}${m}${d}-${rand}`;
+}
+
+/** Order Item ID derived from its parent Order ID + 1-based position. */
+export function generateOrderItemId(orderId: string, index: number): string {
+  return `${orderId}-${String(index + 1).padStart(2, '0')}`;
+}
 
 export async function listTransactions(): Promise<Transaction[]> {
   return readSheet<Transaction>(TRANSACTION_SHEET);
@@ -56,10 +70,38 @@ export async function updateTransaction(
   return updateRow(TRANSACTION_SHEET, 'ORDER_ID', orderId, updates);
 }
 
-export async function updateTransactionDetailStatus(
+export async function updateTransactionDetailItemStatus(
   orderItemId: string,
   updates: Partial<
     Pick<TransactionDetail, 'ITEM_STATUS' | 'FLORIST_NAME'>
+  >
+): Promise<boolean> {
+  return updateRow(
+    TRANSACTION_DETAIL_SHEET,
+    'ORDER_ITEM_ID',
+    orderItemId,
+    updates
+  );
+}
+
+export async function updateTransactionDetailCardStatus(
+  orderItemId: string,
+  updates: Partial<
+    Pick<TransactionDetail, 'CARD_STATUS' | 'CARD_CREATED_BY'>
+  >
+): Promise<boolean> {
+  return updateRow(
+    TRANSACTION_DETAIL_SHEET,
+    'ORDER_ITEM_ID',
+    orderItemId,
+    updates
+  );
+}
+
+export async function updateTransactionDetailDeliveryStatus(
+  orderItemId: string,
+  updates: Partial<
+    Pick<TransactionDetail, 'DELIVERY_STATUS' | 'DELIVERY_BY'>
   >
 ): Promise<boolean> {
   return updateRow(
@@ -75,9 +117,9 @@ export async function updateTransactionDetailStatus(
  * Used for order-level actions: Florist "Mark order done" (-> READY_TO_PICKUP)
  * and Kurir's On Delivery / Delivered / Received / Returned actions.
  */
-export async function updateAllItemsStatusForOrder(
+export async function updateAllItemStatusForOrder(
   orderId: string,
-  status: string
+  status: ItemStatus
 ): Promise<void> {
   const details = await listTransactionDetails();
   const orderItems = details.filter((d) => d.ORDER_ID === orderId);
@@ -88,7 +130,7 @@ export async function updateAllItemsStatusForOrder(
   }
 }
 
-// isOrderFullyDone / filterOrdersByStatus moved to '@/lib/statusUtils'
+// isOrderFullyDone / filterOrdersByDeliveryStatus moved to '@/lib/statusUtils'
 // (that module has no server-only imports, so it's safe to use from
 // client components too — see src/app/florist/page.tsx and kurir/page.tsx).
-export { isOrderFullyDone, filterOrdersByStatus } from '@/lib/statusUtils';
+export { isOrderFullyDone, filterOrdersByDeliveryStatus } from '@/lib/statusUtils';
