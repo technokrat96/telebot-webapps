@@ -88,7 +88,27 @@ function ItemPesananFields({
       next[field.name] = {...next[field.name], SUBTOTAL: subtotal};
       form.setFieldsValue({details: next});
     }
-  }, [quantity, unitPrice, field.name, form]);
+  }, [currencyData.rate, quantity, unitPrice, field.name, form]);
+
+  useEffect(() => {
+    const currentDetails = form.getFieldValue('details') ?? [];
+    // Hindari infinite loop: cuma set kalau nilainya memang berubah.
+    const next = [...currentDetails];
+    if (currentDetails[field.name]?.CURRENCY !== currencyData.currency) {
+      next[field.name] = {...next[field.name], CURRENCY: currencyData.currency};
+      form.setFieldsValue({details: next});
+    }
+  }, [currencyData.currency, field.name, form]);
+
+  useEffect(() => {
+    const currentDetails = form.getFieldValue('details') ?? [];
+    // Hindari infinite loop: cuma set kalau nilainya memang berubah.
+    const next = [...currentDetails];
+    if (currentDetails[field.name]?.CURRENCY_RATE !== currencyData.rate) {
+      next[field.name] = {...next[field.name], CURRENCY_RATE: currencyData.rate};
+      form.setFieldsValue({details: next});
+    }
+  }, [currencyData.rate, field.name, form]);
 
   return (
     <>
@@ -103,6 +123,14 @@ function ItemPesananFields({
       </Form.Item>
       <Form.Item {...field} label="Qty" name={[field.name, 'QUANTITY']} key={[field.name, 'QUANTITY'].join("-")}>
         <NumberInput style={{width: '100%'}} min={1}/>
+      </Form.Item>
+      <Form.Item {...field} label="Mata Uang" name={[field.name, 'CURRENCY']}
+                 key={[field.name, 'CURRENCY'].join("-")}>
+        <Input />
+      </Form.Item>
+      <Form.Item {...field} label="Konversi Mata Uang ke IDR" name={[field.name, 'CURRENCY_RATE']}
+                 key={[field.name, 'CURRENCY_RATE'].join("-")}>
+        <Input />
       </Form.Item>
       <Form.Item {...field} label="Harga Satuan" name={[field.name, 'UNIT_PRICE']}
                  key={[field.name, 'UNIT_PRICE'].join("-")}>
