@@ -5,8 +5,9 @@ import {
   Card,
   Collapse,
   DatePicker,
-  Divider,
   Form,
+  FormListFieldData,
+  FormListOperation,
   Input,
   InputNumber,
   Select,
@@ -16,7 +17,7 @@ import {
 } from 'antd';
 import {MinusCircleOutlined, PlusOutlined} from '@ant-design/icons';
 import {DELIVERY_METHODS, ORDER_SOURCES, PAYMENT_METHODS, Transaction, TransactionDetail} from '@/types';
-import {useEffect, useState} from "react";
+import {Dispatch, SetStateAction, useEffect, useState} from "react";
 
 const { Title } = Typography;
 
@@ -41,6 +42,156 @@ export type TransactionFormValues = Omit<Transaction, 'ORDER_ID'>
   >[];
 }
 
+function ItemPesananList() {
+  const [activeKeys, setActiveKeys] = useState<string[]>([]);
+
+  return (
+    <Form.List name="details">
+      {(fields, {add, remove}) => {
+        return (
+          <ItemPesananCollapse
+            fields={fields}
+            add={add}
+            remove={remove}
+            activeKeys={activeKeys}
+            setActiveKeys={setActiveKeys}
+          />
+        );
+      }}
+    </Form.List>
+  );
+}
+
+function ItemPesananFields({
+                             field,
+                             form,
+                           }: {
+  field: Omit<FormListFieldData, "key">;
+  form: ReturnType<typeof Form.useFormInstance<TransactionFormValues>>;
+}) {
+  const quantity = Form.useWatch(['details', field.name, 'QUANTITY'], form);
+  const unitPrice = Form.useWatch(['details', field.name, 'UNIT_PRICE'], form);
+
+  useEffect(() => {
+    const subtotal = Number(quantity || 0) * Number(unitPrice || 0);
+    const currentDetails = form.getFieldValue('details') ?? [];
+    // Hindari infinite loop: cuma set kalau nilainya memang berubah.
+    if (currentDetails[field.name]?.SUBTOTAL !== subtotal) {
+      const next = [...currentDetails];
+      next[field.name] = {...next[field.name], SUBTOTAL: subtotal};
+      form.setFieldsValue({details: next});
+    }
+  }, [quantity, unitPrice, field.name, form]);
+
+  return (
+    <>
+      <Form.Item
+        {...field}
+        label="Nama Item"
+        key={[field.name, 'ITEM_NAME'].join("-")}
+        name={[field.name, 'ITEM_NAME']}
+        rules={[{required: true, message: 'Wajib diisi'}]}
+      >
+        <Input placeholder="Buket Mawar Merah"/>
+      </Form.Item>
+      <Form.Item {...field} label="Qty" name={[field.name, 'QUANTITY']} key={[field.name, 'QUANTITY'].join("-")}>
+        <InputNumber style={{width: '100%'}} min={1}/>
+      </Form.Item>
+      <Form.Item {...field} label="Harga Satuan" name={[field.name, 'UNIT_PRICE']}
+                 key={[field.name, 'UNIT_PRICE'].join("-")}>
+        <InputNumber style={{width: '100%'}} min={0}/>
+      </Form.Item>
+      <Form.Item {...field} label="Subtotal" name={[field.name, 'SUBTOTAL']} key={[field.name, 'SUBTOTAL'].join("-")}>
+        <InputNumber style={{width: '100%'}} min={0} disabled/>
+      </Form.Item>
+      <Form.Item {...field} label="Catatan Custom" name={[field.name, 'CUSTOM_NOTES']}
+                 key={[field.name, 'CUSTOM_NOTES'].join("-")}>
+        <Input.TextArea rows={2}/>
+      </Form.Item>
+    </>
+  );
+}
+
+
+function ItemPesananCollapse({fields, add, remove, activeKeys, setActiveKeys}: {
+  fields: FormListFieldData[],
+  add: FormListOperation["add"]
+  remove: FormListOperation["add"],
+  activeKeys: string[],
+  setActiveKeys: Dispatch<SetStateAction<string[]>>,
+}) {
+  const form = Form.useFormInstance<TransactionFormValues>();
+
+  // Buka item pertama otomatis saat baru pertama kali render dengan 1 item.
+  useEffect(() => {
+    if (fields.length === 1) {
+      const onlyKey = fields[0].key.toString();
+      setActiveKeys((prev: string[]) =>
+        prev.includes(onlyKey) ? prev : [onlyKey]
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fields.length]);
+
+  return (
+    <>
+      {fields.length > 0 && (
+        <Collapse activeKey={activeKeys} onChange={(keys) => setActiveKeys(keys as string[])}
+                  style={{marginBottom: 16}}
+                  items={
+                    fields.map((field, idx) => {
+                      const {key, ...inputField} = field;
+                      const panelKey = field.key.toString();
+                      const isOnlyOneItem = fields.length === 1;
+                      return {
+                        key: panelKey,
+                        collapsible: isOnlyOneItem ? 'disabled' : 'header',
+                        showArrow: !isOnlyOneItem,
+                        label: (
+                          <>
+                            <Space style={{width: '100%', justifyContent: 'space-between'}}>
+                              <span style={{fontWeight: 'bold'}}>Item {idx + 1}</span>
+                              {fields.length > 1 && (
+                                <MinusCircleOutlined
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    remove(field.name);
+                                  }}
+                                  style={{color: '#ff4d4f'}}
+                                />
+                              )}
+                            </Space>
+                          </>
+                        ),
+                        children: (
+                          <ItemPesananFields field={inputField} form={form}/>
+                        )
+                      };
+                    })
+                  }
+        >
+          {}
+        </Collapse>
+      )}
+      <Button
+        type="dashed"
+        onClick={() => {
+          add();
+          // key baru dari antd biasanya = max(existing keys) + 1
+          setActiveKeys((prev: string[]) => {
+            const maxKey = fields.length > 0 ? Math.max(...fields.map((f: any) => f.key)) : -1;
+            return [...prev, (maxKey + 1).toString()];
+          });
+        }}
+        block
+        icon={<PlusOutlined/>}
+      >
+        Tambah Item
+      </Button>
+    </>
+  );
+}
+
 export default function TransactionForm({
                                           initialValues,
                                           onSubmitAction,
@@ -53,19 +204,19 @@ export default function TransactionForm({
   isEdit?: boolean;
 }) {
   const [form] = Form.useForm<TransactionFormValues>();
-  const [activeKeys, setActiveKeys] = useState<string[]>([]);
 
   const detailsWatch = Form.useWatch('details', form);
   const downPaymentWatch = Form.useWatch('DOWN_PAYMENT', form);
+  const shippingFeeWatch = Form.useWatch('SHIPPING_FEE', form);
 
   useEffect(() => {
     const grandTotal = (detailsWatch ?? []).reduce(
       (sum, d) => sum + Number(d?.SUBTOTAL || 0),
       0
     );
-    const remaining = grandTotal - Number(downPaymentWatch || 0);
+    const remaining = (grandTotal + Number(shippingFeeWatch || 0)) - Number(downPaymentWatch || 0);
     form.setFieldsValue({ GRAND_TOTAL: grandTotal, REMAINING_BALANCE: remaining });
-  }, [detailsWatch, downPaymentWatch, form]);
+  }, [shippingFeeWatch, detailsWatch, downPaymentWatch, form]);
 
   return (
     <Form
@@ -164,85 +315,7 @@ export default function TransactionForm({
       </Card>
       <Card style={{marginBottom: 16}}>
         <Title level={5}>Item Pesanan</Title>
-        <Form.List name="details">
-          {(fields, {add, remove}) => {
-            if (fields.length === 1 && !activeKeys.includes(fields[0].key.toString())) {
-              setActiveKeys([fields[0].key.toString()]);
-            }
-            return (
-              <>
-                {fields.length > 0 && (
-                  <Collapse
-                    activeKey={activeKeys}
-                    onChange={(keys) => setActiveKeys(keys)}
-                    style={{marginBottom: 16}}
-                  >
-                    {fields.map((field, idx) => {
-                      const panelKey = field.key.toString();
-                      const isOnlyOneItem = fields.length === 1;
-                      return (
-                        <Collapse.Panel
-                          key={panelKey}
-                          collapsible={isOnlyOneItem ? 'disabled' : 'header'}
-                          showArrow={!isOnlyOneItem}
-                          header={
-                            <Space style={{width: '100%', justifyContent: 'space-between'}}>
-                              <span style={{fontWeight: 'bold'}}>Item {idx + 1}</span>
-                              {fields.length > 1 && (
-                                <MinusCircleOutlined
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    remove(field.name);
-                                  }}
-                                  style={{color: '#ff4d4f'}}
-                                />
-                              )}
-                            </Space>
-                          }
-                        >
-                          <Form.Item
-                            {...field}
-                            label="Nama Item"
-                            name={[field.name, 'ITEM_NAME']}
-                            rules={[{required: true, message: 'Wajib diisi'}]}
-                          >
-                            <Input placeholder="Buket Mawar Merah"/>
-                          </Form.Item>
-                          <Form.Item {...field} label="Qty" name={[field.name, 'QUANTITY']}>
-                            <InputNumber style={{width: '100%'}} min={1}/>
-                          </Form.Item>
-                          <Form.Item {...field} label="Harga Satuan" name={[field.name, 'UNIT_PRICE']}>
-                            <InputNumber style={{width: '100%'}} min={0}/>
-                          </Form.Item>
-                          <Form.Item {...field} label="Subtotal" name={[field.name, 'SUBTOTAL']}>
-                            <InputNumber style={{width: '100%'}} min={0}/>
-                          </Form.Item>
-                          <Form.Item {...field} label="Catatan Custom" name={[field.name, 'CUSTOM_NOTES']}>
-                            <Input.TextArea rows={2}/>
-                          </Form.Item>
-                        </Collapse.Panel>
-                      );
-                    })}
-                  </Collapse>
-                )}
-                <Button
-                  type="dashed"
-                  onClick={() => {
-                    add();
-                    const nextVirtualKey = fields.length > 0
-                      ? (Math.max(...fields.map(f => f.key)) + 1).toString()
-                      : "0";
-                    setActiveKeys([nextVirtualKey]);
-                  }}
-                  block
-                  icon={<PlusOutlined/>}
-                >
-                  Tambah Item
-                </Button>
-              </>
-            );
-          }}
-        </Form.List>
+        <ItemPesananList/>
       </Card>
 
       {/* ================= PEMBAYARAN ================= */}
