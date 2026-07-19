@@ -77,9 +77,10 @@ function ItemPesananFields({
 }) {
   const quantity = Form.useWatch(['details', field.name, 'QUANTITY'], form);
   const unitPrice = Form.useWatch(['details', field.name, 'UNIT_PRICE'], form);
+  const [currencyData, setCurrencyData] = useState({currency: 'IDR', rate: 1});
 
   useEffect(() => {
-    const subtotal = Number(quantity || 0) * Number(unitPrice || 0);
+    const subtotal = Number(quantity || 0) * (Number(unitPrice || 0) * currencyData.rate);
     const currentDetails = form.getFieldValue('details') ?? [];
     // Hindari infinite loop: cuma set kalau nilainya memang berubah.
     if (currentDetails[field.name]?.SUBTOTAL !== subtotal) {
@@ -105,7 +106,11 @@ function ItemPesananFields({
       </Form.Item>
       <Form.Item {...field} label="Harga Satuan" name={[field.name, 'UNIT_PRICE']}
                  key={[field.name, 'UNIT_PRICE'].join("-")}>
-        <MoneyInput hasCurrency/>
+        <MoneyInput hasCurrency defaultCurrency={currencyData.currency}
+                    onCurrencyChange={(currency, rate) => setCurrencyData({currency, rate})}/>
+        {currencyData.currency != "IDR" && (
+          <Typography.Text>Rate: {Number(currencyData.rate).toLocaleString("id-ID")}</Typography.Text>
+        )}
       </Form.Item>
       <Form.Item {...field} label="Subtotal" name={[field.name, 'SUBTOTAL']} key={[field.name, 'SUBTOTAL'].join("-")}>
         <MoneyInput disabled/>

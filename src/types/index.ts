@@ -23,6 +23,8 @@ export type TransactionDetail = {
   ITEM_NAME: string;
   QUANTITY: number;
   UNIT_PRICE: number;
+  CURRENCY: string;
+  CURRENCY_RATE: number;
   CUSTOM_NOTES: string;
   SUBTOTAL: number;
   ITEM_STATUS: string;

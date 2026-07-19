@@ -7,7 +7,7 @@ import {useMasterData} from "@/components/common/MasterDataProvider";
 type MoneyInputProps = GetProps<typeof InputNumber> & {
   hasCurrency?: boolean;
   defaultCurrency?: string;
-  onCurrencyChange?: (currency: string) => void;
+  onCurrencyChange?: (currency: string, rate: number) => void;
 }
 
 const ALLOWED_CONTROL_KEYS = [
@@ -101,7 +101,8 @@ export default function MoneyInput({
               value={currency}
               onChange={(c) => {
                 setCurrency(c);
-                onCurrencyChange?.(c);
+                const currencyFind = CURRENCIES.find(e => e.value == c)!
+                onCurrencyChange?.(c, currencyFind.rateIdr);
               }}
               options={CURRENCIES.map(({ label, value }) => ({ label, value }))}
               style={{width: 80}}
