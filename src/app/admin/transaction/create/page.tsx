@@ -10,6 +10,8 @@ import TransactionForm, {
 import { apiClient } from '@/lib/apiClient';
 import {ItemStatus} from "@/types";
 import {useTelegramAuth} from "@/components/common/TelegramProvider";
+import {generateOrderId, generateOrderItemId} from "@/lib/sheets/transaction";
+import dayjs from "dayjs";
 
 const { Title } = Typography;
 
@@ -29,12 +31,48 @@ function CreateTransactionContent() {
   async function handleSubmit(values: TransactionFormValues) {
     setSubmitting(true);
     try {
-      const { details, ...transaction } = values;
+      const {
+        details,
+        // order-level fields that get copied into every line item
+        RECEIVER_NAME,
+        RECEIVER_ADDRESS,
+        RECEIVER_PHONE,
+        CARD_TO,
+        CARD_FROM,
+        CARD_MESSAGE,
+        CARD_CREATED_BY,
+        DELIVERY_METHOD,
+        DELIVERY_DATE,
+        DELIVERY_TIME,
+        DELIVERY_BY,
+        SHIPPING_FEE,
+        ...transaction
+      } = values;
+
+      const orderId = generateOrderId();
+      const deliveryDate = DELIVERY_DATE ? dayjs(DELIVERY_DATE as never).format('YYYY-MM-DD') : '';
+      const deliveryTime = DELIVERY_TIME ? dayjs(DELIVERY_TIME as never).format('HH:mm') : '';
+
       await apiClient.post('/api/transactions', {
-        transaction: { ...transaction, ORDER_ID: values.ORDER_ID },
-        details: (details ?? []).map((d) => ({
+        transaction: { ...transaction, ORDER_ID: orderId },
+        details: (details ?? []).map((d, idx) => ({
           ...d,
-          ITEM_STATUS: 'NEW ORDER' as ItemStatus,
+          ORDER_ID: orderId,
+          ORDER_ITEM_ID: generateOrderItemId(orderId, idx),
+          RECEIVER_NAME,
+          RECEIVER_ADDRESS,
+          RECEIVER_PHONE,
+          CARD_TO,
+          CARD_FROM,
+          CARD_MESSAGE,
+          CARD_CREATED_BY,
+          DELIVERY_METHOD,
+          DELIVERY_DATE: deliveryDate,
+          DELIVERY_TIME: deliveryTime,
+          DELIVERY_BY,
+          SHIPPING_FEE,
+          ITEM_STATUS: 'NEW ORDER',
+          CARD_STATUS: 'NEW ORDER',
         })),
       });
       message.success('Transaksi berhasil dibuat');
