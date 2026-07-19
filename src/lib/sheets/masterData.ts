@@ -16,6 +16,8 @@ export async function getMasterData(): Promise<MasterData> {
 
   const columns = await readSheetColumns(MASTER_DATA_SHEET);
 
+  console.log(`READ DATA ${MASTER_DATA_SHEET}`, columns)
+
   const data: MasterData = {
     ROLES: columns.ROLE ?? [],
     PAYMENT_METHODS: columns.PAYMENT_METHOD ?? [],
