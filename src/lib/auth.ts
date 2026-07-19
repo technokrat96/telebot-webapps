@@ -2,13 +2,14 @@ import { NextRequest } from 'next/server';
 import { validateTelegramInitData } from '@/lib/telegram';
 import { findUserByUsername } from '@/lib/sheets/users';
 import { hasAnyRole, parseRoles } from '@/lib/roles';
-import { User, UserRole } from '@/types';
+import { User } from '@/types';
+import {getMasterData} from "@/lib/sheets/masterData";
 
 export interface AuthContext {
   telegramUsername: string;
   user: User;
   /** Parsed from user.ROLE — a user can hold more than one role. */
-  roles: UserRole[];
+  roles: string[];
 }
 
 /**
@@ -21,7 +22,7 @@ export interface AuthContext {
  */
 export async function requireAuth(
   req: NextRequest,
-  allowedRoles?: UserRole[]
+  allowedRoles?: string[]
 ): Promise<AuthContext | null> {
   const initData = req.headers.get('x-telegram-init-data');
   if (!initData) return null;
@@ -32,7 +33,8 @@ export async function requireAuth(
   const user = await findUserByUsername(telegramUser.username);
   if (!user) return null;
 
-  const roles = parseRoles(user.ROLE);
+  const { ROLES } = await getMasterData();
+  const roles = parseRoles(ROLES, user.ROLE);
   if (allowedRoles && !hasAnyRole(roles, allowedRoles)) return null;
 
   return { telegramUsername: telegramUser.username, user, roles };

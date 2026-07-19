@@ -4,13 +4,13 @@ import { useEffect, useState } from 'react';
 import {Button, Card, Space, Tag, Typography, App} from 'antd';
 import RoleGuard from '@/components/common/RoleGuard';
 import { apiClient } from '@/lib/apiClient';
-import {DeliveryStatus, ItemStatus, TransactionWithDetails} from '@/types';
+import {TransactionWithDetails} from '@/types';
 import { filterOrdersByDeliveryStatus } from '@/lib/statusUtils';
 
 const { Title, Text, Paragraph } = Typography;
 
 // Next available action for an order currently at a given status.
-const NEXT_ACTION: Partial<Record<DeliveryStatus, { label: string; next: DeliveryStatus }[]>> = {
+const NEXT_ACTION: Partial<Record<string, { label: string; next: string }[]>> = {
   PICKUP: [{ label: 'Mulai Antar (On Delivery)', next: 'ON DELIVERY' }],
   "ON DELIVERY": [
     { label: 'Sudah Terkirim (Delivered)', next: 'DELIVERED' },
@@ -47,7 +47,7 @@ function KurirContent() {
       const res = await apiClient.get<{ orders: TransactionWithDetails[] }>(
         '/api/transaction-details'
       );
-      const relevantStatuses: DeliveryStatus[] = [
+      const relevantStatuses: string[] = [
         'PICKUP',
         'ON DELIVERY',
         'DELIVERED',
@@ -63,11 +63,7 @@ function KurirContent() {
     }
   }
 
-  useEffect(() => {
-    load();
-  }, []);
-
-  async function advance(orderId: string, status: ItemStatus) {
+  async function advance(orderId: string, status: string) {
     setBusyKey(orderId);
     try {
       await apiClient.patch(`/api/transactions/${orderId}/status`, { status });
@@ -80,6 +76,10 @@ function KurirContent() {
     }
   }
 
+  useEffect(() => {
+    load();
+  }, []);
+
   return (
     <div>
       <Title level={3}>Pengiriman</Title>
@@ -89,7 +89,7 @@ function KurirContent() {
 
       <Space orientation="vertical" size={16} style={{ width: '100%' }}>
         {orders.map((order) => {
-          const currentStatus = order.details[0]?.ITEM_STATUS as ItemStatus;
+          const currentStatus = order.details[0]?.ITEM_STATUS;
           const actions = NEXT_ACTION[currentStatus] ?? [];
           return (
             <Card key={order.ORDER_ID} loading={loading} title={`${order.ORDER_ID} · ${order.CUSTOMER_NAME}`}>

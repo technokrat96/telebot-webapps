@@ -3,21 +3,27 @@
 import {
   Button,
   Card,
+  Checkbox,
+  Col,
   Collapse,
   DatePicker,
   Form,
   FormListFieldData,
   FormListOperation,
   Input,
-  InputNumber,
+  Row,
   Select,
   Space,
   TimePicker,
   Typography
 } from 'antd';
 import {MinusCircleOutlined, PlusOutlined} from '@ant-design/icons';
-import {DELIVERY_METHODS, ORDER_SOURCES, PAYMENT_METHODS, Transaction, TransactionDetail} from '@/types';
+import {Transaction, TransactionDetail} from '@/types';
 import {Dispatch, SetStateAction, useEffect, useState} from "react";
+import PhoneNumberInput from "@/components/PhoneNumberInput";
+import MoneyInput from "@/components/MoneyInput";
+import NumberInput from "@/components/NumberInput";
+import {useMasterData} from "@/components/common/MasterDataProvider";
 
 const { Title } = Typography;
 
@@ -95,14 +101,14 @@ function ItemPesananFields({
         <Input placeholder="Buket Mawar Merah"/>
       </Form.Item>
       <Form.Item {...field} label="Qty" name={[field.name, 'QUANTITY']} key={[field.name, 'QUANTITY'].join("-")}>
-        <InputNumber style={{width: '100%'}} min={1}/>
+        <NumberInput style={{width: '100%'}} min={1}/>
       </Form.Item>
       <Form.Item {...field} label="Harga Satuan" name={[field.name, 'UNIT_PRICE']}
                  key={[field.name, 'UNIT_PRICE'].join("-")}>
-        <InputNumber style={{width: '100%'}} min={0}/>
+        <MoneyInput hasCurrency/>
       </Form.Item>
       <Form.Item {...field} label="Subtotal" name={[field.name, 'SUBTOTAL']} key={[field.name, 'SUBTOTAL'].join("-")}>
-        <InputNumber style={{width: '100%'}} min={0} disabled/>
+        <MoneyInput disabled/>
       </Form.Item>
       <Form.Item {...field} label="Catatan Custom" name={[field.name, 'CUSTOM_NOTES']}
                  key={[field.name, 'CUSTOM_NOTES'].join("-")}>
@@ -203,20 +209,55 @@ export default function TransactionForm({
   submitting?: boolean;
   isEdit?: boolean;
 }) {
+  const { data: { DELIVERY_METHODS, ORDER_SOURCES, PAYMENT_METHODS } } = useMasterData();
   const [form] = Form.useForm<TransactionFormValues>();
+  const [receiverSameAsCustomer, setReceiverSameAsCustomer] = useState(true);
 
   const detailsWatch = Form.useWatch('details', form);
   const downPaymentWatch = Form.useWatch('DOWN_PAYMENT', form);
   const shippingFeeWatch = Form.useWatch('SHIPPING_FEE', form);
 
+  const customerNameWatch = Form.useWatch('CUSTOMER_NAME', form);
+  const customerAddressWatch = Form.useWatch('CUSTOMER_ADDRESS', form);
+  const customerPhoneWatch = Form.useWatch('CUSTOMER_PHONE', form);
+
+  function handleReceiverSameAsCustomerChange(checked: boolean) {
+    setReceiverSameAsCustomer(checked);
+    if (checked) {
+      // Langsung sync begitu dicentang (tidak perlu tunggu watch berubah)
+      form.setFieldsValue({
+        RECEIVER_NAME: form.getFieldValue('CUSTOMER_NAME'),
+        RECEIVER_ADDRESS: form.getFieldValue('CUSTOMER_ADDRESS'),
+        RECEIVER_PHONE: form.getFieldValue('CUSTOMER_PHONE'),
+      });
+    } else {
+      // Uncheck -> kosongkan, biar user isi manual dari blank.
+      form.setFieldsValue({
+        RECEIVER_NAME: '',
+        RECEIVER_ADDRESS: '',
+        RECEIVER_PHONE: '',
+      });
+    }
+  }
+
   useEffect(() => {
     const grandTotal = (detailsWatch ?? []).reduce(
-      (sum, d) => sum + Number(d?.SUBTOTAL || 0),
+      (sum, d) => sum + Number(d?.SUBTOTAL || '0'),
       0
     );
     const remaining = (grandTotal + Number(shippingFeeWatch || 0)) - Number(downPaymentWatch || 0);
     form.setFieldsValue({ GRAND_TOTAL: grandTotal, REMAINING_BALANCE: remaining });
   }, [shippingFeeWatch, detailsWatch, downPaymentWatch, form]);
+
+  useEffect(() => {
+    if (!receiverSameAsCustomer) return;
+    form.setFieldsValue({
+      RECEIVER_NAME: customerNameWatch,
+      RECEIVER_ADDRESS: customerAddressWatch,
+      RECEIVER_PHONE: customerPhoneWatch,
+    });
+  }, [receiverSameAsCustomer, customerNameWatch, customerAddressWatch, customerPhoneWatch, form]);
+
 
   return (
     <Form
@@ -246,39 +287,50 @@ export default function TransactionForm({
           <Input disabled/>
         </Form.Item>
       </Card>
-
-      <Card style={{marginBottom: 16}}>
-        <Title level={5}>Pelanggan</Title>
-        <Form.Item
-          label="Nama Pelanggan"
-          name="CUSTOMER_NAME"
-          rules={[{required: true, message: 'Nama pelanggan wajib diisi'}]}
-        >
-          <Input/>
-        </Form.Item>
-        <Form.Item label="Alamat Pelanggan" name="CUSTOMER_ADDRESS">
-          <Input.TextArea rows={2}/>
-        </Form.Item>
-        <Form.Item label="Telepon Pelanggan" name="CUSTOMER_PHONE">
-          <Input/>
-        </Form.Item>
-        <Form.Item label="Email Pelanggan" name="CUSTOMER_EMAIL">
-          <Input type="email"/>
-        </Form.Item>
-      </Card>
-      {/* ================= PENERIMA ================= */}
-      <Card style={{marginBottom: 16}}>
-        <Title level={5}>Penerima</Title>
-        <Form.Item label="Nama Penerima" name="RECEIVER_NAME">
-          <Input/>
-        </Form.Item>
-        <Form.Item label="Alamat Penerima" name="RECEIVER_ADDRESS">
-          <Input.TextArea rows={2}/>
-        </Form.Item>
-        <Form.Item label="Telepon Penerima" name="RECEIVER_PHONE">
-          <Input/>
-        </Form.Item>
-      </Card>
+      <Row gutter={12} style={{marginBottom: 16}}>
+        <Col span={24} xl={12}>
+          <Card style={{height: "100%"}}>
+            <Title level={5}>Pelanggan</Title>
+            <Form.Item
+              label="Nama Pelanggan"
+              name="CUSTOMER_NAME"
+              rules={[{required: true, message: 'Nama pelanggan wajib diisi'}]}
+            >
+              <Input/>
+            </Form.Item>
+            <Form.Item label="Alamat Pelanggan" name="CUSTOMER_ADDRESS">
+              <Input.TextArea rows={2}/>
+            </Form.Item>
+            <Form.Item label="Telepon Pelanggan" name="CUSTOMER_PHONE">
+              <PhoneNumberInput/>
+            </Form.Item>
+            <Form.Item label="Email Pelanggan" name="CUSTOMER_EMAIL">
+              <Input type="email"/>
+            </Form.Item>
+          </Card>
+        </Col>
+        <Col span={24} xl={12}>
+          <Card style={{height: "100%"}}>
+            <Title level={5}>Penerima</Title>
+            <Checkbox
+              checked={receiverSameAsCustomer}
+              onChange={(e) => handleReceiverSameAsCustomerChange(e.target.checked)}
+              style={{marginBottom: 16}}
+            >
+              Sama dengan Pelanggan
+            </Checkbox>
+            <Form.Item label="Nama Penerima" name="RECEIVER_NAME">
+              <Input disabled={receiverSameAsCustomer}/>
+            </Form.Item>
+            <Form.Item label="Alamat Penerima" name="RECEIVER_ADDRESS">
+              <Input.TextArea rows={2} disabled={receiverSameAsCustomer}/>
+            </Form.Item>
+            <Form.Item label="Telepon Penerima" name="RECEIVER_PHONE">
+              <PhoneNumberInput disabled={receiverSameAsCustomer}/>
+            </Form.Item>
+          </Card>
+        </Col>
+      </Row>
 
       {/* ================= KARTU UCAPAN ================= */}
       <Card style={{marginBottom: 16}}>
@@ -290,6 +342,9 @@ export default function TransactionForm({
           <Input/>
         </Form.Item>
         <Form.Item label="Pesan Kartu Ucapan" name="CARD_MESSAGE">
+          <Input.TextArea rows={2}/>
+        </Form.Item>
+        <Form.Item label="Note untuk Kartu Ucapan" name="CARD_NOTE">
           <Input.TextArea rows={2}/>
         </Form.Item>
       </Card>
@@ -310,7 +365,7 @@ export default function TransactionForm({
           <TimePicker style={{width: '100%'}} format="HH:mm"/>
         </Form.Item>
         <Form.Item label="Ongkos Kirim" name="SHIPPING_FEE">
-          <InputNumber style={{width: '100%'}} min={0}/>
+          <MoneyInput/>
         </Form.Item>
       </Card>
       <Card style={{marginBottom: 16}}>
@@ -328,7 +383,7 @@ export default function TransactionForm({
           />
         </Form.Item>
         <Form.Item label="Uang Muka (DP)" name="DOWN_PAYMENT">
-          <InputNumber style={{ width: '100%' }} min={0} />
+          <MoneyInput/>
         </Form.Item>
       </Card>
 
@@ -336,10 +391,10 @@ export default function TransactionForm({
       <Card style={{ marginBottom: 16 }}>
         <Title level={5}>Summary</Title>
         <Form.Item label="Grand Total" name="GRAND_TOTAL">
-          <InputNumber style={{ width: '100%' }} disabled />
+          <MoneyInput disabled/>
         </Form.Item>
         <Form.Item label="Sisa Pembayaran" name="REMAINING_BALANCE">
-          <InputNumber style={{ width: '100%' }} disabled />
+          <MoneyInput disabled/>
         </Form.Item>
       </Card>
 

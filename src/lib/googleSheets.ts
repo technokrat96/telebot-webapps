@@ -139,3 +139,38 @@ async function getHeader(sheetName: string): Promise<string[]> {
   if (!header) throw new Error(`Sheet ${sheetName} has no header row`);
   return header;
 }
+
+/**
+ * Reads a sheet organized as columns of independent lists (not row-records).
+ * Each header is a category name, and every non-empty cell below it in that
+ * column is one value of that category. Columns can have different lengths
+ * (shorter columns just have blank cells below their last value) — blank
+ * cells are filtered out, not treated as valid entries.
+ *
+ * Used for the `MasterData` sheet: ROLE | PAYMENT_METHOD | ORDER_SOURCE | ...
+ */
+export async function readSheetColumns(
+  sheetName: string
+): Promise<Record<string, string[]>> {
+  const sheets = getClient();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: getSpreadsheetId(),
+    range: sheetName,
+  });
+
+  const rows = res.data.values ?? [];
+  if (rows.length === 0) return {};
+
+  const [header, ...body] = rows;
+  const result: Record<string, string[]> = {};
+
+  header.forEach((key, colIndex) => {
+    if (!key) return;
+    const values = body
+      .map((row) => row[colIndex])
+      .filter((v): v is string => !!v && v.trim() !== '');
+    result[key] = values;
+  });
+
+  return result;
+}

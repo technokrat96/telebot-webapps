@@ -2,11 +2,11 @@
 
 import {Table, Tag, Button, Typography, Space, GetProp} from 'antd';
 import { useRouter } from 'next/navigation';
-import {ItemStatus, TransactionWithDetails} from '@/types';
+import {TransactionWithDetails} from '@/types';
 
 const { Text } = Typography;
 
-const STATUS_COLORS: Record<ItemStatus, GetProp<typeof Tag, "color">> = {
+const STATUS_COLORS: Record<string, GetProp<typeof Tag, "color">> = {
   "NEW ORDER": 'default',
   "ON PROGRESS": 'processing',
   DONE: 'success',

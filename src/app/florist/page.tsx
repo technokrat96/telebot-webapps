@@ -5,12 +5,12 @@ import {Button, Card, Space, Tag, Typography, Popconfirm, App, GetProp} from 'an
 import RoleGuard from '@/components/common/RoleGuard';
 import { useTelegramAuth } from '@/components/common/TelegramProvider';
 import { apiClient } from '@/lib/apiClient';
-import {ItemStatus, TransactionWithDetails} from '@/types';
+import {TransactionWithDetails} from '@/types';
 import { isOrderFullyDone } from '@/lib/statusUtils';
 
 const { Title, Text, Paragraph } = Typography;
 
-const STATUS_COLORS: Record<ItemStatus, GetProp<typeof Tag, "color">> = {
+const STATUS_COLORS: Record<string, GetProp<typeof Tag, "color">> = {
   "NEW ORDER": 'default',
   "ON PROGRESS": 'processing',
   DONE: 'success',
@@ -52,11 +52,7 @@ function FloristContent() {
     }
   }
 
-  useEffect(() => {
-    load();
-  }, []);
-
-  async function updateItemStatus(orderItemId: string, status: Extract<ItemStatus, "ON PROGRESS" | "DONE">) {
+  async function updateItemStatus(orderItemId: string, status: "ON PROGRESS" | "DONE") {
     setBusyKey(orderItemId);
     try {
       await apiClient.patch(`/api/transaction-details/${orderItemId}/status`, {
@@ -86,6 +82,10 @@ function FloristContent() {
       setBusyKey(null);
     }
   }
+
+  useEffect(() => {
+    load();
+  }, []);
 
   return (
     <div>

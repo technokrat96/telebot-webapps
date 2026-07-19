@@ -1,5 +1,5 @@
 import { appendRow, readSheet, updateRow } from '@/lib/googleSheets';
-import {ItemStatus, Transaction, TransactionDetail, TransactionWithDetails} from '@/types';
+import {Transaction, TransactionDetail, TransactionWithDetails} from '@/types';
 
 const TRANSACTION_SHEET = 'Transaction';
 const TRANSACTION_DETAIL_SHEET = 'Transaction Detail';
@@ -105,13 +105,13 @@ export async function updateTransactionDetailDeliveryStatus(
  */
 export async function updateAllItemStatusForOrder(
   orderId: string,
-  status: ItemStatus
+  itemStatus: string
 ): Promise<void> {
   const details = await listTransactionDetails();
   const orderItems = details.filter((d) => d.ORDER_ID === orderId);
   for (const item of orderItems) {
     await updateRow(TRANSACTION_DETAIL_SHEET, 'ORDER_ITEM_ID', item.ORDER_ITEM_ID, {
-      ITEM_STATUS: status,
+      ITEM_STATUS: itemStatus,
     });
   }
 }

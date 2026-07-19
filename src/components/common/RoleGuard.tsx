@@ -2,13 +2,12 @@
 
 import { Result } from 'antd';
 import { useTelegramAuth } from './TelegramProvider';
-import { UserRole } from '@/types';
 
 export default function RoleGuard({
   allow,
   children,
 }: {
-  allow: UserRole[];
+  allow: string[];
   children: React.ReactNode;
 }) {
   const { roles, name } = useTelegramAuth();

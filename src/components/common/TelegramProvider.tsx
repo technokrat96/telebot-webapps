@@ -2,7 +2,6 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { Alert, Spin } from 'antd';
-import { UserRole } from '@/types';
 import {init} from "@tma.js/sdk";
 import { retrieveRawInitData } from "@tma.js/sdk-react";
 
@@ -11,7 +10,7 @@ interface AuthState {
   error: string | null;
   name: string | null;
   /** A user can hold more than one role (e.g. ADMIN + FLORIST). */
-  roles: UserRole[];
+  roles: string[];
   username: string | null;
 }
 

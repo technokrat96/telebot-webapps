@@ -4,6 +4,7 @@ import {App, ConfigProvider} from 'antd';
 import TelegramProvider from '@/components/common/TelegramProvider';
 import AppShell from '@/components/common/AppShell';
 import './globals.css';
+import MasterDataProvider from "@/components/common/MasterDataProvider";
 
 export const metadata: Metadata = {
   title: 'Florist Telegram App',
@@ -32,10 +33,13 @@ export default function RootLayout({
                 borderRadius: 8,
               },
             }}
+            componentSize={"large"}
           >
             <App>
               <TelegramProvider>
-                <AppShell>{children}</AppShell>
+                <MasterDataProvider>
+                  <AppShell>{children}</AppShell>
+                </MasterDataProvider>
               </TelegramProvider>
             </App>
           </ConfigProvider>

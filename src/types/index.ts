@@ -1,12 +1,3 @@
-export type UserRole = 'ADMIN' | 'FLORIST' | 'KURIR';
-export type PaymentMethod = 'CASH' | 'BCA' | 'MANDIRI' | 'PAYPAL';
-export type OrderSource = 'WA' | 'WEB';
-export type ItemStatus = 'NEW ORDER' | 'ON PROGRESS' | 'DONE' | 'PENDING' | 'CANCELLED' | 'RESCHEDULED';
-export type DeliveryMethod = 'DELIVERY' | 'PICKUP';
-export type DeliveryStatus = 'PICKUP' | 'ON DELIVERY' | 'DELIVERED' | 'RECEIVED' | 'RETURNED';
-export type CardStatus = 'NEW ORDER' | 'ON PROGRESS' | 'DONE' | 'CANCELLED';
-export type InvoiceStatus = 'UNPAID' | 'PARTIALLY_PAID' | 'PAID';
-
 export interface User {
   USERNAME: string;
   NAME: string;
@@ -14,7 +5,7 @@ export interface User {
 }
 export type Transaction = {
   ORDER_ID: string;
-  ORDER_SOURCE: OrderSource;
+  ORDER_SOURCE: string;
   SALES_NAME: string;
   CUSTOMER_NAME: string;
   CUSTOMER_ADDRESS: string;
@@ -23,7 +14,7 @@ export type Transaction = {
   GRAND_TOTAL: number;
   DOWN_PAYMENT: number;
   REMAINING_BALANCE: number;
-  PAYMENT_METHOD: PaymentMethod;
+  PAYMENT_METHOD: string;
 }
 
 export type TransactionDetail = {
@@ -34,18 +25,18 @@ export type TransactionDetail = {
   UNIT_PRICE: number;
   CUSTOM_NOTES: string;
   SUBTOTAL: number;
-  ITEM_STATUS: ItemStatus;
+  ITEM_STATUS: string;
   FLORIST_NAME: string;
   CARD_TO: string;
   CARD_MESSAGE: string;
   CARD_FROM: string;
   CARD_CREATED_BY: string;
-  CARD_STATUS: CardStatus;
+  CARD_STATUS: string;
   DELIVERY_BY: string;
-  DELIVERY_METHOD: DeliveryMethod;
+  DELIVERY_METHOD: string;
   DELIVERY_DATE: string;
   DELIVERY_TIME: string;
-  DELIVERY_STATUS: DeliveryStatus;
+  DELIVERY_STATUS: string;
   SHIPPING_FEE: number;
   RECEIVER_NAME: string;
   RECEIVER_ADDRESS: string;
@@ -59,7 +50,7 @@ export type Invoice = {
   DUE_DATE: string;
   TOTAL_AMOUNT: number;
   AMOUNT_PAID: number;
-  INVOICE_STATUS: InvoiceStatus;
+  INVOICE_STATUS: string;
   BILLED_TO: string;
   BILLED_ADDRESS: string;
   BILLED_PHONE: string;
@@ -73,6 +64,19 @@ export type InvoiceDetail = {
   PRICE_BILLED: number;
 }
 
+export type MasterData = {
+  ROLES: string[];
+  PAYMENT_METHODS: string[];
+  ORDER_SOURCES: string[];
+  ITEM_STATUSES: string[];
+  DELIVERY_METHODS: string[];
+  DELIVERY_STATUSES: string[];
+  CARD_STATUSES: string[];
+  INVOICE_STATUSES: string[];
+  CURRENCY: string[];
+  CURRENCY_RATE_IDR: number[];
+}
+
 export type TransactionWithDetails = Transaction & {
   details: TransactionDetail[];
 }
@@ -80,12 +84,3 @@ export type TransactionWithDetails = Transaction & {
 export type InvoiceWithDetails = Invoice & {
   details: InvoiceDetail[];
 }
-
-export const ROLES: UserRole[] = ['ADMIN', 'FLORIST', 'KURIR'];
-export const PAYMENT_METHODS: PaymentMethod[] = ['CASH', 'BCA', 'MANDIRI', 'PAYPAL'];
-export const ORDER_SOURCES: OrderSource[] = ['WA', 'WEB'];
-export const ITEM_STATUSES: ItemStatus[] = ['NEW ORDER', 'ON PROGRESS', 'DONE', 'PENDING', 'CANCELLED', 'RESCHEDULED'];
-export const DELIVERY_METHODS: DeliveryMethod[] = ['DELIVERY', 'PICKUP'];
-export const DELIVERY_STATUSES: DeliveryStatus[] = ['PICKUP', 'ON DELIVERY', 'DELIVERED', 'RECEIVED', 'RETURNED'];
-export const CARD_STATUSES: CardStatus[] = ['NEW ORDER', 'ON PROGRESS', 'DONE', 'CANCELLED'];
-export const INVOICE_STATUSES: InvoiceStatus[] = ['UNPAID', 'PARTIALLY_PAID', 'PAID'];

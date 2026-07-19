@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { updateAllItemStatusForOrder } from '@/lib/sheets/transaction';
-import { ITEM_STATUSES } from '@/types';
+import {getMasterData} from "@/lib/sheets/masterData";
 
 // PATCH body: { status: ItemStatus }
 // Applies the status to every line item of the order at once. Used by:
@@ -14,6 +14,8 @@ export async function PATCH(
 ) {
   const auth = await requireAuth(req, ['FLORIST', 'KURIR', 'ADMIN']);
   if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { ITEM_STATUSES } = await getMasterData();
 
   const { id } = await params;
   const { status } = await req.json();
