@@ -28,7 +28,10 @@ export async function getMasterData(): Promise<MasterData> {
     CARD_STATUSES: columns.CARD_STATUS ?? [],
     INVOICE_STATUSES: columns.INVOICE_STATUS ?? [],
     CURRENCY: columns.CURRENCY ?? [],
-    CURRENCY_RATE_IDR: (columns.CURRENCY_RATE_IDR ?? []).map(e => Number(e)),
+    CURRENCY_RATE_IDR: (columns.CURRENCY_RATE_IDR ?? []).map(e => {
+      const decimalLength = e.split(",")?.[1]?.length ?? 0;
+      return Number(e.replace(/[^\d]/g, '')) / (10**decimalLength)
+    }),
   };
 
   cache = { data, fetchedAt: Date.now() };
