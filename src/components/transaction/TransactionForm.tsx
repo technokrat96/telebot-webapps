@@ -79,12 +79,13 @@ function ItemPesananFields({
   const quantity = Form.useWatch(['details', field.name, 'QUANTITY'], form);
   const unitPrice = Form.useWatch(['details', field.name, 'UNIT_PRICE'], form);
   const currency = Form.useWatch(['details', field.name, 'CURRENCY'], form);
-  const currencyRate = Form.useWatch(['details', field.name, 'CURRENCY_RATE'], form);
-  const [currencyData, setCurrencyData] = useState({currency: 'IDR', rate: 1});
-  // console.log(currencyData)
+
+  const currencyData = useMemo(() => {
+    return CURRENCY.find(e => e.value == currency);
+  }, [CURRENCY, currency]);
 
   useEffect(() => {
-    const subtotal = Number(quantity || 0) * (Number(unitPrice || 0) * currencyData.rate);
+    const subtotal = Number(quantity || 0) * (Number(unitPrice || 0) * (currencyData?.rate ?? 1));
     const currentDetails = form.getFieldValue('details') ?? [];
     // Hindari infinite loop: cuma set kalau nilainya memang berubah.
     if (currentDetails[field.name]?.SUBTOTAL !== subtotal) {
@@ -92,7 +93,7 @@ function ItemPesananFields({
       next[field.name] = {...next[field.name], SUBTOTAL: subtotal};
       form.setFieldsValue({details: next});
     }
-  }, [currencyData.rate, quantity, unitPrice, field.name, form]);
+  }, [currencyData, quantity, unitPrice, field.name, form]);
 
   useEffect(() => {
     const currentDetails = form.getFieldValue('details') ?? [];
@@ -107,17 +108,17 @@ function ItemPesananFields({
     //   }
     // }
     // form.setFieldsValue({details: next});
-  }, [currency, currencyData.rate, field.name, form]);
+  }, [currency, currencyData, field.name, form]);
 
   useEffect(() => {
     const currentDetails = form.getFieldValue('details') ?? [];
     // Hindari infinite loop: cuma set kalau nilainya memang berubah.
     const next = [...currentDetails];
-    if (currentDetails[field.name]?.CURRENCY_RATE !== currencyData.rate) {
-      next[field.name] = {...next[field.name], CURRENCY_RATE: currencyData.rate};
+    if (currentDetails[field.name]?.CURRENCY_RATE !== currencyData?.rate) {
+      next[field.name] = {...next[field.name], CURRENCY_RATE: currencyData?.rate};
       form.setFieldsValue({details: next});
     }
-  }, [currencyData.rate, field.name, form]);
+  }, [currency, currencyData, field.name, form]);
 
   return (
     <>
@@ -146,8 +147,8 @@ function ItemPesananFields({
           </Form.Item>
           <Form.Item {...field} name={[field.name, 'UNIT_PRICE']} key={[field.name, 'UNIT_PRICE'].join("-")} style={{ width: '100%' }}>
             <MoneyInput />
-            {currencyData.currency != "IDR" && (
-              <Typography.Text>Rate: {Number(currencyData.rate).toLocaleString("id-ID")}</Typography.Text>
+            {currencyData?.value != "IDR" && (
+              <Typography.Text>Rate: {Number(currencyData?.rate ?? '1').toLocaleString("id-ID")}</Typography.Text>
             )}
           </Form.Item>
         </Space.Compact>

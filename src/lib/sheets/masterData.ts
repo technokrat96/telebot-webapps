@@ -35,7 +35,7 @@ export async function getMasterData(): Promise<MasterData> {
     initialCurrency,
     ...(columns.CURRENCY ?? []).map((e, i) => {
       const [currency, locale, rate] = e.split('_');
-      return { label: currency, value: currency, locale: locale ?? 'en-US', rate: Number(rate ?? '0') };
+      return { label: currency, value: currency, locale: locale ?? 'en-US', rate: Number(rate ?? '1') };
     })
   ]
 
