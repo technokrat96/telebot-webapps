@@ -19,7 +19,7 @@ import {
 } from 'antd';
 import {MinusCircleOutlined, PlusOutlined} from '@ant-design/icons';
 import {Transaction, TransactionDetail} from '@/types';
-import {Dispatch, SetStateAction, useEffect, useState} from "react";
+import {Dispatch, SetStateAction, useEffect, useMemo, useState} from "react";
 import PhoneNumberInput from "@/components/PhoneNumberInput";
 import MoneyInput from "@/components/MoneyInput";
 import NumberInput from "@/components/NumberInput";
@@ -75,9 +75,13 @@ function ItemPesananFields({
   field: Omit<FormListFieldData, "key">;
   form: ReturnType<typeof Form.useFormInstance<TransactionFormValues>>;
 }) {
+  const { data: { CURRENCY } } = useMasterData();
   const quantity = Form.useWatch(['details', field.name, 'QUANTITY'], form);
   const unitPrice = Form.useWatch(['details', field.name, 'UNIT_PRICE'], form);
+  const currency = Form.useWatch(['details', field.name, 'CURRENCY'], form);
+  const currencyRate = Form.useWatch(['details', field.name, 'CURRENCY_RATE'], form);
   const [currencyData, setCurrencyData] = useState({currency: 'IDR', rate: 1});
+  // console.log(currencyData)
 
   useEffect(() => {
     const subtotal = Number(quantity || 0) * (Number(unitPrice || 0) * currencyData.rate);
@@ -92,13 +96,18 @@ function ItemPesananFields({
 
   useEffect(() => {
     const currentDetails = form.getFieldValue('details') ?? [];
+    console.log(currentDetails, currencyData);
     // Hindari infinite loop: cuma set kalau nilainya memang berubah.
-    const next = [...currentDetails];
-    if (currentDetails[field.name]?.CURRENCY !== currencyData.currency) {
-      next[field.name] = {...next[field.name], CURRENCY: currencyData.currency};
-      form.setFieldsValue({details: next});
-    }
-  }, [currencyData.currency, field.name, form]);
+    // const next = [...currentDetails];
+    // if (currentDetails[field.name]?.CURRENCY == "IDR") {
+    //   next[field.name] = {...next[field.name], UNIT_PRICE: (currentDetails[field.name]?.UNIT_PRICE ?? 0) / currencyData.rate};
+    // } else {
+    //   if (currencyData.currency == "IDR") {
+    //     next[field.name] = {...next[field.name], UNIT_PRICE: (currentDetails[field.name]?.UNIT_PRICE ?? 0) * currencyData.rate};
+    //   }
+    // }
+    // form.setFieldsValue({details: next});
+  }, [currency, currencyData.rate, field.name, form]);
 
   useEffect(() => {
     const currentDetails = form.getFieldValue('details') ?? [];
@@ -124,21 +133,24 @@ function ItemPesananFields({
       <Form.Item {...field} label="Qty" name={[field.name, 'QUANTITY']} key={[field.name, 'QUANTITY'].join("-")}>
         <NumberInput style={{width: '100%'}} min={1}/>
       </Form.Item>
-      <Form.Item {...field} label="Mata Uang" name={[field.name, 'CURRENCY']}
-                 key={[field.name, 'CURRENCY'].join("-")}>
-        <Input />
-      </Form.Item>
-      <Form.Item {...field} label="Konversi Mata Uang ke IDR" name={[field.name, 'CURRENCY_RATE']}
-                 key={[field.name, 'CURRENCY_RATE'].join("-")}>
-        <Input />
-      </Form.Item>
-      <Form.Item {...field} label="Harga Satuan" name={[field.name, 'UNIT_PRICE']}
-                 key={[field.name, 'UNIT_PRICE'].join("-")}>
-        <MoneyInput hasCurrency defaultCurrency={currencyData.currency}
-                    onCurrencyChange={(currency, rate) => setCurrencyData({currency, rate})}/>
-        {currencyData.currency != "IDR" && (
-          <Typography.Text>Rate: {Number(currencyData.rate).toLocaleString("id-ID")}</Typography.Text>
-        )}
+      <Form.Item label="Harga Satuan" style={{ width: '100%' }}>
+        <Space.Compact style={{ width: '100%' }}>
+          <Form.Item {...field} name={[field.name, 'CURRENCY']} key={[field.name, 'CURRENCY'].join("-")}>
+            <Select
+              options={CURRENCY.map(({ label, value }) => ({ label, value }))}
+              style={{ width: 80 }}
+            />
+          </Form.Item>
+          <Form.Item {...field} name={[field.name, 'CURRENCY_RATE']} key={[field.name, 'CURRENCY_RATE'].join("-")}>
+            <Input/>
+          </Form.Item>
+          <Form.Item {...field} name={[field.name, 'UNIT_PRICE']} key={[field.name, 'UNIT_PRICE'].join("-")} style={{ width: '100%' }}>
+            <MoneyInput />
+            {currencyData.currency != "IDR" && (
+              <Typography.Text>Rate: {Number(currencyData.rate).toLocaleString("id-ID")}</Typography.Text>
+            )}
+          </Form.Item>
+        </Space.Compact>
       </Form.Item>
       <Form.Item {...field} label="Subtotal" name={[field.name, 'SUBTOTAL']} key={[field.name, 'SUBTOTAL'].join("-")}>
         <MoneyInput disabled/>

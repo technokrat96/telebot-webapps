@@ -18,6 +18,7 @@ export async function getMasterData(): Promise<MasterData> {
 
   console.log(`READ DATA ${MASTER_DATA_SHEET}`, columns)
 
+  const initialCurrency = { label: 'IDR', value: 'IDR', locale: 'id-ID', rate: 1 };
   const data: MasterData = {
     ROLES: columns.ROLE ?? [],
     PAYMENT_METHODS: columns.PAYMENT_METHOD ?? [],
@@ -27,12 +28,16 @@ export async function getMasterData(): Promise<MasterData> {
     DELIVERY_STATUSES: columns.DELIVERY_STATUS ?? [],
     CARD_STATUSES: columns.CARD_STATUS ?? [],
     INVOICE_STATUSES: columns.INVOICE_STATUS ?? [],
-    CURRENCY: columns.CURRENCY ?? [],
-    CURRENCY_RATE_IDR: (columns.CURRENCY_RATE_IDR ?? []).map(e => {
-      const decimalLength = e.split(",")?.[1]?.length ?? 0;
-      return Number(e.replace(/[^\d]/g, '')) / (10**decimalLength)
-    }),
+    CURRENCY: [],
   };
+
+  data.CURRENCY = [
+    initialCurrency,
+    ...(columns.CURRENCY ?? []).map((e, i) => {
+      const [currency, locale, rate] = e.split('_');
+      return { label: currency, value: currency, locale: locale ?? 'en-US', rate: Number(rate ?? '0') };
+    })
+  ]
 
   cache = { data, fetchedAt: Date.now() };
   return data;

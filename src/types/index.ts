@@ -75,8 +75,7 @@ export type MasterData = {
   DELIVERY_STATUSES: string[];
   CARD_STATUSES: string[];
   INVOICE_STATUSES: string[];
-  CURRENCY: string[];
-  CURRENCY_RATE_IDR: number[];
+  CURRENCY: { label: string; value: string; locale: string; rate: number }[];
 }
 
 export type TransactionWithDetails = Transaction & {

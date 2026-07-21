@@ -1,14 +1,12 @@
 'use client';
 
-import { GetProps, InputNumber, Select, Space } from 'antd';
-import { useState } from 'react';
+import {Form, FormItemProps, GetProps, Input, InputNumber, Select, Space} from 'antd';
+import {useMemo, useState} from 'react';
 import { useMasterData } from '@/components/common/MasterDataProvider';
 
 type MoneyInputProps = GetProps<typeof InputNumber> & {
-  hasCurrency?: boolean;
-  defaultCurrency?: string;
-  onCurrencyChange?: (currency: string, rate: number) => void;
-};
+  currency?: string;
+}
 
 const ALLOWED_CONTROL_KEYS = [
   'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
@@ -41,106 +39,73 @@ function makeKeyDownHandler(allowDecimal: boolean) {
 }
 
 export default function MoneyInput({
-                                     value,
-                                     onChange,
-                                     hasCurrency,
+                                     currency = "IDR",
                                      disabled,
-                                     placeholder,
-                                     defaultCurrency = 'IDR',
-                                     onCurrencyChange,
                                      ...props
                                    }: MoneyInputProps) {
-  const { data: { CURRENCY, CURRENCY_RATE_IDR } } = useMasterData();
+  const { data: { CURRENCY } } = useMasterData();
+  const { value: defaultCurrency, locale: defaultLocale, rate: defaultCurrencyRate } = CURRENCY?.[0] ?? {};
 
-  const CURRENCIES = [
-    { label: 'IDR', value: 'IDR', locale: 'id-ID', rateIdr: 1 },
-    ...CURRENCY.map((e, i) => {
-      const [v, locale] = e.split('_');
-      return { label: v, value: v, locale: locale || 'en-US', rateIdr: CURRENCY_RATE_IDR[i] };
-    }),
-  ];
+  const {
+    isIDR,
+    localeActive,
+    formatter,
+    groupSeparator,
+    decimalSeparator,
+    currencyRateActive,
+  } = useMemo(() => {
+    const isIDR = currency === 'IDR';
+    const currencyItem = CURRENCY.find((c) => c.value === currency);
+    const localeActive = currencyItem?.locale ?? defaultLocale;
+    const currencyRateActive = currencyItem?.rate ?? defaultCurrencyRate;
+    const formatter = new Intl.NumberFormat(localeActive, {
+      currency,
+      style: "currency",
+      maximumFractionDigits: isIDR ? 0 : 2,
+    });
+    const sampleParts = formatter.formatToParts(1000000.1);
+    const groupSeparator = sampleParts.find(p => p.type === 'group')?.value ?? (isIDR ? "." : ",");
+    const decimalSeparator = sampleParts.find(p => p.type === 'decimal')?.value ?? (isIDR ? "," : ".");
 
-  const [currency, setCurrency] = useState<string>(defaultCurrency);
-  const isIDR = currency === 'IDR';
-  const groupingLocale = CURRENCIES.find((c) => c.value === currency)?.locale ?? 'en-US';
-
-  function handleCurrencyChange(c: string) {
-    setCurrency(c);
-    const currencyFind = CURRENCIES.find((e) => e.value === c)!;
-
-    // Switching TO IDR: enforce integer immediately, so displayed value
-    // and stored Form value never drift apart (no leftover decimals).
-    if (c === 'IDR' && typeof value === 'number') {
-      onChange?.(Math.round(value));
+    return {
+      isIDR,
+      formatter,
+      localeActive,
+      groupSeparator,
+      decimalSeparator,
+      currencyRateActive,
     }
+  }, [currency, CURRENCY, defaultLocale, defaultCurrencyRate]);
 
-    onCurrencyChange?.(c, currencyFind.rateIdr);
-  }
-
-  const input = (
+  return (
     <InputNumber
       {...props}
       style={props.style ?? { width: '100%' }}
       min={props.min ?? 0}
       max={props.max ?? Number.MAX_SAFE_INTEGER}
-      defaultValue={props.defaultValue ?? 0}
-      value={value}
       onKeyDown={makeKeyDownHandler(!isIDR)}
-      onChange={(v) => onChange?.(v)}
       disabled={disabled}
-      placeholder={placeholder}
       inputMode="numeric"
-      // Display: IDR -> "1.000.000" (integer, dot grouping).
-      // non-IDR -> "1,234.56" (comma grouping, dot decimal, up to 2 digits).
       formatter={(val) => {
         if (val === undefined || val === null || val === '') return '';
 
-        if (isIDR) {
-          const digitsOnly = String(val).replace(/[^\d]/g, '');
-          if (!digitsOnly) return '';
-          return Number(digitsOnly).toLocaleString('id-ID');
-        }
+        const [digits, decimals] = String(val).split(decimalSeparator);
+        const digitsOnly = digits.replace(/[^\d]/g, '');
 
-        const [intPart, decPart] = String(val).split('.');
-        const intDigits = intPart.replace(/[^\d]/g, '');
-        const groupedInt = intDigits ? Number(intDigits).toLocaleString(groupingLocale) : '0';
-        return decPart !== undefined
-          ? `${groupedInt}.${decPart.replace(/[^\d]/g, '').slice(0, 2)}`
-          : groupedInt;
+        const numberVal = Number((`${digitsOnly}${decimals ? `.${decimals}` : ''}`));
+
+        return formatter.format(numberVal >= Number.MAX_SAFE_INTEGER ? Number.MAX_SAFE_INTEGER : numberVal);
       }}
-      // Parse back to a clean number. IDR: integer only. non-IDR: keep a
-      // single decimal point, strip thousand-separator commas.
       parser={(val) => {
-        if (!val) return 0 as unknown as number;
+        if (val === undefined || val === null || val === '') return 0;
 
-        if (isIDR) {
-          const digitsOnly = val.replace(/[^\d]/g, '');
-          return (digitsOnly ? Number(digitsOnly) : 0) as unknown as number;
-        }
+        const [digits, decimals] = String(val).split(decimalSeparator);
+        const digitsOnly = digits.replace(/[^\d]/g, '');
 
-        const cleaned = val.replace(/,/g, '').replace(/[^\d.]/g, '');
-        const firstDot = cleaned.indexOf('.');
-        const safe =
-          firstDot === -1
-            ? cleaned
-            : cleaned.slice(0, firstDot + 1) + cleaned.slice(firstDot + 1).replace(/\./g, '');
-        return (safe ? Number(safe) : 0) as unknown as number;
+        const numberVal = Number((`${digitsOnly}${decimals ? `.${decimals}` : ''}`));
+
+        return numberVal >= Number.MAX_SAFE_INTEGER ? Number.MAX_SAFE_INTEGER : numberVal;
       }}
     />
-  );
-
-  return hasCurrency ? (
-    <Space.Compact style={{ width: '100%' }}>
-      <Select
-        value={currency}
-        onChange={handleCurrencyChange}
-        options={CURRENCIES.map(({ label, value }) => ({ label, value }))}
-        style={{ width: 80 }}
-        disabled={disabled}
-      />
-      {input}
-    </Space.Compact>
-  ) : (
-    input
-  );
+  )
 }

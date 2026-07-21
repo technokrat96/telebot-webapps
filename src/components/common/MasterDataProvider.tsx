@@ -15,6 +15,7 @@ const EMPTY_MASTER_DATA: MasterData = {
   DELIVERY_STATUSES: [],
   CARD_STATUSES: [],
   INVOICE_STATUSES: [],
+  CURRENCY: [],
 };
 
 interface MasterDataContextValue {
