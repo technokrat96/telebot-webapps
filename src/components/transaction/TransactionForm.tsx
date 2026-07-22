@@ -35,6 +35,7 @@ export type TransactionFormValues = Omit<Transaction, 'ORDER_ID'>
   "CARD_TO" |
   "CARD_FROM" |
   "CARD_MESSAGE" |
+  "CARD_NOTE" |
   "CARD_CREATED_BY" |
   "DELIVERY_METHOD" |
   "DELIVERY_DATE" |
@@ -97,28 +98,13 @@ function ItemPesananFields({
 
   useEffect(() => {
     const currentDetails = form.getFieldValue('details') ?? [];
-    console.log(currentDetails, currencyData);
-    // Hindari infinite loop: cuma set kalau nilainya memang berubah.
-    // const next = [...currentDetails];
-    // if (currentDetails[field.name]?.CURRENCY == "IDR") {
-    //   next[field.name] = {...next[field.name], UNIT_PRICE: (currentDetails[field.name]?.UNIT_PRICE ?? 0) / currencyData.rate};
-    // } else {
-    //   if (currencyData.currency == "IDR") {
-    //     next[field.name] = {...next[field.name], UNIT_PRICE: (currentDetails[field.name]?.UNIT_PRICE ?? 0) * currencyData.rate};
-    //   }
-    // }
-    // form.setFieldsValue({details: next});
-  }, [currency, currencyData, field.name, form]);
-
-  useEffect(() => {
-    const currentDetails = form.getFieldValue('details') ?? [];
     // Hindari infinite loop: cuma set kalau nilainya memang berubah.
     const next = [...currentDetails];
     if (currentDetails[field.name]?.CURRENCY_RATE !== currencyData?.rate) {
       next[field.name] = {...next[field.name], CURRENCY_RATE: currencyData?.rate};
       form.setFieldsValue({details: next});
     }
-  }, [currency, currencyData, field.name, form]);
+  }, [currencyData, field.name, form]);
 
   return (
     <>
@@ -131,30 +117,30 @@ function ItemPesananFields({
       >
         <Input placeholder="Buket Mawar Merah"/>
       </Form.Item>
-      <Form.Item {...field} label="Qty" name={[field.name, 'QUANTITY']} key={[field.name, 'QUANTITY'].join("-")}>
+      <Form.Item {...field} label="Qty" name={[field.name, 'QUANTITY']} key={[field.name, 'QUANTITY'].join("-")} initialValue={0}>
         <NumberInput style={{width: '100%'}} min={1}/>
       </Form.Item>
       <Form.Item label="Harga Satuan" style={{ width: '100%' }}>
         <Space.Compact style={{ width: '100%' }}>
-          <Form.Item {...field} name={[field.name, 'CURRENCY']} key={[field.name, 'CURRENCY'].join("-")}>
+          <Form.Item {...field} name={[field.name, 'CURRENCY']} key={[field.name, 'CURRENCY'].join("-")} initialValue={"IDR"}>
             <Select
               options={CURRENCY.map(({ label, value }) => ({ label, value }))}
               style={{ width: 80 }}
             />
           </Form.Item>
-          <Form.Item {...field} name={[field.name, 'CURRENCY_RATE']} key={[field.name, 'CURRENCY_RATE'].join("-")}>
+          <Form.Item {...field} name={[field.name, 'CURRENCY_RATE']} key={[field.name, 'CURRENCY_RATE'].join("-")} hidden>
             <Input/>
           </Form.Item>
-          <Form.Item {...field} name={[field.name, 'UNIT_PRICE']} key={[field.name, 'UNIT_PRICE'].join("-")} style={{ width: '100%' }}>
-            <MoneyInput />
-            {currencyData?.value != "IDR" && (
-              <Typography.Text>Rate: {Number(currencyData?.rate ?? '1').toLocaleString("id-ID")}</Typography.Text>
-            )}
+          <Form.Item {...field} name={[field.name, 'UNIT_PRICE']} key={[field.name, 'UNIT_PRICE'].join("-")} style={{ width: '100%' }} initialValue={0}>
+            <MoneyInput currency={currency} />
           </Form.Item>
         </Space.Compact>
+        {currencyData?.value != "IDR" && (
+          <Typography.Text>Rate: {Number(currencyData?.rate ?? '1').toLocaleString("id-ID")}</Typography.Text>
+        )}
       </Form.Item>
-      <Form.Item {...field} label="Subtotal" name={[field.name, 'SUBTOTAL']} key={[field.name, 'SUBTOTAL'].join("-")}>
-        <MoneyInput disabled/>
+      <Form.Item {...field} label="Subtotal" name={[field.name, 'SUBTOTAL']} key={[field.name, 'SUBTOTAL'].join("-")} initialValue={0}>
+        <MoneyInput currency={currency} disabled/>
       </Form.Item>
       <Form.Item {...field} label="Catatan Custom" name={[field.name, 'CUSTOM_NOTES']}
                  key={[field.name, 'CUSTOM_NOTES'].join("-")}>
@@ -410,7 +396,7 @@ export default function TransactionForm({
         <Form.Item label="Jam Pengiriman" name="DELIVERY_TIME">
           <TimePicker style={{width: '100%'}} format="HH:mm"/>
         </Form.Item>
-        <Form.Item label="Ongkos Kirim" name="SHIPPING_FEE">
+        <Form.Item label="Ongkos Kirim" name="SHIPPING_FEE" initialValue={0}>
           <MoneyInput/>
         </Form.Item>
       </Card>
@@ -428,7 +414,7 @@ export default function TransactionForm({
             options={PAYMENT_METHODS.map((p) => ({ label: p, value: p }))}
           />
         </Form.Item>
-        <Form.Item label="Uang Muka (DP)" name="DOWN_PAYMENT">
+        <Form.Item label="Uang Muka (DP)" name="DOWN_PAYMENT" initialValue={0}>
           <MoneyInput/>
         </Form.Item>
       </Card>
@@ -436,10 +422,10 @@ export default function TransactionForm({
       {/* ================= SUMMARY ================= */}
       <Card style={{ marginBottom: 16 }}>
         <Title level={5}>Summary</Title>
-        <Form.Item label="Grand Total" name="GRAND_TOTAL">
+        <Form.Item label="Grand Total" name="GRAND_TOTAL" initialValue={0}>
           <MoneyInput disabled/>
         </Form.Item>
-        <Form.Item label="Sisa Pembayaran" name="REMAINING_BALANCE">
+        <Form.Item label="Sisa Pembayaran" name="REMAINING_BALANCE" initialValue={0}>
           <MoneyInput disabled/>
         </Form.Item>
       </Card>

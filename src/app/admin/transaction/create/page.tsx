@@ -1,7 +1,7 @@
 'use client';
 
 import {useState} from 'react';
-import {message, Typography} from 'antd';
+import {App, Typography} from 'antd';
 import {useRouter} from 'next/navigation';
 import RoleGuard from '@/components/common/RoleGuard';
 import TransactionForm, {TransactionFormValues,} from '@/components/transaction/TransactionForm';
@@ -9,6 +9,7 @@ import {apiClient} from '@/lib/apiClient';
 import {useTelegramAuth} from "@/components/common/TelegramProvider";
 import dayjs from "dayjs";
 import {generateOrderId, generateOrderItemId} from "@/lib/generateId";
+import {Transaction, TransactionDetail} from "@/types";
 
 const { Title } = Typography;
 
@@ -22,6 +23,7 @@ export default function CreateTransactionPage() {
 
 function CreateTransactionContent() {
   const [submitting, setSubmitting] = useState(false);
+  const { message } = App.useApp();
   const router = useRouter();
   const { name, roles, username } = useTelegramAuth();
 
@@ -37,6 +39,7 @@ function CreateTransactionContent() {
         CARD_TO,
         CARD_FROM,
         CARD_MESSAGE,
+        CARD_NOTE,
         CARD_CREATED_BY,
         DELIVERY_METHOD,
         DELIVERY_DATE,
@@ -51,7 +54,11 @@ function CreateTransactionContent() {
       const deliveryTime = DELIVERY_TIME ? dayjs(DELIVERY_TIME as never).format('HH:mm') : '';
 
       await apiClient.post('/api/transactions', {
-        transaction: { ...transaction, ORDER_ID: orderId },
+        transaction: {
+          ...transaction,
+          ORDER_ID: orderId,
+          SALES_NAME: username,
+        } as Transaction,
         details: (details ?? []).map((d, idx) => ({
           ...d,
           ORDER_ID: orderId,
@@ -62,6 +69,7 @@ function CreateTransactionContent() {
           CARD_TO,
           CARD_FROM,
           CARD_MESSAGE,
+          CARD_NOTE,
           CARD_CREATED_BY,
           DELIVERY_METHOD,
           DELIVERY_DATE: deliveryDate,
@@ -70,7 +78,7 @@ function CreateTransactionContent() {
           SHIPPING_FEE,
           ITEM_STATUS: 'NEW ORDER',
           CARD_STATUS: 'NEW ORDER',
-        })),
+        })) as TransactionDetail[],
       });
       message.success('Transaksi berhasil dibuat');
       router.push('/admin/transaction');
@@ -84,7 +92,9 @@ function CreateTransactionContent() {
   return (
     <div>
       <Title level={3}>Buat Transaksi</Title>
-      <TransactionForm onSubmitAction={handleSubmit} submitting={submitting} />
+      <TransactionForm onSubmitAction={handleSubmit} submitting={submitting} initialValues={{
+        SALES_NAME: username ?? "",
+      }} />
     </div>
   );
 }

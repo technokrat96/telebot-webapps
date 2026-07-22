@@ -64,9 +64,9 @@ export default function TelegramProvider({
         setState({
           loading: false,
           error: null,
-          name: 'Dev User',
+          name: 'DEV',
           roles: ['ADMIN', 'FLORIST', 'KURIR'],
-          username: 'dev',
+          username: 'DEV',
         });
         return;
       }

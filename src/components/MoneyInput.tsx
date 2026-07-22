@@ -99,6 +99,8 @@ export default function MoneyInput({
       parser={(val) => {
         if (val === undefined || val === null || val === '') return 0;
 
+        if (typeof val == "number") return val;
+
         const [digits, decimals] = String(val).split(decimalSeparator);
         const digitsOnly = digits.replace(/[^\d]/g, '');
 

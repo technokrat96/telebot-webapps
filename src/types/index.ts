@@ -32,6 +32,7 @@ export type TransactionDetail = {
   CARD_TO: string;
   CARD_MESSAGE: string;
   CARD_FROM: string;
+  CARD_NOTE: string;
   CARD_CREATED_BY: string;
   CARD_STATUS: string;
   DELIVERY_BY: string;
