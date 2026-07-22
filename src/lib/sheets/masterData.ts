@@ -16,8 +16,6 @@ export async function getMasterData(): Promise<MasterData> {
 
   const columns = await readSheetColumns(MASTER_DATA_SHEET);
 
-  console.log(`READ DATA ${MASTER_DATA_SHEET}`, columns)
-
   const initialCurrency = { label: 'IDR', value: 'IDR', locale: 'id-ID', rate: 1 };
   const data: MasterData = {
     ROLES: columns.ROLE ?? [],
@@ -28,6 +26,7 @@ export async function getMasterData(): Promise<MasterData> {
     DELIVERY_STATUSES: columns.DELIVERY_STATUS ?? [],
     CARD_STATUSES: columns.CARD_STATUS ?? [],
     INVOICE_STATUSES: columns.INVOICE_STATUS ?? [],
+    FLORIST_ASSIGNMENT_STATUSES: columns.FLORIST_ASSIGNMENT_STATUS ?? [],
     CURRENCY: [],
   };
 

@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
 
     const { ROLES } = await getMasterData();
 
-    const roles = parseRoles(ROLES, user.ROLE);
+    const roles = parseRoles(ROLES, user.ROLES);
     if (roles.length === 0) {
       return NextResponse.json(
         {

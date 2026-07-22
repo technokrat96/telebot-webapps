@@ -1,7 +1,7 @@
 export interface User {
   USERNAME: string;
   NAME: string;
-  ROLE: string;
+  ROLES: string;
 }
 export type Transaction = {
   ORDER_ID: string;
@@ -67,6 +67,18 @@ export type InvoiceDetail = {
   PRICE_BILLED: number;
 }
 
+export type FloristAssignment = {
+  ASSIGNMENT_ID: string;
+  ORDER_ITEM_ID: string;
+  ORDER_ID: string;
+  FLORIST_USERNAME: string;
+  FLORIST_NAME: string;
+  QUANTITY_ASSIGNED: number;
+  ASSIGNED_AT: string;
+  STATUS: string;
+  COMPLETED_AT: string;
+}
+
 export type MasterData = {
   ROLES: string[];
   PAYMENT_METHODS: string[];
@@ -76,8 +88,20 @@ export type MasterData = {
   DELIVERY_STATUSES: string[];
   CARD_STATUSES: string[];
   INVOICE_STATUSES: string[];
+  FLORIST_ASSIGNMENT_STATUSES: string[];
   CURRENCY: { label: string; value: string; locale: string; rate: number }[];
 }
+
+export type AvailableFloristItem = TransactionDetail & {
+  ORDER_ID: string;
+  CUSTOMER_NAME: string;
+  totalQty: number;
+  remainingQty: number;
+};
+
+export type MyFloristAssignment = FloristAssignment & {
+  item?: TransactionDetail & { CUSTOMER_NAME: string };
+};
 
 export type TransactionWithDetails = Transaction & {
   details: TransactionDetail[];

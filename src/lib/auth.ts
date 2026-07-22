@@ -8,7 +8,7 @@ import {getMasterData} from "@/lib/sheets/masterData";
 export interface AuthContext {
   telegramUsername: string;
   user: User;
-  /** Parsed from user.ROLE — a user can hold more than one role. */
+  /** Parsed from user.ROLES — a user can hold more than one role. */
   roles: string[];
 }
 
@@ -27,7 +27,7 @@ export async function requireAuth(
   const initData = req.headers.get('x-telegram-init-data');
 
   if (process.env.NODE_ENV !== 'production') {
-    return { telegramUsername: 'DEV', user: { ROLE: 'ADMIN,FLORIST,KURIR', USERNAME: 'DEV', NAME: 'DEV' }, roles: ['ADMIN','FLORIST','KURIR'] };
+    return { telegramUsername: 'DEV', user: { ROLES: 'ADMIN,FLORIST,KURIR', USERNAME: 'DEV', NAME: 'DEV' }, roles: ['ADMIN','FLORIST','KURIR'] };
   }
 
   if (!initData) return null;
@@ -39,7 +39,7 @@ export async function requireAuth(
   if (!user) return null;
 
   const { ROLES } = await getMasterData();
-  const roles = parseRoles(ROLES, user.ROLE);
+  const roles = parseRoles(ROLES, user.ROLES);
   if (allowedRoles && !hasAnyRole(roles, allowedRoles)) return null;
 
   return { telegramUsername: telegramUser.username, user, roles };

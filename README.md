@@ -58,13 +58,13 @@ logika yang perlu kamu tahu:
 
 1. **Sheet tambahan `Users`** (untuk mapping Telegram username → role):
    ```
-   USERNAME | NAME | ROLE
+   USERNAME | NAME | ROLES
    budi       Budi   ADMIN
    siti        Siti   FLORIST
    joko        Joko   KURIR
    rina        Rina   ADMIN, FLORIST
    ```
-   ROLE isinya `ADMIN`, `FLORIST`, dan/atau `KURIR`. Satu user boleh punya
+   ROLES isinya `ADMIN`, `FLORIST`, dan/atau `KURIR`. Satu user boleh punya
    lebih dari satu role — pisahkan dengan koma (boleh juga `;`, `/`, atau
    `|`) dalam satu sel yang sama, contoh: `ADMIN, FLORIST`. User dengan
    lebih dari satu role akan melihat gabungan menu semua role-nya (mis.

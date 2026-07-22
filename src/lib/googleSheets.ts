@@ -81,6 +81,8 @@ export async function appendRow<T = Record<string, any>>(
     insertDataOption: 'INSERT_ROWS',
     requestBody: { values: [row] },
   });
+
+  invalidateSheetCache(sheetName);
 }
 
 /**
@@ -95,30 +97,33 @@ export async function updateRow(
   updates: Record<string, string | number>
 ): Promise<boolean> {
   const sheets = getClient();
-  const header = await getHeader(sheetName);
+
+  // 1 call untuk ambil header + seluruh data sekaligus
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: getSpreadsheetId(),
+    range: sheetName,
+  });
+
+  const rows = res.data.values ?? [];
+  if (rows.length === 0) throw new Error(`Sheet ${sheetName} has no rows`);
+
+  const [header, ...body] = rows;
+  if (!header) throw new Error(`Sheet ${sheetName} has no header row`);
+
   const matchIndex = header.indexOf(matchColumn);
   if (matchIndex === -1) {
     throw new Error(`Column ${matchColumn} not found in sheet ${sheetName}`);
   }
 
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: getSpreadsheetId(),
-    range: sheetName,
-  });
-  const rows = res.data.values ?? [];
-
-  const rowIndex = rows.findIndex(
-    (row, i) => i > 0 && row[matchIndex] === matchValue
-  );
+  const rowIndex = body.findIndex((row) => row[matchIndex] === matchValue);
   if (rowIndex === -1) return false;
 
-  const currentRow = rows[rowIndex];
-  const mergedRow = header.map((key, i) => {
-    if (key in updates) return String(updates[key]);
-    return currentRow[i] ?? '';
-  });
+  const currentRow = body[rowIndex];
+  const mergedRow = header.map((key, i) =>
+    key in updates ? String(updates[key]) : currentRow[i] ?? ''
+  );
 
-  const sheetRowNumber = rowIndex + 1; // 1-based, header is row 1
+  const sheetRowNumber = rowIndex + 1;
   await sheets.spreadsheets.values.update({
     spreadsheetId: getSpreadsheetId(),
     range: `${sheetName}!A${sheetRowNumber}`,
@@ -126,6 +131,7 @@ export async function updateRow(
     requestBody: { values: [mergedRow] },
   });
 
+  invalidateSheetCache(sheetName);
   return true;
 }
 
@@ -147,7 +153,7 @@ async function getHeader(sheetName: string): Promise<string[]> {
  * (shorter columns just have blank cells below their last value) — blank
  * cells are filtered out, not treated as valid entries.
  *
- * Used for the `MasterData` sheet: ROLE | PAYMENT_METHOD | ORDER_SOURCE | ...
+ * Used for the `MasterData` sheet: ROLES | PAYMENT_METHOD | ORDER_SOURCE | ...
  */
 export async function readSheetColumns(
   sheetName: string
@@ -173,4 +179,46 @@ export async function readSheetColumns(
   });
 
   return result;
+}
+
+const sheetCache = new Map<string, { data: any[]; fetchedAt: number }>();
+const SHEET_CACHE_TTL_MS = 4000; // sedikit di bawah interval polling SWR (5s)
+
+export async function readSheet_<T = Record<string, string>>(
+  sheetName: string
+): Promise<T[]> {
+  const cached = sheetCache.get(sheetName);
+  if (cached && Date.now() - cached.fetchedAt < SHEET_CACHE_TTL_MS) {
+    console.log(`${sheetName} on cached`, cached.data);
+    return cached.data as T[];
+  }
+
+  const sheets = getClient();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: getSpreadsheetId(),
+    range: sheetName,
+  });
+
+  const rows = res.data.values ?? [];
+  if (rows.length === 0) {
+    sheetCache.set(sheetName, { data: [], fetchedAt: Date.now() });
+    return [];
+  }
+
+  const [header, ...body] = rows;
+  const result = body.map((row) => {
+    const obj: Record<string, string> = {};
+    header.forEach((key, i) => {
+      obj[key] = row[i] ?? '';
+    });
+    return obj as T;
+  });
+
+  sheetCache.set(sheetName, { data: result, fetchedAt: Date.now() });
+  return result;
+}
+
+/** Panggil ini setiap kali appendRow/updateRow berhasil, supaya cache tidak stale. */
+function invalidateSheetCache(sheetName: string) {
+  sheetCache.delete(sheetName);
 }

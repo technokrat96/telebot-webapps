@@ -1,23 +1,31 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import {Button, Card, Space, Tag, Typography, Popconfirm, App, GetProp} from 'antd';
+import {useEffect, useRef, useState} from 'react';
+import {
+  Button,
+  Card,
+  Space,
+  Tag,
+  Typography,
+  Popconfirm,
+  App,
+  InputNumber,
+  Progress,
+  Empty,
+  Divider,
+  Tooltip
+} from 'antd';
 import RoleGuard from '@/components/common/RoleGuard';
 import { useTelegramAuth } from '@/components/common/TelegramProvider';
 import { apiClient } from '@/lib/apiClient';
-import {TransactionWithDetails} from '@/types';
-import { isOrderFullyDone } from '@/lib/statusUtils';
+import { AvailableFloristItem, MyFloristAssignment } from '@/types';
+import useSWR from "swr";
 
 const { Title, Text, Paragraph } = Typography;
 
-const STATUS_COLORS: Record<string, GetProp<typeof Tag, "color">> = {
-  "NEW ORDER": 'default',
-  "ON PROGRESS": 'processing',
-  DONE: 'success',
-  CANCELLED: "red",
-  PENDING: "cyan",
-  RESCHEDULED: "gold",
-};
+const fetcher = <T,>(url: string) => apiClient.get<T>(url);
+const POLL_INTERVAL = 1000 * 60;
+
 export default function FloristPage() {
   return (
     <RoleGuard allow={['FLORIST']}>
@@ -26,25 +34,69 @@ export default function FloristPage() {
   );
 }
 
+function usePollingProgress(intervalMs: number) {
+  const [progress, setProgress] = useState(0);
+  const startRef = useRef<number | null>(null); // null dulu, bukan Date.now()
+
+  useEffect(() => {
+    // Set nilai awal di sini (dalam efek = boleh, karena ini side effect,
+    // bukan proses render murni)
+    if (startRef.current === null) {
+      startRef.current = Date.now();
+    }
+
+    const tick = setInterval(() => {
+      const elapsed = Date.now() - (startRef.current ?? Date.now());
+      setProgress(Math.min(100, (elapsed / intervalMs) * 100));
+    }, 100);
+
+    return () => clearInterval(tick);
+  }, [intervalMs]);
+
+  function reset() {
+    startRef.current = Date.now(); // ini dipanggil dari event handler/callback (onSuccess), bukan saat render, jadi aman
+    setProgress(0);
+  }
+
+  return { progress, reset };
+}
+
 function FloristContent() {
   const { name } = useTelegramAuth();
-  const [orders, setOrders] = useState<TransactionWithDetails[]>([]);
+  const { message } = App.useApp();
+  const { progress, reset } = usePollingProgress(POLL_INTERVAL);
   const [loading, setLoading] = useState(true);
   const [busyKey, setBusyKey] = useState<string | null>(null);
-  const { message } = App.useApp();
+  const [qtyInput, setQtyInput] = useState<Record<string, number>>({});
+
+  const { data: availRes, mutate: mutateAvail } = useSWR<{ items: AvailableFloristItem[] }>(
+    '/api/florist-assignments/available',
+    fetcher,
+    {
+      refreshInterval: POLL_INTERVAL,
+      onSuccess: reset, // progress balik ke 0 tiap kali fetch sukses
+    }
+  );
+  const { data: mineRes, mutate: mutateMine } = useSWR<{ assignments: MyFloristAssignment[] }>(
+    '/api/florist-assignments',
+    fetcher,
+    {
+      refreshInterval: POLL_INTERVAL,
+    }
+  );
+
+  const available = availRes?.items ?? [];
+  const mine = mineRes?.assignments ?? [];
 
   async function load() {
     setLoading(true);
     try {
-      const res = await apiClient.get<{ orders: TransactionWithDetails[] }>(
-        '/api/transaction-details'
-      );
-      // Only orders that still have unfinished work for the florist.
-      setOrders(
-        res.orders.filter((o) =>
-          o.details.some((d) => d.ITEM_STATUS === 'NEW ORDER' || d.ITEM_STATUS === 'ON PROGRESS' || d.ITEM_STATUS === 'DONE')
-        )
-      );
+      const [availRes, mineRes] = await Promise.all([
+        apiClient.get<{ items: AvailableFloristItem[] }>('/api/florist-assignments/available'),
+        apiClient.get<{ assignments: MyFloristAssignment[] }>('/api/florist-assignments'),
+      ]);
+      mutateAvail();
+      mutateMine();
     } catch (err) {
       message.error((err as Error).message);
     } finally {
@@ -52,108 +104,147 @@ function FloristContent() {
     }
   }
 
-  async function updateItemStatus(orderItemId: string, status: "ON PROGRESS" | "DONE") {
-    setBusyKey(orderItemId);
-    try {
-      await apiClient.patch(`/api/transaction-details/${orderItemId}/status`, {
-        ITEM_STATUS: status,
-        FLORIST_NAME: name,
-      });
-      message.success(`Item diupdate ke ${status}`);
-      await load();
-    } catch (err) {
-      message.error((err as Error).message);
-    } finally {
-      setBusyKey(null);
-    }
-  }
-
-  async function markOrderDone(orderId: string) {
-    setBusyKey(orderId);
-    try {
-      await apiClient.patch(`/api/transactions/${orderId}/status`, {
-        status: 'READY_TO_PICKUP',
-      });
-      message.success('Transaksi ditandai selesai & siap diambil kurir');
-      await load();
-    } catch (err) {
-      message.error((err as Error).message);
-    } finally {
-      setBusyKey(null);
-    }
-  }
-
   useEffect(() => {
     load();
   }, []);
 
+  async function claimItem(item: AvailableFloristItem) {
+    const qty = qtyInput[item.ORDER_ITEM_ID] ?? item.remainingQty;
+    setBusyKey(item.ORDER_ITEM_ID);
+    try {
+      await apiClient.post('/api/florist-assignments', {
+        orderItemId: item.ORDER_ITEM_ID,
+        orderId: item.ORDER_ID,
+        quantity: qty,
+      });
+      message.success(`Berhasil ambil ${qty} dari "${item.ITEM_NAME}"`);
+      await mutateAvail();  // <-- refresh instan, jangan tunggu polling
+      await mutateMine();
+    } catch (err) {
+      message.error((err as Error).message);
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
+  async function completeAssignment(assignment: MyFloristAssignment) {
+    setBusyKey(assignment.ASSIGNMENT_ID);
+    try {
+      await apiClient.patch(`/api/florist-assignments/${assignment.ASSIGNMENT_ID}/complete`, {});
+      message.success('Pekerjaan ditandai selesai');
+      await mutateAvail();  // <-- refresh instan, jangan tunggu polling
+      await mutateMine();
+    } catch (err) {
+      message.error((err as Error).message);
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
+  async function releaseAssignment(assignment: MyFloristAssignment) {
+    setBusyKey(assignment.ASSIGNMENT_ID);
+    try {
+      await apiClient.patch(`/api/florist-assignments/${assignment.ASSIGNMENT_ID}/release`, {});
+      message.success('Item dilepas, bisa diambil florist lain');
+      await mutateAvail();  // <-- refresh instan, jangan tunggu polling
+      await mutateMine();
+    } catch (err) {
+      message.error((err as Error).message);
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
   return (
     <div>
-      <Title level={3}>Pekerjaan Florist</Title>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Title level={3} style={{ margin: 0 }}>Pekerjaan Florist</Title>
+        <Tooltip title="Waktu sampai refresh data berikutnya">
+          <Progress
+            type="circle"
+            percent={progress}
+            size={28}
+            showInfo={false}
+          />
+        </Tooltip>
+      </div>
       <Paragraph type="secondary">
-        Update status tiap item bunga, lalu tandai transaksi selesai jika semua item sudah DONE.
+        Pilih item yang mau kamu kerjakan. Kalau qty sebagian sudah diambil florist lain, kamu bisa ambil sisanya.
       </Paragraph>
 
-      <Space orientation="vertical" size={16} style={{ width: '100%' }}>
-        {orders.map((order) => (
+      {/* ================= PEKERJAAN SAYA ================= */}
+      <Title level={4}>Pekerjaan Saya ({mine.length})</Title>
+      <Space orientation="vertical" size={16} style={{ width: '100%', marginBottom: 24 }}>
+        {mine.map((a) => (
           <Card
-            key={order.ORDER_ID}
+            key={a.ASSIGNMENT_ID}
             loading={loading}
-            title={`${order.ORDER_ID} · ${order.CUSTOMER_NAME}`}
-            extra={
-              <Popconfirm
-                title="Tandai seluruh transaksi ini selesai & siap diambil kurir?"
-                onConfirm={() => markOrderDone(order.ORDER_ID)}
-                disabled={!isOrderFullyDone(order.details)}
-              >
-                <Button
-                  type="primary"
-                  size="small"
-                  disabled={!isOrderFullyDone(order.details)}
-                  loading={busyKey === order.ORDER_ID}
-                >
-                  Update Transaksi ke Done
-                </Button>
-              </Popconfirm>
-            }
+            title={`${a.ORDER_ID} · ${a.item?.CUSTOMER_NAME}`}
           >
-            <Space orientation="vertical" style={{ width: '100%' }}>
-              {order.details.map((item) => (
-                <Card key={item.ORDER_ITEM_ID} type="inner" size="small" title={item.ITEM_NAME}>
-                  <Space orientation="vertical" size={4} style={{ width: '100%' }}>
-                    <Text>Qty: {item.QUANTITY}</Text>
-                    {item.CUSTOM_NOTES && <Text type="secondary">Catatan: {item.CUSTOM_NOTES}</Text>}
-                    {item.CARD_TO && <Text type="secondary">Kartu untuk: {item.CARD_TO}</Text>}
-                    {item.CARD_MESSAGE && <Text type="secondary">Pesan: {item.CARD_MESSAGE}</Text>}
-                    <Space>
-                      <Tag color={STATUS_COLORS[item.ITEM_STATUS] ?? 'default'}>
-                        {item.ITEM_STATUS || 'NEW ORDER'}
-                      </Tag>
-                      <Button
-                        size="small"
-                        loading={busyKey === item.ORDER_ITEM_ID}
-                        disabled={item.ITEM_STATUS === 'ON PROGRESS' || item.ITEM_STATUS === 'DONE'}
-                        onClick={() => updateItemStatus(item.ORDER_ITEM_ID, 'ON PROGRESS')}
-                      >
-                        Mulai Kerjakan (WIP)
-                      </Button>
-                      <Button
-                        size="small"
-                        type="primary"
-                        loading={busyKey === item.ORDER_ITEM_ID}
-                        disabled={item.ITEM_STATUS === 'DONE'}
-                        onClick={() => updateItemStatus(item.ORDER_ITEM_ID, 'DONE')}
-                      >
-                        Selesai (DONE)
-                      </Button>
-                    </Space>
-                  </Space>
-                </Card>
-              ))}
+            <Space orientation="vertical" size={4} style={{ width: '100%' }}>
+              <Text strong>{a.item?.ITEM_NAME}</Text>
+              <Tag color="blue">Qty diambil: {a.QUANTITY_ASSIGNED}</Tag>
+              {a.item?.CUSTOM_NOTES && <Text type="secondary">Catatan: {a.item.CUSTOM_NOTES}</Text>}
+              {a.item?.CARD_TO && <Text type="secondary">Kartu untuk: {a.item.CARD_TO}</Text>}
+              {a.item?.CARD_MESSAGE && <Text type="secondary">Pesan: {a.item.CARD_MESSAGE}</Text>}
+              <Space wrap>
+                <Popconfirm title="Tandai bagian ini selesai?" onConfirm={() => completeAssignment(a)}>
+                  <Button type="primary" loading={busyKey === a.ASSIGNMENT_ID}>
+                    Selesai (DONE)
+                  </Button>
+                </Popconfirm>
+                <Popconfirm
+                  title="Lepas item ini supaya bisa diambil florist lain?"
+                  onConfirm={() => releaseAssignment(a)}
+                >
+                  <Button danger loading={busyKey === a.ASSIGNMENT_ID}>
+                    Lepas
+                  </Button>
+                </Popconfirm>
+              </Space>
             </Space>
           </Card>
         ))}
-        {!loading && orders.length === 0 && <Text type="secondary">Tidak ada pekerjaan saat ini.</Text>}
+        {!loading && mine.length === 0 && <Empty description="Kamu belum mengambil pekerjaan apapun." />}
+      </Space>
+
+      <Divider />
+
+      {/* ================= ORDER TERSEDIA ================= */}
+      <Title level={4}>Order Tersedia ({available.length})</Title>
+      <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+        {available.map((item) => (
+          <Card
+            key={item.ORDER_ITEM_ID}
+            loading={loading}
+            title={`${item.ORDER_ID} · ${item.CUSTOMER_NAME}`}
+          >
+            <Space orientation="vertical" size={4} style={{ width: '100%' }}>
+              <Text strong>{item.ITEM_NAME}</Text>
+              {item.CUSTOM_NOTES && <Text type="secondary">Catatan: {item.CUSTOM_NOTES}</Text>}
+              <Progress
+                percent={Math.round(((item.totalQty - item.remainingQty) / item.totalQty) * 100)}
+                format={() => `${item.totalQty - item.remainingQty}/${item.totalQty} diambil`}
+              />
+              <Space wrap>
+                <Text>Ambil qty:</Text>
+                <InputNumber
+                  min={1}
+                  max={item.remainingQty}
+                  defaultValue={item.remainingQty}
+                  onChange={(v) =>
+                    setQtyInput((prev) => ({ ...prev, [item.ORDER_ITEM_ID]: Number(v ?? 1) }))
+                  }
+                />
+                <Text type="secondary">(sisa {item.remainingQty})</Text>
+                <Button type="primary" loading={busyKey === item.ORDER_ITEM_ID} onClick={() => claimItem(item)}>
+                  Ambil Item Ini
+                </Button>
+              </Space>
+            </Space>
+          </Card>
+        ))}
+        {!loading && available.length === 0 && <Empty description="Tidak ada order tersedia saat ini." />}
       </Space>
     </div>
   );
