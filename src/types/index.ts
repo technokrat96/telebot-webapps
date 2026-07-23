@@ -28,7 +28,6 @@ export type TransactionDetail = {
   CUSTOM_NOTES: string;
   SUBTOTAL: number;
   ITEM_STATUS: string;
-  FLORIST_NAME: string;
   CARD_TO: string;
   CARD_MESSAGE: string;
   CARD_FROM: string;

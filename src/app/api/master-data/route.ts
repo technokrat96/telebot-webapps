@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
-import { getMasterData } from '@/lib/sheets/masterData';
+import { getMasterData } from '@/lib/db/masterData';
 
 // Any authenticated user (any role) can read master data — it's just
 // dropdown options, not sensitive data.

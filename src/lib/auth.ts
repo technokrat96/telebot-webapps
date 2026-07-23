@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server';
 import { validateTelegramInitData } from '@/lib/telegram';
-import { findUserByUsername } from '@/lib/sheets/users';
+import { findUserByUsername } from '@/lib/db/users';
 import { hasAnyRole, parseRoles } from '@/lib/roles';
 import { User } from '@/types';
-import {getMasterData} from "@/lib/sheets/masterData";
+import {getMasterData} from "@/lib/db/masterData";
 
 export interface AuthContext {
   telegramUsername: string;

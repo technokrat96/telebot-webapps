@@ -1,14 +1,28 @@
-// src/lib/sheets/floristAssignment.ts
-import { appendRow, readSheet, updateRow } from '@/lib/googleSheets';
-import {FloristAssignment, TransactionDetail} from '@/types';
-import { listTransactionDetails } from '@/lib/sheets/transaction';
-import { listTransactionsWithDetails, updateTransactionDetailItemStatus } from '@/lib/sheets/transaction';
+import { FloristAssignment, TransactionDetail } from '@/types';
+import { listTransactionDetails } from '@/lib/db/transaction';
+import { listTransactionsWithDetails, updateTransactionDetailItemStatus } from '@/lib/db/transaction';
 import { AvailableFloristItem, MyFloristAssignment } from '@/types';
+import {prisma} from "@/lib/prismaClient";
 
-const SHEET = 'Florist Assignment';
+function toAssignment(row: any): FloristAssignment {
+  return {
+    ASSIGNMENT_ID: row.assignmentId,
+    ORDER_ITEM_ID: row.orderItemId,
+    ORDER_ID: row.orderId,
+    FLORIST_USERNAME: row.floristUsername,
+    FLORIST_NAME: row.floristName,
+    QUANTITY_ASSIGNED: Number(row.quantityAssigned),
+    ASSIGNED_AT:
+      row.assignedAt instanceof Date ? row.assignedAt.toISOString() : row.assignedAt ?? '',
+    STATUS: row.status,
+    COMPLETED_AT:
+      row.completedAt instanceof Date ? row.completedAt.toISOString() : row.completedAt ?? '',
+  };
+}
 
 export async function listAssignments(): Promise<FloristAssignment[]> {
-  return readSheet<FloristAssignment>(SHEET);
+  const rows = await prisma.floristAssignment.findMany();
+  return rows.map(toAssignment);
 }
 
 function forItem(assignments: FloristAssignment[], orderItemId: string) {
@@ -67,23 +81,31 @@ export async function claimItem(
     throw new Error(`Qty tersisa cuma ${remainingQty}, tidak bisa ambil ${quantity}`);
   }
 
-  const assignment: FloristAssignment = {
-    ASSIGNMENT_ID: `ASG-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
-    ORDER_ITEM_ID: orderItemId,
-    ORDER_ID: orderId,
-    FLORIST_USERNAME: florist.username,
-    FLORIST_NAME: florist.name,
-    QUANTITY_ASSIGNED: quantity,
-    ASSIGNED_AT: new Date().toISOString(),
-    STATUS: 'ASSIGNED',
-    COMPLETED_AT: '',
-  };
-  await appendRow(SHEET, assignment);
-  return assignment;
+  const created = await prisma.floristAssignment.create({
+    data: {
+      assignmentId: `ASG-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+      orderItemId,
+      orderId,
+      floristUsername: florist.username,
+      floristName: florist.name,
+      quantityAssigned: quantity,
+      status: 'ASSIGNED',
+    },
+  });
+  return toAssignment(created);
 }
 
 export async function releaseAssignment(assignmentId: string): Promise<boolean> {
-  return updateRow(SHEET, 'ASSIGNMENT_ID', assignmentId, { STATUS: 'RELEASED' });
+  try {
+    await prisma.floristAssignment.update({
+      where: { assignmentId },
+      data: { status: 'RELEASED' },
+    });
+    return true;
+  } catch (err: any) {
+    if (err?.code === 'P2025') return false;
+    throw err;
+  }
 }
 
 /**
@@ -92,29 +114,30 @@ export async function releaseAssignment(assignmentId: string): Promise<boolean> 
  * Detail otomatis diubah ke DONE.
  */
 export async function completeAssignment(assignmentId: string): Promise<void> {
-  const all = await listAssignments();
-  const target = all.find((a) => a.ASSIGNMENT_ID === assignmentId);
+  const target = await prisma.floristAssignment.findUnique({
+    where: { assignmentId },
+  });
   if (!target) throw new Error('Assignment tidak ditemukan');
 
-  await updateRow(SHEET, 'ASSIGNMENT_ID', assignmentId, {
-    STATUS: 'COMPLETED',
-    COMPLETED_AT: new Date().toISOString(),
+  await prisma.floristAssignment.update({
+    where: { assignmentId },
+    data: { status: 'COMPLETED', completedAt: new Date() },
   });
 
-  const { totalQty, completedQty } = await getItemQuantitySummary(target.ORDER_ITEM_ID);
-  const nowCompleted = completedQty + Number(target.QUANTITY_ASSIGNED); // belum ter-refresh di sheet
+  const { totalQty, completedQty } = await getItemQuantitySummary(target.orderItemId);
+  const nowCompleted = completedQty + Number(target.quantityAssigned); // belum ter-refresh di atas
   if (nowCompleted >= totalQty) {
-    await updateTransactionDetailItemStatus(target.ORDER_ITEM_ID, { ITEM_STATUS: 'DONE' });
+    await updateTransactionDetailItemStatus(target.orderItemId, { ITEM_STATUS: 'DONE' });
   }
 }
 
 export async function listAssignmentsByFlorist(
   username: string
 ): Promise<FloristAssignment[]> {
-  const all = await listAssignments();
-  return all.filter(
-    (a) => a.FLORIST_USERNAME === username && a.STATUS === 'ASSIGNED'
-  );
+  const rows = await prisma.floristAssignment.findMany({
+    where: { floristUsername: username, status: 'ASSIGNED' },
+  });
+  return rows.map(toAssignment);
 }
 
 /** Semua item yang qty-nya belum habis diklaim (bisa diambil florist). */
@@ -124,21 +147,12 @@ export async function listAvailableItems(): Promise<AvailableFloristItem[]> {
     listAssignments(),
   ]);
 
-  const claimedByItem = assignments.filter(e => {
-    return !(e.STATUS === 'RELEASED')
-  }).reduce((previousValue, currentValue) => {
-    if (previousValue?.[currentValue.ORDER_ITEM_ID]) {
-      return {
-        ...previousValue,
-        [currentValue.ORDER_ITEM_ID]: previousValue[currentValue.ORDER_ITEM_ID] + Number(currentValue.QUANTITY_ASSIGNED || 0)
-      }
-    }
-
-    return {
-      ...previousValue,
-      [currentValue.ORDER_ITEM_ID]: Number(currentValue.QUANTITY_ASSIGNED || 0)
-    }
-  }, {} as Record<string, number>)
+  const claimedByItem = assignments
+    .filter((e) => e.STATUS !== 'RELEASED')
+    .reduce((acc, cur) => {
+      acc[cur.ORDER_ITEM_ID] = (acc[cur.ORDER_ITEM_ID] ?? 0) + Number(cur.QUANTITY_ASSIGNED || 0);
+      return acc;
+    }, {} as Record<string, number>);
 
   const result: AvailableFloristItem[] = [];
   for (const order of orders) {
@@ -178,5 +192,5 @@ export async function listMyAssignmentsWithDetail(
   return assignments
     .filter((a) => a.FLORIST_USERNAME === username && a.STATUS === 'ASSIGNED')
     .map((a) => ({ ...a, item: itemById.get(a.ORDER_ITEM_ID) }))
-    .filter((a) => a.item);
+    .filter((a) => !!a.item);
 }

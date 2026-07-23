@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
-import { listInvoicesWithDetails, updateInvoice } from '@/lib/sheets/invoice';
+import { listInvoicesWithDetails, updateInvoice } from '@/lib/db/invoice';
 import { Invoice } from '@/types';
 
 // Next.js 15+: dynamic route `params` is now a Promise and must be awaited.

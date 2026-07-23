@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
-import { listTransactionsWithDetails } from '@/lib/sheets/transaction';
-import { listInvoiceDetails } from '@/lib/sheets/invoice';
+import { listTransactionsWithDetails } from '@/lib/db/transaction';
+import { listInvoiceDetails } from '@/lib/db/invoice';
 
 // Returns transaction line items that aren't fully billed yet, grouped by
 // order, so the "Create Invoice" form can let the admin pick which items

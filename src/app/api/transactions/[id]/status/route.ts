@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
-import { updateAllItemStatusForOrder } from '@/lib/sheets/transaction';
-import {getMasterData} from "@/lib/sheets/masterData";
+import { updateAllItemStatusForOrder } from '@/lib/db/transaction';
+import {getMasterData} from "@/lib/db/masterData";
 
 // PATCH body: { status: ItemStatus }
 // Applies the status to every line item of the order at once. Used by:

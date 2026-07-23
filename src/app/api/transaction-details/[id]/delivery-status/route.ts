@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
-import {updateTransactionDetailDeliveryStatus, updateTransactionDetailItemStatus} from '@/lib/sheets/transaction';
+import {updateTransactionDetailDeliveryStatus, updateTransactionDetailItemStatus} from '@/lib/db/transaction';
 
 // Next.js 15+: dynamic route `params` is now a Promise and must be awaited.
 export async function PATCH(

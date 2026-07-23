@@ -1,0 +1,153 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model MasterData {
+  id        Int    @id @default(autoincrement())
+  category  String @db.VarChar(40)
+  value     String @db.VarChar(40)
+  sortOrder Int    @default(0) @map("sort_order")
+
+  @@unique([category, value])
+  @@map("master_data")
+}
+
+model Currency {
+  code   String  @id @db.VarChar(3)
+  label  String  @db.VarChar(10)
+  locale String  @default("id-ID") @db.VarChar(10)
+  rate   Decimal @default(1) @db.Decimal(18, 4)
+
+  @@map("currency")
+}
+
+model AppUser {
+  username           String              @id @db.VarChar(32)
+  name               String              @db.VarChar(100)
+  floristAssignments FloristAssignment[]
+  salesTransactions  Transaction[]       @relation("SalesUser")
+  roles              UserRole[]
+
+  @@map("app_user")
+}
+
+model UserRole {
+  username String  @db.VarChar(32)
+  role     String  @db.VarChar(20)
+  user     AppUser @relation(fields: [username], references: [username], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([username, role])
+  @@map("user_role")
+}
+
+model Transaction {
+  orderId            String              @id @map("order_id") @db.VarChar(30)
+  orderSource        String?             @map("order_source") @db.VarChar(40)
+  salesName          String?             @map("sales_name") @db.VarChar(32)
+  customerName       String              @map("customer_name") @db.VarChar(150)
+  customerAddress    String?             @map("customer_address") @db.VarChar(500)
+  customerPhone      String?             @map("customer_phone") @db.VarChar(20)
+  customerEmail      String?             @map("customer_email") @db.VarChar(150)
+  grandTotal         Decimal             @default(0) @map("grand_total") @db.Decimal(18, 2)
+  downPayment        Decimal             @default(0) @map("down_payment") @db.Decimal(18, 2)
+  remainingBalance   Decimal             @default(0) @map("remaining_balance") @db.Decimal(18, 2)
+  paymentMethod      String?             @map("payment_method") @db.VarChar(40)
+  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  floristAssignments FloristAssignment[]
+  sales              AppUser?            @relation("SalesUser", fields: [salesName], references: [username], onDelete: NoAction, onUpdate: NoAction)
+  details            TransactionDetail[]
+
+  @@map("transaction")
+}
+
+model TransactionDetail {
+  orderItemId        String              @id @map("order_item_id") @db.VarChar(40)
+  orderId            String              @map("order_id") @db.VarChar(30)
+  itemName           String              @map("item_name") @db.VarChar(150)
+  quantity           Decimal             @default(0) @db.Decimal(18, 2)
+  unitPrice          Decimal             @default(0) @map("unit_price") @db.Decimal(18, 2)
+  currency           String              @default("IDR") @db.VarChar(3)
+  currencyRate       Decimal             @default(1) @map("currency_rate") @db.Decimal(18, 4)
+  customNotes        String?             @map("custom_notes") @db.VarChar(1000)
+  subtotal           Decimal             @default(0) @db.Decimal(18, 2)
+  itemStatus         String              @default("NEW ORDER") @map("item_status") @db.VarChar(20)
+  floristName        String?             @map("florist_name") @db.VarChar(100)
+  cardTo             String?             @map("card_to") @db.VarChar(100)
+  cardFrom           String?             @map("card_from") @db.VarChar(100)
+  cardMessage        String?             @map("card_message") @db.VarChar(1000)
+  cardNote           String?             @map("card_note") @db.VarChar(1000)
+  cardCreatedBy      String?             @map("card_created_by") @db.VarChar(100)
+  cardStatus         String?             @map("card_status") @db.VarChar(20)
+  deliveryMethod     String?             @map("delivery_method") @db.VarChar(40)
+  deliveryDate       DateTime?           @map("delivery_date") @db.Date
+  deliveryTime       DateTime?           @map("delivery_time") @db.Time(6)
+  deliveryBy         String?             @map("delivery_by") @db.VarChar(100)
+  deliveryStatus     String?             @map("delivery_status") @db.VarChar(20)
+  shippingFee        Decimal             @default(0) @map("shipping_fee") @db.Decimal(18, 2)
+  receiverName       String?             @map("receiver_name") @db.VarChar(150)
+  receiverAddress    String?             @map("receiver_address") @db.VarChar(500)
+  receiverPhone      String?             @map("receiver_phone") @db.VarChar(20)
+  floristAssignments FloristAssignment[]
+  invoiceDetails     InvoiceDetail[]
+  transaction        Transaction         @relation(fields: [orderId], references: [orderId], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([deliveryStatus], map: "idx_transaction_detail_delivery_status")
+  @@index([itemStatus], map: "idx_transaction_detail_item_status")
+  @@index([orderId], map: "idx_transaction_detail_order_id")
+  @@map("transaction_detail")
+}
+
+model Invoice {
+  invoiceId     String          @id @map("invoice_id") @db.VarChar(30)
+  invoiceNumber String?         @map("invoice_number") @db.VarChar(40)
+  invoiceDate   DateTime?       @map("invoice_date") @db.Date
+  dueDate       DateTime?       @map("due_date") @db.Date
+  totalAmount   Decimal         @default(0) @map("total_amount") @db.Decimal(18, 2)
+  amountPaid    Decimal         @default(0) @map("amount_paid") @db.Decimal(18, 2)
+  invoiceStatus String          @default("UNPAID") @map("invoice_status") @db.VarChar(20)
+  billedTo      String          @map("billed_to") @db.VarChar(150)
+  billedAddress String?         @map("billed_address") @db.VarChar(500)
+  billedPhone   String?         @map("billed_phone") @db.VarChar(20)
+  createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  details       InvoiceDetail[]
+
+  @@map("invoice")
+}
+
+model InvoiceDetail {
+  invoiceItemId     String            @id @map("invoice_item_id") @db.VarChar(70)
+  invoiceId         String            @map("invoice_id") @db.VarChar(30)
+  orderItemId       String            @map("order_item_id") @db.VarChar(40)
+  quantityBilled    Decimal           @default(0) @map("quantity_billed") @db.Decimal(18, 2)
+  priceBilled       Decimal           @default(0) @map("price_billed") @db.Decimal(18, 2)
+  invoice           Invoice           @relation(fields: [invoiceId], references: [invoiceId], onDelete: Cascade, onUpdate: NoAction)
+  transactionDetail TransactionDetail @relation(fields: [orderItemId], references: [orderItemId], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([invoiceId], map: "idx_invoice_detail_invoice_id")
+  @@index([orderItemId], map: "idx_invoice_detail_order_item_id")
+  @@map("invoice_detail")
+}
+
+model FloristAssignment {
+  assignmentId      String            @id @map("assignment_id") @db.VarChar(60)
+  orderItemId       String            @map("order_item_id") @db.VarChar(40)
+  orderId           String            @map("order_id") @db.VarChar(30)
+  floristUsername   String            @map("florist_username") @db.VarChar(32)
+  floristName       String            @map("florist_name") @db.VarChar(100)
+  quantityAssigned  Decimal           @map("quantity_assigned") @db.Decimal(18, 2)
+  assignedAt        DateTime          @default(now()) @map("assigned_at") @db.Timestamptz(6)
+  status            String            @default("ASSIGNED") @db.VarChar(20)
+  completedAt       DateTime?         @map("completed_at") @db.Timestamptz(6)
+  florist           AppUser           @relation(fields: [floristUsername], references: [username], onDelete: NoAction, onUpdate: NoAction)
+  transaction       Transaction       @relation(fields: [orderId], references: [orderId], onDelete: NoAction, onUpdate: NoAction)
+  transactionDetail TransactionDetail @relation(fields: [orderItemId], references: [orderItemId], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([floristUsername, status], map: "idx_florist_assignment_florist")
+  @@index([orderItemId], map: "idx_florist_assignment_order_item_id")
+  @@map("florist_assignment")
+}

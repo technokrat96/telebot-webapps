@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateTelegramInitData } from '@/lib/telegram';
-import { findUserByUsername } from '@/lib/sheets/users';
+import { findUserByUsername } from '@/lib/db/users';
 import { parseRoles } from '@/lib/roles';
-import {getMasterData} from "@/lib/sheets/masterData";
+import {getMasterData} from "@/lib/db/masterData";
 
 // POST body: { initData: string } — the raw initData string, obtained on
 // the client via @telegram-apps/sdk-react's retrieveLaunchParams().initDataRaw

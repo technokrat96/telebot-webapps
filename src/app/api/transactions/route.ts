@@ -3,7 +3,7 @@ import { requireAuth } from '@/lib/auth';
 import {
   createTransaction,
   listTransactionsWithDetails,
-} from '@/lib/sheets/transaction';
+} from '@/lib/db/transaction';
 import { Transaction, TransactionDetail } from '@/types';
 
 export async function GET(req: NextRequest) {

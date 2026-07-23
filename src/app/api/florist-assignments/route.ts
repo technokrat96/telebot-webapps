@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
-import { claimItem, listMyAssignmentsWithDetail } from '@/lib/sheets/floristAssignment';
+import { claimItem, listMyAssignmentsWithDetail } from '@/lib/db/floristAssignment';
 
 export async function GET(req: NextRequest) {
   const auth = await requireAuth(req, ['FLORIST', 'ADMIN']);

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
-import { listTransactionsWithDetails } from '@/lib/sheets/transaction';
+import { listTransactionsWithDetails } from '@/lib/db/transaction';
 
 // Florist queue: all orders + their line items, so the florist can see
 // item-level notes (custom notes, card message) while working.

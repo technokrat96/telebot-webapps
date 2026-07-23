@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
-import { releaseAssignment } from '@/lib/sheets/floristAssignment';
+import { releaseAssignment } from '@/lib/db/floristAssignment';
 
 export async function PATCH(
   req: NextRequest,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
-import { createInvoice, listInvoicesWithDetails } from '@/lib/sheets/invoice';
+import { createInvoice, listInvoicesWithDetails } from '@/lib/db/invoice';
 import { Invoice, InvoiceDetail } from '@/types';
 
 export async function GET(req: NextRequest) {
