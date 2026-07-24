@@ -138,8 +138,7 @@ export async function completeAssignment(assignmentId: string): Promise<void> {
   });
 
   const { totalQty, completedQty } = await getItemQuantitySummary(target.orderItemId);
-  const nowCompleted = completedQty + Number(target.quantityAssigned); // belum ter-refresh di atas
-  if (nowCompleted >= totalQty) {
+  if (completedQty >= totalQty) {
     await updateTransactionDetailItemStatus(target.orderItemId, { ITEM_STATUS: 'DONE' });
   }
 }

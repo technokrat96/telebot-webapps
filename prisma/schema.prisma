@@ -66,10 +66,10 @@ model TransactionDetail {
   orderItemId        String              @id @map("order_item_id") @db.VarChar(40)
   orderId            String              @map("order_id") @db.VarChar(30)
   itemName           String              @map("item_name") @db.VarChar(150)
-  quantity           Decimal             @default(0) @db.Decimal(18, 2)
+  quantity           Int                 @default(0) @db.SmallInt
   unitPrice          Decimal             @default(0) @map("unit_price") @db.Decimal(18, 2)
   currency           String              @default("IDR") @db.VarChar(3)
-  currencyRate       Decimal             @default(1) @map("currency_rate") @db.Decimal(18, 4)
+  currencyRate       Decimal             @default(1) @map("currency_rate") @db.Decimal(18, 2)
   customNotes        String?             @map("custom_notes") @db.VarChar(1000)
   subtotal           Decimal             @default(0) @db.Decimal(18, 2)
   itemStatus         String              @default("NEW ORDER") @map("item_status") @db.VarChar(20)
