@@ -93,14 +93,6 @@ export async function claimItem(
     },
   });
 
-  await prisma.transactionDetail.update({
-    where: {
-      orderItemId: orderItemId,
-    },
-    data: {
-      itemStatus: 'ON PROGRESS',
-    },
-  });
   return toAssignment(created);
 }
 
