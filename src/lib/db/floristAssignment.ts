@@ -93,20 +93,32 @@ export async function claimItem(
     },
   });
 
+  const item = await prisma.transactionDetail.findUnique({ where: { orderItemId } });
+  if (item?.itemStatus === 'NEW ORDER') {
+    await updateTransactionDetailItemStatus(orderItemId, { ITEM_STATUS: 'ON PROGRESS' });
+  }
+
   return toAssignment(created);
 }
 
 export async function releaseAssignment(assignmentId: string): Promise<boolean> {
-  try {
-    await prisma.floristAssignment.update({
-      where: { assignmentId },
-      data: { status: 'RELEASED' },
-    });
-    return true;
-  } catch (err: any) {
-    if (err?.code === 'P2025') return false;
-    throw err;
+  const target = await prisma.floristAssignment.findUnique({ where: { assignmentId } });
+  if (!target) return false;
+
+  await prisma.floristAssignment.update({
+    where: { assignmentId },
+    data: { status: 'RELEASED' },
+  });
+
+  // Kalau sekarang tidak ada assignment aktif (ASSIGNED/COMPLETED) yang
+  // tersisa untuk item ini, balikin status ke NEW ORDER supaya florist
+  // lain tahu item ini kosong lagi (bukan "masih diproses").
+  const { claimedQty } = await getItemQuantitySummary(target.orderItemId);
+  if (claimedQty === 0) {
+    await updateTransactionDetailItemStatus(target.orderItemId, { ITEM_STATUS: 'NEW ORDER' });
   }
+
+  return true;
 }
 
 /**

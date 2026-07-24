@@ -109,3 +109,11 @@ export type TransactionWithDetails = Transaction & {
 export type InvoiceWithDetails = Invoice & {
   details: InvoiceDetail[];
 }
+
+export type TransactionDetailWithAssignments = TransactionDetail & {
+  assignments: FloristAssignment[];
+};
+
+export type TransactionWithDetailsAndAssignments = Transaction & {
+  details: TransactionDetailWithAssignments[];
+};

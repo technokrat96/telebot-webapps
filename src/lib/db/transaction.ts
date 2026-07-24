@@ -1,5 +1,11 @@
 import { prisma } from '@/lib/prismaClient';
-import { Transaction, TransactionDetail, TransactionWithDetails } from '@/types';
+import {
+  FloristAssignment,
+  Transaction,
+  TransactionDetail,
+  TransactionWithDetails,
+  TransactionWithDetailsAndAssignments
+} from '@/types';
 import dayjs from "dayjs";
 
 // ---- Prisma (camelCase) <-> App types (SNAKE_CASE) mappers ----
@@ -47,6 +53,20 @@ function toTransactionDetail(row: any): TransactionDetail {
     RECEIVER_NAME: row.receiverName,
     RECEIVER_ADDRESS: row.receiverAddress,
     RECEIVER_PHONE: row.receiverPhone,
+  };
+}
+
+function toAssignmentLocal(row: any): FloristAssignment {
+  return {
+    ASSIGNMENT_ID: row.assignmentId,
+    ORDER_ITEM_ID: row.orderItemId,
+    ORDER_ID: row.orderId,
+    FLORIST_USERNAME: row.floristUsername,
+    FLORIST_NAME: row.floristName,
+    QUANTITY_ASSIGNED: Number(row.quantityAssigned),
+    ASSIGNED_AT: row.assignedAt instanceof Date ? row.assignedAt.toISOString() : row.assignedAt ?? '',
+    STATUS: row.status,
+    COMPLETED_AT: row.completedAt instanceof Date ? row.completedAt.toISOString() : row.completedAt ?? '',
   };
 }
 
@@ -244,6 +264,53 @@ export async function updateAllItemStatusForOrder(
     where: { orderId },
     data: { itemStatus },
   });
+}
+
+export async function listTransactionsWithDetailsAndAssignments(
+  options: { page?: number; pageSize?: number } = {}
+): Promise<{ transactions: TransactionWithDetailsAndAssignments[]; total: number }> {
+  const page = Math.max(1, options.page ?? 1);
+  const pageSize = Math.min(100, Math.max(1, options.pageSize ?? 10)); // cap 100 biar gak disalahgunakan
+
+  // const transactions = await prisma.transaction.findMany({
+  //   orderBy: { createdAt: 'desc' },
+  //   include: {
+  //     details: {
+  //       include: { floristAssignments: true },
+  //     },
+  //   },
+  // });
+  const [rows, total] = await Promise.all([
+    prisma.transaction.findMany({
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: {
+        details: {
+          include: { floristAssignments: true },
+        },
+      },
+    }),
+    prisma.transaction.count(),
+  ]);
+
+  const transactions: TransactionWithDetailsAndAssignments[] = rows.map((t) => ({
+    ...toTransaction(t),
+    details: t.details.map((d) => ({
+      ...toTransactionDetail(d),
+      assignments: d.floristAssignments.map(toAssignmentLocal),
+    })),
+  }));
+
+  return { transactions, total };
+
+  // return transactions.map((t) => ({
+  //   ...toTransaction(t),
+  //   details: t.details.map((d) => ({
+  //     ...toTransactionDetail(d),
+  //     assignments: d.floristAssignments.map(toAssignmentLocal),
+  //   })),
+  // }));
 }
 
 // isOrderFullyDone / filterOrdersByDeliveryStatus moved to '@/lib/statusUtils'

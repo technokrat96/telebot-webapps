@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import {
   createTransaction,
-  listTransactionsWithDetails,
+  listTransactionsWithDetails, listTransactionsWithDetailsAndAssignments,
 } from '@/lib/db/transaction';
 import { Transaction, TransactionDetail } from '@/types';
 
@@ -10,8 +10,12 @@ export async function GET(req: NextRequest) {
   const auth = await requireAuth(req, ['ADMIN']);
   if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const transactions = await listTransactionsWithDetails();
-  return NextResponse.json({ transactions });
+  const { searchParams } = new URL(req.url);
+  const page = Number(searchParams.get('page') ?? '1') || 1;
+  const pageSize = Number(searchParams.get('pageSize') ?? '10') || 10;
+
+  const { transactions, total } = await listTransactionsWithDetailsAndAssignments({ page, pageSize });
+  return NextResponse.json({ transactions, total, page, pageSize });
 }
 
 export async function POST(req: NextRequest) {

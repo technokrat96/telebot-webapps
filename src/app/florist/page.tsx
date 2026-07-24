@@ -24,7 +24,7 @@ import useSWR from "swr";
 const { Title, Text, Paragraph } = Typography;
 
 const fetcher = <T,>(url: string) => apiClient.get<T>(url);
-const POLL_INTERVAL = 1000 * 10;
+const POLL_INTERVAL = 1000 * 5;
 
 export default function FloristPage() {
   return (
@@ -159,7 +159,7 @@ function FloristContent() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Title level={3} style={{ margin: 0 }}>Pekerjaan Florist</Title>
-        <Tooltip title="Waktu sampai refresh data berikutnya">
+        <Tooltip title="Waktu sampai refresh data berikutnya" placement={"bottomRight"}>
           <Progress
             type="circle"
             percent={progress}
