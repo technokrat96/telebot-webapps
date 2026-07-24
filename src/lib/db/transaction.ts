@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prismaClient';
 import { Transaction, TransactionDetail, TransactionWithDetails } from '@/types';
+import dayjs from "dayjs";
 
 // ---- Prisma (camelCase) <-> App types (SNAKE_CASE) mappers ----
 
@@ -84,8 +85,8 @@ function fromTransactionDetail(d: Omit<TransactionDetail, 'ORDER_ID'>) {
     cardStatus: d.CARD_STATUS,
     deliveryBy: d.DELIVERY_BY,
     deliveryMethod: d.DELIVERY_METHOD,
-    deliveryDate: d.DELIVERY_DATE,
-    deliveryTime: d.DELIVERY_TIME,
+    deliveryDate: d.DELIVERY_DATE ? dayjs(d.DELIVERY_DATE).toDate() : null,
+    deliveryTime: d.DELIVERY_TIME ? dayjs(`${d.DELIVERY_DATE ? d.DELIVERY_DATE : dayjs().format("YYYY-MM-DD")} ${d.DELIVERY_TIME}`).toDate() : null,
     deliveryStatus: d.DELIVERY_STATUS,
     shippingFee: d.SHIPPING_FEE,
     receiverName: d.RECEIVER_NAME,

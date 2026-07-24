@@ -89,7 +89,6 @@ export default function TransactionListTable({
                 dataIndex: 'ITEM_STATUS',
                 render: (v, r) => <Tag color={STATUS_COLORS[r.ITEM_STATUS] ?? 'default'}>{r.ITEM_STATUS}</Tag>,
               },
-              { title: 'Florist', dataIndex: 'FLORIST_NAME' },
               {
                 title: 'Kartu Ucapan',
                 key: 'card',

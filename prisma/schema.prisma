@@ -27,11 +27,9 @@ model Currency {
 }
 
 model AppUser {
-  username           String              @id @db.VarChar(32)
-  name               String              @db.VarChar(100)
-  floristAssignments FloristAssignment[]
-  salesTransactions  Transaction[]       @relation("SalesUser")
-  roles              UserRole[]
+  username String     @id @db.VarChar(32)
+  name     String     @db.VarChar(100)
+  roles    UserRole[]
 
   @@map("app_user")
 }
@@ -59,7 +57,6 @@ model Transaction {
   paymentMethod      String?             @map("payment_method") @db.VarChar(40)
   createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
   floristAssignments FloristAssignment[]
-  sales              AppUser?            @relation("SalesUser", fields: [salesName], references: [username], onDelete: NoAction, onUpdate: NoAction)
   details            TransactionDetail[]
 
   @@map("transaction")
@@ -143,7 +140,6 @@ model FloristAssignment {
   assignedAt        DateTime          @default(now()) @map("assigned_at") @db.Timestamptz(6)
   status            String            @default("ASSIGNED") @db.VarChar(20)
   completedAt       DateTime?         @map("completed_at") @db.Timestamptz(6)
-  florist           AppUser           @relation(fields: [floristUsername], references: [username], onDelete: NoAction, onUpdate: NoAction)
   transaction       Transaction       @relation(fields: [orderId], references: [orderId], onDelete: NoAction, onUpdate: NoAction)
   transactionDetail TransactionDetail @relation(fields: [orderItemId], references: [orderItemId], onDelete: NoAction, onUpdate: NoAction)
 

@@ -24,7 +24,7 @@ import useSWR from "swr";
 const { Title, Text, Paragraph } = Typography;
 
 const fetcher = <T,>(url: string) => apiClient.get<T>(url);
-const POLL_INTERVAL = 1000 * 60;
+const POLL_INTERVAL = 1000 * 10;
 
 export default function FloristPage() {
   return (
