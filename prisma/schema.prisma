@@ -147,3 +147,19 @@ model FloristAssignment {
   @@index([orderItemId], map: "idx_florist_assignment_order_item_id")
   @@map("florist_assignment")
 }
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model Attendance {
+  id         Int       @id @default(autoincrement())
+  username   String    @db.VarChar(32)
+  name       String    @db.VarChar(100)
+  date       DateTime  @db.Date
+  checkInAt  DateTime? @map("check_in_at") @db.Timestamptz(6)
+  checkOutAt DateTime? @map("check_out_at") @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([username, date])
+  @@index([date], map: "idx_attendance_date")
+  @@index([username], map: "idx_attendance_username")
+  @@map("attendance")
+}

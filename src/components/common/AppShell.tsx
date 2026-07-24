@@ -6,13 +6,14 @@ import {
   FileTextOutlined,
   ShoppingOutlined,
   CarOutlined,
-  UserOutlined, MenuUnfoldOutlined, MenuFoldOutlined,
+  UserOutlined, MenuUnfoldOutlined, MenuFoldOutlined, ScheduleOutlined, ClockCircleOutlined,
 } from '@ant-design/icons';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTelegramAuth } from './TelegramProvider';
 import useBreakpoint from "antd/lib/grid/hooks/useBreakpoint";
 import Sider from "antd/lib/layout/Sider";
 import {useEffect, useState} from "react";
+import {useAttendanceGate} from "@/components/common/AttendanceGate";
 
 const { Header, Content, Footer } = Layout;
 const { Text } = Typography;
@@ -37,13 +38,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(true);
+  const { checkedIn, checkedOut} = useAttendanceGate();
 
   const items = [
     { key: '/', icon: <DashboardOutlined />, label: 'Home' },
+    { key: '/attendance', icon: <ClockCircleOutlined />, label: 'Absensi' },
     ...(roles.includes('ADMIN')
       ? [
           { key: '/admin/transaction', icon: <ShoppingOutlined />, label: 'Transaksi' },
           { key: '/admin/invoice', icon: <FileTextOutlined />, label: 'Invoice' },
+        { key: '/admin/attendance', icon: <ScheduleOutlined />, label: 'Rekap Absensi' },
         ]
       : []),
     ...(roles.includes('FLORIST')
@@ -94,7 +98,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </Flex>
         </div>
         <Divider style={{ borderColor: 'white' }} size={"small"} />
-        <Menu
+        {(checkedIn && !checkedOut) && (<Menu
           theme="dark"
           mode="inline"
           items={items}
@@ -103,7 +107,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             router.push(e.key)
             setCollapsed(!collapsed)
           }}
-        />
+        />)}
       </Sider>)}
       <Layout style={{ minHeight: "100vh", maxHeight: "100vh", overflowY: "auto",  marginBottom: '16px' }}>
         <Header
@@ -123,14 +127,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <Text strong style={{ color: '#fff', whiteSpace: 'nowrap' }}>
                   🌸 Florist App
                 </Text>
-                <Menu
+                {(checkedIn && !checkedOut) ? (<Menu
                   theme="dark"
                   mode="horizontal"
                   selectedKeys={[pathname]}
                   items={items}
                   onClick={(e) => router.push(e.key)}
-                  style={{ flex: 1, minWidth: 0 }}
-                />
+                  style={{flex: 1, minWidth: 0}}
+                />) : <div style={{flex: 1, minWidth: 0}}/>}
                 {roles.length > 0 && (
                   <Button type={"text"} onClick={() => router.push("/whoami")}>
                     <Avatar icon={<UserOutlined/>} shape={"circle"} />

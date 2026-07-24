@@ -5,6 +5,7 @@ import TelegramProvider from '@/components/common/TelegramProvider';
 import AppShell from '@/components/common/AppShell';
 import './globals.css';
 import MasterDataProvider from "@/components/common/MasterDataProvider";
+import AttendanceGate from "@/components/common/AttendanceGate";
 
 export const metadata: Metadata = {
   title: 'Florist Telegram App',
@@ -38,7 +39,9 @@ export default function RootLayout({
             <App>
               <TelegramProvider>
                 <MasterDataProvider>
-                  <AppShell>{children}</AppShell>
+                  <AttendanceGate>
+                    <AppShell>{children}</AppShell>
+                  </AttendanceGate>
                 </MasterDataProvider>
               </TelegramProvider>
             </App>

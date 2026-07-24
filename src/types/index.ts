@@ -78,6 +78,14 @@ export type FloristAssignment = {
   COMPLETED_AT: string;
 }
 
+export type Attendance = {
+  USERNAME: string;
+  NAME: string;
+  DATE: string; // 'YYYY-MM-DD'
+  CHECK_IN_AT: string | null;
+  CHECK_OUT_AT: string | null;
+};
+
 export type MasterData = {
   ROLES: string[];
   PAYMENT_METHODS: string[];

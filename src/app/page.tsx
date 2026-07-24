@@ -1,19 +1,29 @@
 'use client';
 
-import { Card, Col, Row, Typography } from 'antd';
+import {App, Button, Card, Col, Row, Space, Tag, Typography} from 'antd';
 import {
   ShoppingOutlined,
   FileTextOutlined,
-  CarOutlined,
+  CarOutlined, ClockCircleOutlined, LoginOutlined, LogoutOutlined,
 } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import { useTelegramAuth } from '@/components/common/TelegramProvider';
+import dayjs from "dayjs";
+import {useState} from "react";
+import useSWR from "swr";
+import {apiClient} from "@/lib/apiClient";
+import {Attendance} from "@/types";
+import {useAttendanceGate} from "@/components/common/AttendanceGate";
 
-const { Title, Paragraph } = Typography;
+const { Title, Paragraph, Text } = Typography;
+
 
 export default function HomePage() {
   const { name, roles } = useTelegramAuth();
+  const { message } = App.useApp();
   const router = useRouter();
+  const { checkedIn, checkedOut, handleCheckOut, handleCheckIn, attendanceData, loading, busy} = useAttendanceGate();
+
 
   const shortcuts: Record<
     string,
@@ -59,25 +69,65 @@ export default function HomePage() {
       <Paragraph type="secondary">
         Selamat datang di aplikasi manajemen toko bunga. Pilih menu di bawah untuk mulai.
       </Paragraph>
-      <Row gutter={[16, 16]}>
-        {cards.map((c) => (
-          <Col xs={24} sm={12} key={c.path}>
-            <Card hoverable onClick={() => router.push(c.path)}>
-              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                {c.icon}
-                <div>
-                  <Title level={5} style={{ margin: 0 }}>
-                    {c.title}
-                  </Title>
-                  <Paragraph type="secondary" style={{ margin: 0 }}>
-                    {c.desc}
-                  </Paragraph>
-                </div>
-              </div>
-            </Card>
-          </Col>
-        ))}
-      </Row>
+      <Paragraph type="secondary">Halo, {name}. Catat kehadiranmu hari ini.</Paragraph>
+      <Card loading={loading} style={{ marginBottom: 16 }}>
+        <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+          <Text strong>{dayjs().format('dddd, D MMMM YYYY')}</Text>
+
+          <Space wrap>
+            <Tag icon={<ClockCircleOutlined />} color={checkedIn ? 'green' : 'default'}>
+              Masuk: {(checkedIn && attendanceData) ? dayjs(attendanceData!.CHECK_IN_AT).format('HH:mm') : '-'}
+            </Tag>
+            <Tag icon={<ClockCircleOutlined />} color={checkedOut ? 'blue' : 'default'}>
+              Pulang: {(checkedOut && attendanceData) ? dayjs(attendanceData!.CHECK_OUT_AT).format('HH:mm') : '-'}
+            </Tag>
+          </Space>
+
+          <Space wrap>
+            <Button
+              type="primary"
+              icon={<LoginOutlined />}
+              disabled={checkedIn}
+              loading={busy}
+              onClick={handleCheckIn}
+            >
+              Check-in
+            </Button>
+            <Button
+              danger
+              icon={<LogoutOutlined />}
+              disabled={!checkedIn || checkedOut}
+              loading={busy}
+              onClick={handleCheckOut}
+            >
+              Check-out
+            </Button>
+          </Space>
+        </Space>
+      </Card>
+      {
+        (checkedIn && !checkedOut) && (
+          <Row gutter={[16, 16]}>
+            {cards.map((c) => (
+              <Col xs={24} sm={12} key={c.path}>
+                <Card hoverable onClick={() => router.push(c.path)}>
+                  <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                    {c.icon}
+                    <div>
+                      <Title level={5} style={{ margin: 0 }}>
+                        {c.title}
+                      </Title>
+                      <Paragraph type="secondary" style={{ margin: 0 }}>
+                        {c.desc}
+                      </Paragraph>
+                    </div>
+                  </div>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        )
+      }
     </div>
   );
 }
