@@ -90,7 +90,7 @@ function fromTransactionDetail(d: Omit<TransactionDetail, 'ORDER_ID'>) {
   return {
     orderItemId: d.ORDER_ITEM_ID,
     itemName: d.ITEM_NAME,
-    quantity: d.QUANTITY,
+    quantity: Number(d.QUANTITY || 0),
     unitPrice: d.UNIT_PRICE,
     currency: d.CURRENCY,
     currencyRate: d.CURRENCY_RATE,

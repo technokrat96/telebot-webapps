@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
-    "sync": "prisma generate"
+    "sync": "prisma db pull && prisma generate"
   },
   "dependencies": {
     "@ant-design/cssinjs": "^2.1.2",
