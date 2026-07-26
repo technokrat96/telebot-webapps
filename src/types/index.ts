@@ -3,6 +3,7 @@ export interface User {
   NAME: string;
   ROLES: string;
 }
+
 export type Transaction = {
   ORDER_ID: string;
   ORDER_SOURCE: string;
@@ -81,7 +82,7 @@ export type FloristAssignment = {
 export type Attendance = {
   USERNAME: string;
   NAME: string;
-  DATE: string; // 'YYYY-MM-DD'
+  DATE: string;
   CHECK_IN_AT: string | null;
   CHECK_OUT_AT: string | null;
 };

@@ -1,13 +1,24 @@
+import dayjs from "dayjs";
+
 export function generateOrderId(): string {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  const d = String(now.getDate()).padStart(2, '0');
   const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
-  return `ORD-${y}${m}${d}-${rand}`;
+  return `ORD-${dayjs().valueOf()}-${rand}`;
 }
 
-/** Order Item ID derived from its parent Order ID + 1-based position. */
+export function generateFloristAssignmentId(): string {
+  const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `ASG-${dayjs().valueOf()}-${rand}`;
+}
+
+export function generateInvoiceId(): string {
+  const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `INV-${dayjs().valueOf()}-${rand}`;
+}
+
 export function generateOrderItemId(orderId: string, index: number): string {
   return `${orderId}-${String(index + 1).padStart(2, '0')}`;
+}
+
+export function generateInvoiceItemId(invoiceId: string, orderItemId: string): string {
+  return `${invoiceId}-${orderItemId}`;
 }

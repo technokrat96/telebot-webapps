@@ -56,7 +56,7 @@ function CreateInvoiceContent() {
       .finally(() => setLoading(false));
   }, []);
 
-  async function handleSubmit(values: Omit<Invoice, 'INVOICE_ID'> & { INVOICE_ID: string }) {
+  async function handleSubmit(values: Omit<Invoice, 'INVOICE_ID'>) {
     if (selectedKeys.length === 0) {
       message.warning('Pilih minimal satu item untuk ditagihkan');
       return;
@@ -64,8 +64,7 @@ function CreateInvoiceContent() {
     setSubmitting(true);
     try {
       const selectedRows = rows.filter((r) => selectedKeys.includes(r.ORDER_ITEM_ID));
-      const details: Omit<InvoiceDetail, 'INVOICE_ID'>[] = selectedRows.map((r) => ({
-        INVOICE_ITEM_ID: `${values.INVOICE_ID}-${r.ORDER_ITEM_ID}`,
+      const details: Omit<InvoiceDetail, 'INVOICE_ID' | "INVOICE_ITEM_ID">[] = selectedRows.map((r) => ({
         ORDER_ITEM_ID: r.ORDER_ITEM_ID,
         QUANTITY_BILLED: r.QUANTITY,
         PRICE_BILLED: r.SUBTOTAL,
@@ -95,12 +94,6 @@ function CreateInvoiceContent() {
       <Title level={3}>Buat Invoice</Title>
       <Card style={{ marginBottom: 16 }}>
         <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ INVOICE_STATUS: 'UNPAID' }}>
-          <Form.Item label="Invoice ID" name="INVOICE_ID" rules={[{ required: true }]}>
-            <Input placeholder="INV-0001" />
-          </Form.Item>
-          <Form.Item label="Nomor Invoice" name="INVOICE_NUMBER">
-            <Input placeholder="2026/07/001" />
-          </Form.Item>
           <Form.Item label="Tanggal Invoice" name="INVOICE_DATE">
             <DatePicker style={{ width: '100%' }} />
           </Form.Item>

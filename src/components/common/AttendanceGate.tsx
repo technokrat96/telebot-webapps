@@ -42,6 +42,19 @@ export default function AttendanceGate({ children }: { children: React.ReactNode
   const [busy, setBusy] = useState(false);
 
   async function load() {
+    if (process.env.NODE_ENV !== 'production') {
+      setCheckedIn(true);
+      setCheckedOut(false);
+      setAttendanceData({
+        USERNAME: "Dev",
+        NAME: "Dev",
+        CHECK_IN_AT: "00:00",
+        CHECK_OUT_AT: null,
+        DATE: dayjs().format("YYYY-MM-DD"),
+      });
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const res = await apiClient.get<{ today: Attendance | null }>('/api/attendance');

@@ -1,14 +1,16 @@
+import 'server-only';
 import { prisma } from '@/lib/prismaClient';
 import { Attendance } from '@/types';
 import dayjs from 'dayjs';
+import {AttendanceModel} from "@/generated/prisma/models/Attendance";
 
-function toAttendance(row: any): Attendance {
+function toAttendance(row: AttendanceModel): Attendance {
   return {
     USERNAME: row.username,
     NAME: row.name,
     DATE: dayjs(row.date).format('YYYY-MM-DD'),
-    CHECK_IN_AT: row.checkInAt ? row.checkInAt.toISOString() : null,
-    CHECK_OUT_AT: row.checkOutAt ? row.checkOutAt.toISOString() : null,
+    CHECK_IN_AT: row.checkInAt ? dayjs(row.checkInAt).format("YYYY-MM-DD HH:mm:ss") : "",
+    CHECK_OUT_AT: row.checkOutAt ? dayjs(row.checkOutAt).format("YYYY-MM-DD HH:mm:ss") : "",
   };
 }
 

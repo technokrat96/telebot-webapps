@@ -17,12 +17,8 @@ export async function POST(req: NextRequest) {
 
   const body = (await req.json()) as {
     invoice: Invoice;
-    details: Omit<InvoiceDetail, 'INVOICE_ID'>[];
+    details: Omit<InvoiceDetail, "INVOICE_ID" | "INVOICE_ITEM_ID">[];
   };
-
-  if (!body.invoice?.INVOICE_ID) {
-    return NextResponse.json({ error: 'INVOICE_ID is required' }, { status: 400 });
-  }
 
   await createInvoice(body.invoice, body.details ?? []);
   return NextResponse.json({ ok: true });

@@ -14,6 +14,7 @@ import useBreakpoint from "antd/lib/grid/hooks/useBreakpoint";
 import Sider from "antd/lib/layout/Sider";
 import {useEffect, useState} from "react";
 import {useAttendanceGate} from "@/components/common/AttendanceGate";
+import {take} from "lodash";
 
 const { Header, Content, Footer } = Layout;
 const { Text } = Typography;
@@ -32,6 +33,15 @@ const siderStyle: React.CSSProperties = {
   zIndex: 10,
 };
 
+function toArrayPathname(pathname: string) {
+  return pathname.split("/").filter(e => !!e).reduce((previousValue, currentValue, currentIndex, array) => {
+    return [
+      ...previousValue,
+      ["", ...take(array, currentIndex + 1)].join("/"),
+    ]
+  }, [] as string[]);
+}
+
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { name, roles } = useTelegramAuth();
   const breakpoint = useBreakpoint();
@@ -39,6 +49,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(true);
   const { checkedIn, checkedOut} = useAttendanceGate();
+  console.log(toArrayPathname(pathname));
 
   const items = [
     { key: '/', icon: <DashboardOutlined />, label: 'Home' },
@@ -102,7 +113,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           theme="dark"
           mode="inline"
           items={items}
-          selectedKeys={[pathname]}
+          selectedKeys={[...toArrayPathname(pathname)]}
           onClick={(e) => {
             router.push(e.key)
             setCollapsed(!collapsed)
@@ -130,7 +141,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 {(checkedIn && !checkedOut) ? (<Menu
                   theme="dark"
                   mode="horizontal"
-                  selectedKeys={[pathname]}
+                  selectedKeys={[...toArrayPathname(pathname)]}
                   items={items}
                   onClick={(e) => router.push(e.key)}
                   style={{flex: 1, minWidth: 0}}

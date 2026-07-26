@@ -1,3 +1,4 @@
+import 'server-only';
 import { NextRequest } from 'next/server';
 import { validateTelegramInitData } from '@/lib/telegram';
 import { findUserByUsername } from '@/lib/db/users';

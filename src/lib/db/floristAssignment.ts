@@ -1,22 +1,24 @@
+import 'server-only';
 import { FloristAssignment, TransactionDetail } from '@/types';
 import { listTransactionDetails } from '@/lib/db/transaction';
 import { listTransactionsWithDetails, updateTransactionDetailItemStatus } from '@/lib/db/transaction';
 import { AvailableFloristItem, MyFloristAssignment } from '@/types';
 import {prisma} from "@/lib/prismaClient";
+import {FloristAssignmentModel} from "@/generated/prisma/models/FloristAssignment";
+import dayjs from "dayjs";
+import {generateFloristAssignmentId} from "@/lib/generateId";
 
-function toAssignment(row: any): FloristAssignment {
+function toAssignment(row: FloristAssignmentModel): FloristAssignment {
   return {
     ASSIGNMENT_ID: row.assignmentId,
     ORDER_ITEM_ID: row.orderItemId,
     ORDER_ID: row.orderId,
     FLORIST_USERNAME: row.floristUsername,
     FLORIST_NAME: row.floristName,
-    QUANTITY_ASSIGNED: Number(row.quantityAssigned),
-    ASSIGNED_AT:
-      row.assignedAt instanceof Date ? row.assignedAt.toISOString() : row.assignedAt ?? '',
+    QUANTITY_ASSIGNED: row.quantityAssigned.toNumber(),
+    ASSIGNED_AT: row.assignedAt ? dayjs(row.assignedAt).format("YYYY-MM-DD HH:mm:ss") : "",
     STATUS: row.status,
-    COMPLETED_AT:
-      row.completedAt instanceof Date ? row.completedAt.toISOString() : row.completedAt ?? '',
+    COMPLETED_AT: row.completedAt ? dayjs(row.completedAt).format("YYYY-MM-DD HH:mm:ss") : "",
   };
 }
 
@@ -83,7 +85,7 @@ export async function claimItem(
 
   const created = await prisma.floristAssignment.create({
     data: {
-      assignmentId: `ASG-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+      assignmentId: generateFloristAssignmentId(),
       orderItemId,
       orderId,
       floristUsername: florist.username,

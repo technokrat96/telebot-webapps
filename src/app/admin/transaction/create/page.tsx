@@ -8,7 +8,6 @@ import TransactionForm, {TransactionFormValues,} from '@/components/transaction/
 import {apiClient} from '@/lib/apiClient';
 import {useTelegramAuth} from "@/components/common/TelegramProvider";
 import dayjs from "dayjs";
-import {generateOrderId, generateOrderItemId} from "@/lib/generateId";
 import {Transaction, TransactionDetail} from "@/types";
 
 const { Title } = Typography;
@@ -49,20 +48,16 @@ function CreateTransactionContent() {
         ...transaction
       } = values;
 
-      const orderId = generateOrderId();
       const deliveryDate = DELIVERY_DATE ? dayjs(DELIVERY_DATE as never).format('YYYY-MM-DD') : '';
       const deliveryTime = DELIVERY_TIME ? dayjs(DELIVERY_TIME as never).format('HH:mm') : '';
 
       await apiClient.post('/api/transactions', {
         transaction: {
           ...transaction,
-          ORDER_ID: orderId,
           SALES_NAME: username,
         } as Transaction,
         details: (details ?? []).map((d, idx) => ({
           ...d,
-          ORDER_ID: orderId,
-          ORDER_ITEM_ID: generateOrderItemId(orderId, idx),
           RECEIVER_NAME,
           RECEIVER_ADDRESS,
           RECEIVER_PHONE,

@@ -1,12 +1,19 @@
-import { prisma } from '@/lib/prismaClient';
-import { User } from '@/types';
+import 'server-only';
+import {prisma} from '@/lib/prismaClient';
+import {User} from '@/types';
+import {AppUserModel} from "@/generated/prisma/models/AppUser";
+import {UserRoleModel} from "@/generated/prisma/models/UserRole";
 
 function normalizedUsername(username: string) {
   return username.replace(/^@/, '').toLowerCase();
 }
 
-function toUser(row: { username: string; name: string; roles: { role: string }[] }): User {
-  return { USERNAME: row.username, NAME: row.name, ROLES: row.roles.map(e => e.role).join(', ') };
+function toUser(row: AppUserModel & { roles: Omit<UserRoleModel, "username">[] }): User {
+  return {
+    USERNAME: row.username,
+    NAME: row.name,
+    ROLES: row.roles.map(e => e.role).join(', '),
+  };
 }
 
 export async function findUserByUsername(

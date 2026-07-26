@@ -73,7 +73,6 @@ model TransactionDetail {
   customNotes        String?             @map("custom_notes") @db.VarChar(1000)
   subtotal           Decimal             @default(0) @db.Decimal(18, 2)
   itemStatus         String              @default("NEW ORDER") @map("item_status") @db.VarChar(20)
-  floristName        String?             @map("florist_name") @db.VarChar(100)
   cardTo             String?             @map("card_to") @db.VarChar(100)
   cardFrom           String?             @map("card_from") @db.VarChar(100)
   cardMessage        String?             @map("card_message") @db.VarChar(1000)

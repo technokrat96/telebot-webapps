@@ -1,12 +1,10 @@
+import 'server-only';
 import {prisma} from "@/lib/prismaClient";
 import {MasterData} from "@/types";
+import {CurrencyModel} from "@/generated/prisma/models/Currency";
+import {MasterDataModel} from "@/generated/prisma/models/MasterData";
 
-type CurrencyFindManyFunctionType = typeof prisma.currency.findMany;
-type CurrencyList = Awaited<ReturnType<CurrencyFindManyFunctionType>>;
-type MasterDataFindManyFunctionType = typeof prisma.masterData.findMany;
-type MasterDataList = Awaited<ReturnType<MasterDataFindManyFunctionType>>;
-
-function mapCurrency(list: CurrencyList): MasterData["CURRENCY"] {
+function mapCurrency(list: CurrencyModel[]): MasterData["CURRENCY"] {
   return list.map(e => ({
     label: e.label,
     locale: e.locale,
@@ -15,7 +13,7 @@ function mapCurrency(list: CurrencyList): MasterData["CURRENCY"] {
   }))
 }
 
-function groupCategory(category: string, list: MasterDataList): string[] {
+function groupCategory(category: string, list: MasterDataModel[]): string[] {
   return list.filter((item) => category === item.category)
     .sort((a,b)=> a.sortOrder - b.sortOrder)
     .map(e => e.value)
