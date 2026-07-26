@@ -1,12 +1,14 @@
 import 'server-only';
-import { FloristAssignment, TransactionDetail } from '@/types';
-import { listTransactionDetails } from '@/lib/db/transaction';
-import { listTransactionsWithDetails, updateTransactionDetailItemStatus } from '@/lib/db/transaction';
-import { AvailableFloristItem, MyFloristAssignment } from '@/types';
+import {AvailableFloristItem, FloristAssignment, MyFloristAssignment, TransactionDetail} from '@/types';
+import {
+  listTransactionDetails,
+  listTransactionsWithDetails,
+  updateTransactionDetailItemStatus
+} from '@/lib/db/transaction';
 import {prisma} from "@/lib/prismaClient";
 import {FloristAssignmentModel} from "@/generated/prisma/models/FloristAssignment";
-import dayjs from "dayjs";
 import {generateFloristAssignmentId} from "@/lib/generateId";
+import serverDayJs from "@/lib/server.dayjs";
 
 function toAssignment(row: FloristAssignmentModel): FloristAssignment {
   return {
@@ -16,9 +18,9 @@ function toAssignment(row: FloristAssignmentModel): FloristAssignment {
     FLORIST_USERNAME: row.floristUsername,
     FLORIST_NAME: row.floristName,
     QUANTITY_ASSIGNED: row.quantityAssigned.toNumber(),
-    ASSIGNED_AT: row.assignedAt ? dayjs(row.assignedAt).format("YYYY-MM-DD HH:mm:ss") : "",
+    ASSIGNED_AT: row.assignedAt ? serverDayJs(row.assignedAt).format("YYYY-MM-DD HH:mm:ss") : "",
     STATUS: row.status,
-    COMPLETED_AT: row.completedAt ? dayjs(row.completedAt).format("YYYY-MM-DD HH:mm:ss") : "",
+    COMPLETED_AT: row.completedAt ? serverDayJs(row.completedAt).format("YYYY-MM-DD HH:mm:ss") : "",
   };
 }
 

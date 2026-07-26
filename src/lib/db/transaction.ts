@@ -1,5 +1,5 @@
 import 'server-only';
-import { prisma } from '@/lib/prismaClient';
+import {prisma} from '@/lib/prismaClient';
 import {
   FloristAssignment,
   Transaction,
@@ -7,12 +7,12 @@ import {
   TransactionWithDetails,
   TransactionWithDetailsAndAssignments
 } from '@/types';
-import dayjs from "dayjs";
 import {TransactionModel} from "@/generated/prisma/models/Transaction";
 import {TransactionDetailModel} from "@/generated/prisma/models/TransactionDetail";
 import {FloristAssignmentModel} from "@/generated/prisma/models/FloristAssignment";
 import {Decimal} from "@prisma/client-runtime-utils";
 import {generateOrderId, generateOrderItemId} from "@/lib/generateId";
+import serverDayJs from "@/lib/server.dayjs";
 
 function toTransaction(row: TransactionModel): Transaction {
   return {
@@ -50,10 +50,10 @@ function toTransactionDetail(row: TransactionDetailModel): TransactionDetail {
     CARD_STATUS: row.cardStatus ?? "",
     DELIVERY_BY: row.deliveryBy ?? "",
     DELIVERY_METHOD: row.deliveryMethod ?? "",
-    DELIVERY_DATE: row.deliveryDate ? dayjs(row.deliveryDate).format("YYYY-MM-DD HH:mm:ss") : "",
-    DELIVERY_TIME: row.deliveryTime ? dayjs(row.deliveryTime).format("YYYY-MM-DD HH:mm:ss") : "",
+    DELIVERY_DATE: row.deliveryDate ? serverDayJs(row.deliveryDate).format("YYYY-MM-DD HH:mm:ss") : "",
+    DELIVERY_TIME: row.deliveryTime ? serverDayJs(row.deliveryTime).format("YYYY-MM-DD HH:mm:ss") : "",
     DELIVERY_STATUS: row.deliveryStatus ?? "",
-    SHIPPING_FEE: Number(row.shippingFee),
+    SHIPPING_FEE: row.shippingFee.toNumber(),
     RECEIVER_NAME: row.receiverName ?? "",
     RECEIVER_ADDRESS: row.receiverAddress ?? "",
     RECEIVER_PHONE: row.receiverPhone ?? "",
@@ -68,9 +68,9 @@ function toAssignmentLocal(row: FloristAssignmentModel): FloristAssignment {
     FLORIST_USERNAME: row.floristUsername,
     FLORIST_NAME: row.floristName,
     QUANTITY_ASSIGNED: Number(row.quantityAssigned),
-    ASSIGNED_AT: row.assignedAt ? dayjs(row.assignedAt).format("YYYY-MM-DD HH:mm:ss") : "",
+    ASSIGNED_AT: row.assignedAt ? serverDayJs(row.assignedAt).format("YYYY-MM-DD HH:mm:ss") : "",
     STATUS: row.status,
-    COMPLETED_AT: row.completedAt ? dayjs(row.completedAt).format("YYYY-MM-DD HH:mm:ss") : "",
+    COMPLETED_AT: row.completedAt ? serverDayJs(row.completedAt).format("YYYY-MM-DD HH:mm:ss") : "",
   };
 }
 
@@ -107,8 +107,8 @@ function fromTransactionDetail(d: Omit<TransactionDetail, 'ORDER_ID'>): Omit<Tra
     cardStatus: d.CARD_STATUS,
     deliveryBy: d.DELIVERY_BY,
     deliveryMethod: d.DELIVERY_METHOD,
-    deliveryDate: d.DELIVERY_DATE ? dayjs(d.DELIVERY_DATE).toDate() : null,
-    deliveryTime: d.DELIVERY_TIME ? dayjs(`${d.DELIVERY_DATE ? d.DELIVERY_DATE : dayjs().format("YYYY-MM-DD")} ${d.DELIVERY_TIME}`).toDate() : null,
+    deliveryDate: d.DELIVERY_DATE ? serverDayJs(d.DELIVERY_DATE).toDate() : null,
+    deliveryTime: d.DELIVERY_TIME ? serverDayJs(`${d.DELIVERY_DATE ? d.DELIVERY_DATE : serverDayJs().format("YYYY-MM-DD")} ${d.DELIVERY_TIME}`).toDate() : null,
     deliveryStatus: d.DELIVERY_STATUS,
     shippingFee: new Decimal(d.SHIPPING_FEE),
     receiverName: d.RECEIVER_NAME,

@@ -1,13 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { Card, Button, Typography, Tag, Table, App, Space, Empty } from 'antd';
-import { ClockCircleOutlined, LoginOutlined, LogoutOutlined } from '@ant-design/icons';
+import {Empty, Table, Tag, Typography} from 'antd';
 import useSWR from 'swr';
 import dayjs from 'dayjs';
-import { apiClient } from '@/lib/apiClient';
-import { useTelegramAuth } from '@/components/common/TelegramProvider';
-import { Attendance } from '@/types';
+import {apiClient} from '@/lib/apiClient';
+import {useTelegramAuth} from '@/components/common/TelegramProvider';
+import {Attendance} from '@/types';
 
 const { Title, Text, Paragraph } = Typography;
 

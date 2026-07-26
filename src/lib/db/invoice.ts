@@ -1,13 +1,19 @@
 import 'server-only';
 import {prisma} from '@/lib/prismaClient';
-import {Invoice, InvoiceDetail, InvoicePdfData, InvoiceWithDetails} from '@/types';
+import {
+  Invoice,
+  InvoiceDetail,
+  InvoicePdfData,
+  InvoiceWithDetails,
+  OrderItemWithBilling,
+  TransactionWithBilling
+} from '@/types';
 import {InvoiceModel} from "@/generated/prisma/models/Invoice";
 import {InvoiceDetailModel} from "@/generated/prisma/models/InvoiceDetail";
-import dayjs from "dayjs";
 import {Decimal} from "@prisma/client-runtime-utils";
 import {generateInvoiceId, generateInvoiceItemId} from "@/lib/generateId";
-import { listTransactionsWithDetails } from '@/lib/db/transaction';
-import { OrderItemWithBilling, TransactionWithBilling } from '@/types';
+import {listTransactionsWithDetails} from '@/lib/db/transaction';
+import serverDayJs from "@/lib/server.dayjs";
 
 // ---- Prisma (camelCase) <-> App types (SNAKE_CASE) mappers ----
 
@@ -15,8 +21,8 @@ function toInvoice(row: InvoiceModel): Invoice {
   return {
     INVOICE_ID: row.invoiceId,
     INVOICE_NUMBER: row.invoiceNumber ?? "",
-    INVOICE_DATE: row.invoiceDate ? dayjs(row.invoiceDate).format("YYYY-MM-DD HH:mm:ss") : "",
-    DUE_DATE: row.dueDate ? dayjs(row.dueDate).format("YYYY-MM-DD") : "",
+    INVOICE_DATE: row.invoiceDate ? serverDayJs(row.invoiceDate).format("YYYY-MM-DD HH:mm:ss") : "",
+    DUE_DATE: row.dueDate ? serverDayJs(row.dueDate).format("YYYY-MM-DD") : "",
     TOTAL_AMOUNT: row.totalAmount.toNumber(),
     AMOUNT_PAID: row.amountPaid.toNumber(),
     INVOICE_STATUS: row.invoiceStatus,
@@ -39,8 +45,8 @@ function toInvoiceDetail(row: InvoiceDetailModel): InvoiceDetail {
 function fromInvoice(invoice: Omit<Invoice, "INVOICE_ID">): Omit<InvoiceModel, "invoiceId" | "createdAt"> {
   return {
     invoiceNumber: invoice.INVOICE_NUMBER,
-    invoiceDate: dayjs(invoice.INVOICE_DATE).toDate(),
-    dueDate: dayjs(invoice.DUE_DATE).toDate(),
+    invoiceDate: serverDayJs(invoice.INVOICE_DATE).toDate(),
+    dueDate: serverDayJs(invoice.DUE_DATE).toDate(),
     totalAmount: new Decimal(invoice.TOTAL_AMOUNT),
     amountPaid: new Decimal(invoice.AMOUNT_PAID),
     invoiceStatus: invoice.INVOICE_STATUS,
@@ -61,8 +67,8 @@ function fromInvoiceDetail(detail: Omit<InvoiceDetail, 'INVOICE_ID' | "INVOICE_I
 function fromInvoiceUpdates(updates: Partial<Invoice>): Partial<InvoiceModel> {
   const data: Partial<InvoiceModel> = {};
   if (updates.INVOICE_NUMBER !== undefined) data.invoiceNumber = updates.INVOICE_NUMBER;
-  if (updates.INVOICE_DATE !== undefined) data.invoiceDate = dayjs(updates.INVOICE_DATE).toDate();
-  if (updates.DUE_DATE !== undefined) data.dueDate = dayjs(updates.DUE_DATE).toDate();
+  if (updates.INVOICE_DATE !== undefined) data.invoiceDate = serverDayJs(updates.INVOICE_DATE).toDate();
+  if (updates.DUE_DATE !== undefined) data.dueDate = serverDayJs(updates.DUE_DATE).toDate();
   if (updates.TOTAL_AMOUNT !== undefined) data.totalAmount = new Decimal(updates.TOTAL_AMOUNT);
   if (updates.AMOUNT_PAID !== undefined) data.amountPaid = new Decimal(updates.AMOUNT_PAID);
   if (updates.INVOICE_STATUS !== undefined) data.invoiceStatus = updates.INVOICE_STATUS;

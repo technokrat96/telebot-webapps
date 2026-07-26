@@ -1,18 +1,18 @@
-import dayjs from "dayjs";
+import serverDayJs from "@/lib/server.dayjs";
 
 export function generateOrderId(): string {
   const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
-  return `ORD-${dayjs().valueOf()}-${rand}`;
+  return `ORD-${serverDayJs().valueOf()}-${rand}`;
 }
 
 export function generateFloristAssignmentId(): string {
   const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
-  return `ASG-${dayjs().valueOf()}-${rand}`;
+  return `ASG-${serverDayJs().valueOf()}-${rand}`;
 }
 
 export function generateInvoiceId(): string {
   const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
-  return `INV-${dayjs().valueOf()}-${rand}`;
+  return `INV-${serverDayJs().valueOf()}-${rand}`;
 }
 
 export function generateOrderItemId(orderId: string, index: number): string {

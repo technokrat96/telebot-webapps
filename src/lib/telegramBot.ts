@@ -118,11 +118,12 @@ telegramBot.command('start', async (ctx) => {
       await ctx.reply(COMMAND_FN.start({
         user,
         messageReceived: messageReceived ?? "",
-      }));
+      }), {
+        parse_mode: "HTML"
+      });
       return;
     }
   }
-  await ctx.reply('Halo! Selamat datang di bot Next.js.');
 });
 
 telegramBot.command('help', async (ctx) => {
@@ -133,9 +134,13 @@ telegramBot.on('message:text', async (ctx) => {
   const text = ctx.message?.text;
 
   if (text && text.startsWith('/')) {
-    await ctx.reply(`Maaf, perintah "${text}" tidak dikenali. Ketik /help untuk melihat bantuan.`);
+    await ctx.reply(`Maaf, perintah "${text}" tidak dikenali. Ketik /help untuk melihat bantuan.`, {
+      parse_mode: "HTML"
+    });
   } else {
-    await ctx.reply('Bot ini hanya merespon perintah/command.');
+    await ctx.reply('Bot ini hanya merespon perintah/command.', {
+      parse_mode: "HTML"
+    });
   }
 });
 

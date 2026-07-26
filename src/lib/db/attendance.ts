@@ -1,16 +1,16 @@
 import 'server-only';
-import { prisma } from '@/lib/prismaClient';
-import { Attendance } from '@/types';
-import dayjs from 'dayjs';
+import {prisma} from '@/lib/prismaClient';
+import {Attendance} from '@/types';
 import {AttendanceModel} from "@/generated/prisma/models/Attendance";
+import serverDayJs from "@/lib/server.dayjs";
 
 function toAttendance(row: AttendanceModel): Attendance {
   return {
     USERNAME: row.username,
     NAME: row.name,
-    DATE: dayjs(row.date).format('YYYY-MM-DD'),
-    CHECK_IN_AT: row.checkInAt ? dayjs(row.checkInAt).format("YYYY-MM-DD HH:mm:ss") : "",
-    CHECK_OUT_AT: row.checkOutAt ? dayjs(row.checkOutAt).format("YYYY-MM-DD HH:mm:ss") : "",
+    DATE: serverDayJs(row.date).format('YYYY-MM-DD'),
+    CHECK_IN_AT: row.checkInAt ? serverDayJs(row.checkInAt).format("YYYY-MM-DD HH:mm:ss") : "",
+    CHECK_OUT_AT: row.checkOutAt ? serverDayJs(row.checkOutAt).format("YYYY-MM-DD HH:mm:ss") : "",
   };
 }
 
@@ -18,7 +18,7 @@ function toAttendance(row: AttendanceModel): Attendance {
 // server production TZ-nya bukan Asia/Jakarta, set env TZ=Asia/Jakarta
 // supaya "hari ini" konsisten dengan jam toko.
 function todayDateOnly(): Date {
-  return dayjs(dayjs().format('YYYY-MM-DD')).toDate();
+  return serverDayJs(serverDayJs().format('YYYY-MM-DD')).toDate();
 }
 
 export async function getTodayAttendance(username: string): Promise<Attendance | null> {
@@ -82,8 +82,8 @@ export async function listAllAttendance(options: {
   to?: string;
   username?: string;
 } = {}): Promise<Attendance[]> {
-  const from = options.from ? dayjs(options.from).toDate() : dayjs().startOf('month').toDate();
-  const to = options.to ? dayjs(options.to).toDate() : dayjs().endOf('month').toDate();
+  const from = options.from ? serverDayJs(options.from).toDate() : serverDayJs().startOf('month').toDate();
+  const to = options.to ? serverDayJs(options.to).toDate() : serverDayJs().endOf('month').toDate();
 
   const rows = await prisma.attendance.findMany({
     where: {
