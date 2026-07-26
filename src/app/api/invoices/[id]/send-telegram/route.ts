@@ -1,9 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
-import { getInvoicePdfData } from '@/lib/db/invoice';
-import { generateInvoicePdf } from '@/lib/pdf/invoicePdf';
-import { sendTelegramDocument } from '@/lib/telegramBot';
-import { getTelegramIdByUsername } from '@/lib/db/users';
+import {NextRequest, NextResponse} from 'next/server';
+import {requireAuth} from '@/lib/auth';
+import {getInvoicePdfData} from '@/lib/db/invoice';
+import {generateInvoicePdf} from '@/lib/pdf/invoicePdf';
+import {sendTelegramDocument} from '@/lib/telegramBot';
 
 // Next.js 15+: dynamic route `params` is now a Promise and must be awaited.
 export async function POST(
