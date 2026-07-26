@@ -23,6 +23,8 @@ export function validateTelegramInitData(
   const parsed = parse(initDataRaw);
   if (!parsed.user) return null;
 
+  console.log("parse validate init data", parsed)
+
   return {
     id: parsed.user.id,
     username: parsed.user.username,
