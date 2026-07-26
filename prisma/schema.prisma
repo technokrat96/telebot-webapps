@@ -27,9 +27,11 @@ model Currency {
 }
 
 model AppUser {
-  username String     @id @db.VarChar(32)
-  name     String     @db.VarChar(100)
-  roles    UserRole[]
+  username    String     @id @db.VarChar(32)
+  name        String     @db.VarChar(100)
+  telegram_id String?    @db.VarChar(50)
+  chat_id     String?    @db.VarChar(50)
+  roles       UserRole[]
 
   @@map("app_user")
 }
