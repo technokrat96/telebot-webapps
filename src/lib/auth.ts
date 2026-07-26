@@ -1,16 +1,13 @@
 import 'server-only';
-import { NextRequest } from 'next/server';
-import { validateTelegramInitData } from '@/lib/telegram';
-import { findUserByUsername } from '@/lib/db/users';
-import { hasAnyRole, parseRoles } from '@/lib/roles';
-import { User } from '@/types';
-import {getMasterData} from "@/lib/db/masterData";
+import {NextRequest} from 'next/server';
+import {validateTelegramInitData} from '@/lib/telegram';
+import {findUserByUsername} from '@/lib/db/users';
+import {hasAnyRole} from '@/lib/roles';
+import {User} from '@/types';
 
 export interface AuthContext {
-  telegramUsername: string;
-  user: User;
-  /** Parsed from user.ROLES — a user can hold more than one role. */
-  roles: string[];
+  TELEGRAM_USER: string;
+  USER: User;
 }
 
 /**
@@ -19,7 +16,7 @@ export interface AuthContext {
  * src/lib/apiClient.ts on the client side). We validate it against the
  * bot token, then look up the matching row in the "Users" sheet to get
  * the role(s). Returns null if invalid, unknown, or has none of the
- * allowed roles.
+ * allowed ROLES.
  */
 export async function requireAuth(
   req: NextRequest,
@@ -28,7 +25,13 @@ export async function requireAuth(
   const initData = req.headers.get('x-telegram-init-data');
 
   if (process.env.NODE_ENV !== 'production') {
-    return { telegramUsername: 'DEV', user: { ROLES: 'ADMIN,FLORIST,KURIR', USERNAME: 'DEV', NAME: 'DEV' }, roles: ['ADMIN','FLORIST','KURIR'] };
+    const ROLES = ['ADMIN', 'FLORIST', 'KURIR'];
+    const USER = {
+      USERNAME: 'DEV',
+      NAME: 'DEV',
+      ROLES,
+    };
+    return {TELEGRAM_USER: 'DEV', USER} as AuthContext;
   }
 
   if (!initData) return null;
@@ -39,9 +42,8 @@ export async function requireAuth(
   const user = await findUserByUsername(telegramUser.username);
   if (!user) return null;
 
-  const { ROLES } = await getMasterData();
-  const roles = parseRoles(ROLES, user.ROLES);
-  if (allowedRoles && !hasAnyRole(roles, allowedRoles)) return null;
+  const { ROLES } = user;
+  if (allowedRoles && !hasAnyRole(ROLES, allowedRoles)) return null;
 
-  return { telegramUsername: telegramUser.username, user, roles };
+  return {TELEGRAM_USER: telegramUser.username, USER: user} as AuthContext;
 }

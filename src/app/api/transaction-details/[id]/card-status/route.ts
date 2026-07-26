@@ -14,7 +14,7 @@ export async function PATCH(
   const body = await req.json();
   const ok = await updateTransactionDetailCardStatus(id, {
     CARD_STATUS: body.CARD_STATUS,
-    CARD_CREATED_BY: body.CARD_CREATED_BY ?? auth.user.NAME,
+    CARD_CREATED_BY: body.CARD_CREATED_BY ?? auth.USER.NAME,
   });
 
   if (!ok) return NextResponse.json({ error: 'Not found' }, { status: 404 });

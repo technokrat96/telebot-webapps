@@ -1,5 +1,6 @@
 import {Bot, webhookCallback} from 'grammy';
 import {User} from "@/types";
+import {findUserByUsername, updateUserByUsername} from "@/lib/db/users";
 
 interface COMMAND_DATA {
   user: User;
@@ -44,7 +45,7 @@ const COMMAND_FN: Record<
   start: (data: COMMAND_DATA) => {
     let messageReply = `Halo <b>${data.user.NAME || "Pengguna"}</b>! Status bot dalam keadaan aktif.`;
 
-    // Memanggil fungsi help secara internal untuk menampilkan menu sesuai role user
+    // Memanggil fungsi help secara internal untuk menampilkan menu sesuai role USER
     const daftarMenu = COMMAND_FN.help(data);
     messageReply += `\n\n${daftarMenu}`;
 
@@ -103,8 +104,25 @@ bot.command('start', async (ctx) => {
   const chatId = ctx.message?.chat?.id;
   const chatType = ctx.message?.chat?.type;
   const messageId = ctx.message?.message_id;
+  const userId = ctx.message?.from?.id;
   const username = ctx.message?.from?.username ?? ctx.message?.chat?.username;
   const messageReceived = ctx.message?.text;
+
+  if (username) {
+    const user = await findUserByUsername(username);
+    if (user) {
+      await updateUserByUsername(username, {
+        telegramId: userId ? String(userId) : undefined,
+        chatId: chatId ? String(chatId) : undefined,
+      })
+
+      await ctx.reply(COMMAND_FN.start({
+        user,
+        messageReceived: messageReceived ?? "",
+      }));
+      return;
+    }
+  }
   await ctx.reply('Halo! Selamat datang di bot Next.js.');
 });
 

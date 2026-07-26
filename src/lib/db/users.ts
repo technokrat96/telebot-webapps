@@ -12,7 +12,7 @@ function toUser(row: AppUserModel & { roles: Omit<UserRoleModel, "username">[] }
   return {
     USERNAME: row.username,
     NAME: row.name,
-    ROLES: row.roles.map(e => e.role).join(', '),
+    ROLES: row.roles.map(e => e.role),
   };
 }
 
@@ -38,4 +38,36 @@ export async function findUserByUsername(
     }
   });
   return user ? toUser(user) : null;
+}
+
+export async function updateUserByUsername(username: string, {
+  telegramId,
+  chatId,
+}: Partial<AppUserModel>): Promise<void> {
+  const normalized = normalizedUsername(username);
+  const data: Partial<AppUserModel> = {};
+  if (telegramId) data.telegramId = telegramId;
+  if (chatId) data.chatId = chatId;
+  await prisma.appUser.updateMany({
+    where: { username: { contains: normalized, mode: 'insensitive' } },
+    data,
+  });
+}
+
+export async function getTelegramIdByUsername(username: string): Promise<string | null> {
+  const normalized = normalizedUsername(username);
+  const user = await prisma.appUser.findFirst({
+    where: { username: { contains: normalized, mode: 'insensitive' } },
+    select: { telegramId: true },
+  });
+  return user?.telegramId ?? null;
+}
+
+/** Untuk dropdown "kirim ke" — semua staff yang sudah pernah login (punya telegramId). */
+export async function listUsersWithTelegramId(): Promise<{ username: string; name: string }[]> {
+  const rows = await prisma.appUser.findMany({
+    where: { telegramId: { not: null } },
+    select: { username: true, name: true },
+  });
+  return rows;
 }

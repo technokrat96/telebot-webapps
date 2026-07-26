@@ -62,7 +62,7 @@ export default function AttendanceGate({ children }: { children: React.ReactNode
       setCheckedOut(!!res.today?.CHECK_OUT_AT);
       setAttendanceData(res.today);
     } catch (err) {
-      // Kalau API gagal (mis. server error), jangan sampai user terkunci
+      // Kalau API gagal (mis. server error), jangan sampai USER terkunci
       // total tanpa penjelasan — kasih tahu, tapi tetap anggap belum absen.
       message.error((err as Error).message);
     } finally {

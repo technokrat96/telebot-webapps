@@ -1,8 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { validateTelegramInitData } from '@/lib/telegram';
-import { findUserByUsername } from '@/lib/db/users';
-import { parseRoles } from '@/lib/roles';
-import {getMasterData} from "@/lib/db/masterData";
+import {NextRequest, NextResponse} from 'next/server';
+import {validateTelegramInitData} from '@/lib/telegram';
+import {findUserByUsername} from '@/lib/db/users';
 
 // POST body: { initData: string } — the raw initData string, obtained on
 // the client via @telegram-apps/sdk-react's retrieveLaunchParams().initDataRaw
@@ -20,7 +18,7 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       );
     }
-    console.log("Telegram user", telegramUser);
+    console.log("Telegram USER", telegramUser);
 
     if (!telegramUser.username) {
       return NextResponse.json(
@@ -42,9 +40,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { ROLES } = await getMasterData();
-
-    const roles = parseRoles(ROLES, user.ROLES);
+    const roles = user.ROLES;
     if (roles.length === 0) {
       return NextResponse.json(
         {

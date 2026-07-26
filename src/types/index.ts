@@ -1,7 +1,7 @@
 export interface User {
   USERNAME: string;
   NAME: string;
-  ROLES: string;
+  ROLES: string[];
 }
 
 export type Transaction = {

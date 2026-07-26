@@ -7,7 +7,7 @@ export async function PATCH(req: NextRequest) {
   if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
-    const attendance = await checkOut(auth.telegramUsername);
+    const attendance = await checkOut(auth.TELEGRAM_USER);
     return NextResponse.json({ attendance });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 409 });

@@ -9,7 +9,7 @@ interface AuthState {
   loading: boolean;
   error: string | null;
   name: string | null;
-  /** A user can hold more than one role (e.g. ADMIN + FLORIST). */
+  /** A USER can hold more than one role (e.g. ADMIN + FLORIST). */
   roles: string[];
   username: string | null;
 }
@@ -58,7 +58,7 @@ export default function TelegramProvider({
     // Local/dev fallback: allow testing outside Telegram by skipping auth.
     if (!retrieveRawInitDataResult) {
       if (process.env.NODE_ENV !== 'production') {
-        // Has all 3 roles so you can click around every page locally
+        // Has all 3 ROLES so you can click around every page locally
         // without going through Telegram. Narrow this down (e.g.
         // ['FLORIST']) if you want to test a single-role view.
         setState({

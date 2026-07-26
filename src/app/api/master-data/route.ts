@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getMasterData } from '@/lib/db/masterData';
 
-// Any authenticated user (any role) can read master data — it's just
+// Any authenticated USER (any role) can read master data — it's just
 // dropdown options, not sensitive data.
 export async function GET(req: NextRequest) {
   const auth = await requireAuth(req);

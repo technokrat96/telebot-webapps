@@ -8,8 +8,8 @@ export async function GET(req: NextRequest) {
   if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const [today, history] = await Promise.all([
-    getTodayAttendance(auth.telegramUsername),
-    listMyAttendance(auth.telegramUsername),
+    getTodayAttendance(auth.TELEGRAM_USER),
+    listMyAttendance(auth.TELEGRAM_USER),
   ]);
 
   return NextResponse.json({ today, history });

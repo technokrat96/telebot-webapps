@@ -263,7 +263,7 @@ export default function TransactionForm({
         RECEIVER_PHONE: form.getFieldValue('CUSTOMER_PHONE'),
       });
     } else {
-      // Uncheck -> kosongkan, biar user isi manual dari blank.
+      // Uncheck -> kosongkan, biar USER isi manual dari blank.
       form.setFieldsValue({
         RECEIVER_NAME: '',
         RECEIVER_ADDRESS: '',

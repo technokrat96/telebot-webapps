@@ -6,7 +6,7 @@ export async function GET(req: NextRequest) {
   const auth = await requireAuth(req, ['FLORIST', 'ADMIN']);
   if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const assignments = await listMyAssignmentsWithDetail(auth.telegramUsername);
+  const assignments = await listMyAssignmentsWithDetail(auth.TELEGRAM_USER);
   return NextResponse.json({ assignments });
 }
 
@@ -17,8 +17,8 @@ export async function POST(req: NextRequest) {
   const { orderItemId, orderId, quantity } = await req.json();
   try {
     const assignment = await claimItem(orderItemId, orderId, Number(quantity), {
-      username: auth.telegramUsername,
-      name: auth.user.NAME,
+      username: auth.TELEGRAM_USER,
+      name: auth.USER.NAME,
     });
     return NextResponse.json({ assignment });
   } catch (err) {

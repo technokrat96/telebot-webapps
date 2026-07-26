@@ -64,12 +64,12 @@ logika yang perlu kamu tahu:
    joko        Joko   KURIR
    rina        Rina   ADMIN, FLORIST
    ```
-   ROLES isinya `ADMIN`, `FLORIST`, dan/atau `KURIR`. Satu user boleh punya
+   ROLES isinya `ADMIN`, `FLORIST`, dan/atau `KURIR`. Satu USER boleh punya
    lebih dari satu role — pisahkan dengan koma (boleh juga `;`, `/`, atau
    `|`) dalam satu sel yang sama, contoh: `ADMIN, FLORIST`. User dengan
    lebih dari satu role akan melihat gabungan menu semua role-nya (mis.
    halaman Transaksi/Invoice **dan** halaman Florist). Parsing dilakukan di
-   `src/lib/roles.ts`.
+   `src/lib/ROLES.ts`.
 
 2. **Status pesanan** disimpan di `ITEM_STATUS` (kolom yang sudah ada di
    `Transaction Detail`), bukan kolom baru di sheet `Transaction`. Karena
@@ -127,7 +127,7 @@ logika yang perlu kamu tahu:
    — package pengganti resmi untuk `@telegram-apps/init-data-node` yang
    sudah dinyatakan deprecated oleh authornya sendiri, tapi berasal dari
    monorepo & API yang sama (`validate`/`parse`).
-4. **Wajib**: user yang mengakses harus punya Telegram **username** (bukan
+4. **Wajib**: USER yang mengakses harus punya Telegram **username** (bukan
    cuma nama), dan username itu harus terdaftar di sheet `Users`.
 
 ## 5. Menjalankan secara lokal
@@ -142,7 +142,7 @@ npm run dev
 
 Karena Mini App butuh konteks Telegram asli, saat `retrieveLaunchParams()`
 gagal (tidak dibuka lewat Telegram) dan `NODE_ENV !== 'production'`, app ini
-otomatis fallback ke user dummy (`Dev User`, role `ADMIN, FLORIST, KURIR`)
+otomatis fallback ke USER dummy (`Dev User`, role `ADMIN, FLORIST, KURIR`)
 supaya kamu bisa develop di browser biasa. Ganti role dummy ini di
 `src/components/common/TelegramProvider.tsx` kalau mau test role lain, atau
 lihat [dokumentasi `mockTelegramEnv`](https://docs.telegram-mini-apps.com/platform/mocking)

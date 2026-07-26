@@ -14,7 +14,7 @@ export async function PATCH(
   const body = await req.json();
   const ok = await updateTransactionDetailDeliveryStatus(id, {
     DELIVERY_STATUS: body.DELIVERY_STATUS,
-    DELIVERY_BY: body.DELIVERY_BY ?? auth.user.NAME,
+    DELIVERY_BY: body.DELIVERY_BY ?? auth.USER.NAME,
   });
 
   if (!ok) return NextResponse.json({ error: 'Not found' }, { status: 404 });

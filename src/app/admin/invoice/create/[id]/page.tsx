@@ -102,7 +102,7 @@ function CreateInvoiceForOrderContent() {
       setBilledAddress(first?.RECEIVER_ADDRESS ?? '');
       setBilledPhone(first?.RECEIVER_PHONE ?? '');
     }
-    // MANUAL: biarkan apa adanya, user isi sendiri
+    // MANUAL: biarkan apa adanya, USER isi sendiri
   }, [billSource, order]);
 
   const totalAmount = useMemo(() => {
