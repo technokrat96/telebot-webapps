@@ -55,6 +55,8 @@ export async function POST(req: NextRequest) {
       name: user.NAME,
       roles,
       username: user.USERNAME,
+      chatId: user.CHAT_ID,
+      telegramId: user.TELEGRAM_ID,
     });
   } catch (err) {
     console.error(err);

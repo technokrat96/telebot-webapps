@@ -6,6 +6,7 @@ import {hasAnyRole} from '@/lib/roles';
 import {User} from '@/types';
 
 export interface AuthContext {
+  TELEGRAM_ID: string;
   TELEGRAM_USER: string;
   USER: User;
 }
@@ -31,7 +32,7 @@ export async function requireAuth(
       NAME: 'DEV',
       ROLES,
     };
-    return {TELEGRAM_USER: 'DEV', USER} as AuthContext;
+    return {TELEGRAM_ID: '1', TELEGRAM_USER: 'DEV', USER} as AuthContext;
   }
 
   if (!initData) return null;
@@ -45,5 +46,5 @@ export async function requireAuth(
   const { ROLES } = user;
   if (allowedRoles && !hasAnyRole(ROLES, allowedRoles)) return null;
 
-  return {TELEGRAM_USER: telegramUser.username, USER: user} as AuthContext;
+  return {TELEGRAM_ID: user.CHAT_ID ?? user.TELEGRAM_ID ?? String(telegramUser.id), TELEGRAM_USER: telegramUser.username, USER: user} as AuthContext;
 }

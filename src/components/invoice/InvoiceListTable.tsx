@@ -1,7 +1,7 @@
 'use client';
 
 import { Table, Tag, Button, App } from 'antd';
-import { DownloadOutlined } from '@ant-design/icons';
+import {DownloadOutlined, SendOutlined} from '@ant-design/icons';
 import { InvoiceWithDetails } from '@/types';
 import { apiClient } from '@/lib/apiClient';
 import { openLink } from '@tma.js/sdk-react';
@@ -30,6 +30,15 @@ export default function InvoiceListTable({
   loading?: boolean;
 }) {
   const { message } = App.useApp();
+
+  async function handleSend(invoice: InvoiceWithDetails) {
+    try {
+      await apiClient.post(`/api/invoices/${invoice.INVOICE_ID}/send-telegram`, {});
+      message.success('Invoice berhasil dikirim ke Telegram');
+    } catch (err) {
+      message.error((err as Error).message);
+    }
+  }
 
   return (
     <Table
@@ -61,15 +70,20 @@ export default function InvoiceListTable({
           title: 'Aksi',
           key: 'action',
           render: (_, r) => (
-            <Button
-              size="small"
-              icon={<DownloadOutlined />}
-              onClick={() =>
-                openInvoicePdf(r.INVOICE_ID).catch((err) => message.error((err as Error).message))
-              }
-            >
-              PDF
-            </Button>
+            <>
+              <Button
+                size="small"
+                icon={<DownloadOutlined />}
+                onClick={() =>
+                  openInvoicePdf(r.INVOICE_ID).catch((err) => message.error((err as Error).message))
+                }
+              >
+                PDF
+              </Button>
+              <Button size="small" icon={<SendOutlined />} onClick={() => handleSend(r)}>
+                Kirim
+              </Button>
+            </>
           ),
         },
       ]}

@@ -10,6 +10,8 @@ function normalizedUsername(username: string) {
 
 function toUser(row: AppUserModel & { roles: Omit<UserRoleModel, "username">[] }): User {
   return {
+    CHAT_ID: row.chatId,
+    TELEGRAM_ID: row.telegramId,
     USERNAME: row.username,
     NAME: row.name,
     ROLES: row.roles.map(e => e.role),

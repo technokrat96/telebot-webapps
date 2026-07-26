@@ -1,4 +1,6 @@
 export interface User {
+  CHAT_ID: string | null;
+  TELEGRAM_ID: string | null;
   USERNAME: string;
   NAME: string;
   ROLES: string[];
