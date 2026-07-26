@@ -1,9 +1,10 @@
 'use client';
 
-import {App, Button, Table, Tag} from 'antd';
-import {DownloadOutlined} from '@ant-design/icons';
-import {InvoiceWithDetails} from '@/types';
-import {getTelegramInitDataHeader} from '@/lib/apiClient';
+import { Table, Tag, Button, App } from 'antd';
+import { DownloadOutlined } from '@ant-design/icons';
+import { InvoiceWithDetails } from '@/types';
+import { apiClient } from '@/lib/apiClient';
+import { openLink } from '@tma.js/sdk-react';
 
 const STATUS_COLORS: Record<string, string> = {
   UNPAID: 'red',
@@ -11,19 +12,14 @@ const STATUS_COLORS: Record<string, string> = {
   PAID: 'green',
 };
 
-async function downloadInvoicePdf(invoiceId: string, invoiceNumber: string) {
-  // Pakai apiClient (bukan <a href> langsung) supaya header x-telegram-init-data ikut kebawa.
-  const res = await fetch(`/api/invoices/${invoiceId}/pdf`, {
-    headers: getTelegramInitDataHeader(),
-  });
-  if (!res.ok) throw new Error('Gagal download PDF');
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${invoiceNumber || invoiceId}.pdf`;
-  a.click();
-  URL.revokeObjectURL(url);
+async function openInvoicePdf(invoiceId: string) {
+  const { url } = await apiClient.get<{ url: string }>(`/api/invoices/${invoiceId}/pdf-link`);
+  try {
+    openLink(url); // buka di in-app/eksternal browser Telegram
+  } catch {
+    // fallback kalau bukan di dalam Telegram (mis. testing di browser biasa)
+    window.open(url, '_blank');
+  }
 }
 
 export default function InvoiceListTable({
@@ -33,7 +29,7 @@ export default function InvoiceListTable({
   data: InvoiceWithDetails[];
   loading?: boolean;
 }) {
-  const {message} = App.useApp();
+  const { message } = App.useApp();
 
   return (
     <Table
@@ -67,11 +63,9 @@ export default function InvoiceListTable({
           render: (_, r) => (
             <Button
               size="small"
-              icon={<DownloadOutlined/>}
+              icon={<DownloadOutlined />}
               onClick={() =>
-                downloadInvoicePdf(r.INVOICE_ID, r.INVOICE_NUMBER).catch((err) =>
-                  message.error((err as Error).message)
-                )
+                openInvoicePdf(r.INVOICE_ID).catch((err) => message.error((err as Error).message))
               }
             >
               PDF
