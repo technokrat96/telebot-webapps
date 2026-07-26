@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
     // Membiarkan Vercel sukses melakukan build walaupun ada error TypeScript
     ignoreBuildErrors: true,
   },
+  serverExternalPackages: ['pdfkit'],
 };
 
 export default nextConfig;

@@ -2,6 +2,10 @@
 
 import { retrieveRawInitData } from "@tma.js/sdk-react";
 
+export function getTelegramInitDataHeader(): Record<string, string> {
+  return { 'x-telegram-init-data': getInitData() };
+}
+
 function getInitData(): string {
   try {
     const retrieveRawInitDataResult = retrieveRawInitData();

@@ -126,3 +126,25 @@ export type TransactionDetailWithAssignments = TransactionDetail & {
 export type TransactionWithDetailsAndAssignments = Transaction & {
   details: TransactionDetailWithAssignments[];
 };
+
+export type OrderItemWithBilling = TransactionDetail & {
+  billedQty: number;
+  remainingQty: number;
+};
+
+export type TransactionWithBilling = Omit<TransactionWithDetails, 'details'> & {
+  details: OrderItemWithBilling[];
+  invoiceStatus: 'NOT_INVOICED' | 'PARTIAL' | 'FULLY_INVOICED';
+};
+
+export type InvoicePdfData = Invoice & {
+  orderId: string;
+  customerName: string;
+  customerAddress: string;
+  customerPhone: string;
+  items: {
+    ITEM_NAME: string;
+    QUANTITY_BILLED: number;
+    PRICE_BILLED: number;
+  }[];
+};

@@ -1,157 +1,106 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import {Button, Card, Form, Input, InputNumber, DatePicker, Table, Typography, App} from 'antd';
+import { Typography, App, Table, Tag, Button, Progress, Space } from 'antd';
 import { useRouter } from 'next/navigation';
-import dayjs from 'dayjs';
 import RoleGuard from '@/components/common/RoleGuard';
 import { apiClient } from '@/lib/apiClient';
-import { Invoice, InvoiceDetail, TransactionWithDetails } from '@/types';
+import { TransactionWithBilling } from '@/types';
 
-const { Title } = Typography;
+const { Title, Paragraph } = Typography;
 
-interface BillableRow {
-  ORDER_ID: string;
-  ORDER_ITEM_ID: string;
-  ITEM_NAME: string;
-  QUANTITY: number;
-  UNIT_PRICE: number;
-  SUBTOTAL: number;
-}
+const STATUS_LABELS: Record<TransactionWithBilling['invoiceStatus'], string> = {
+  NOT_INVOICED: 'Belum Ditagih',
+  PARTIAL: 'Sebagian Ditagih',
+  FULLY_INVOICED: 'Sudah Lunas Ditagih',
+};
 
-export default function CreateInvoicePage() {
+const STATUS_COLORS: Record<TransactionWithBilling['invoiceStatus'], string> = {
+  NOT_INVOICED: 'default',
+  PARTIAL: 'gold',
+  FULLY_INVOICED: 'green',
+};
+
+export default function CreateInvoicePickTransactionPage() {
   return (
     <RoleGuard allow={['ADMIN']}>
-      <CreateInvoiceContent />
+      <PickTransactionContent />
     </RoleGuard>
   );
 }
 
-function CreateInvoiceContent() {
-  const [form] = Form.useForm();
-  const [rows, setRows] = useState<BillableRow[]>([]);
-  const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
+function PickTransactionContent() {
+  const [orders, setOrders] = useState<TransactionWithBilling[]>([]);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
   const { message } = App.useApp();
 
   useEffect(() => {
     apiClient
-      .get<{ orders: TransactionWithDetails[] }>('/api/invoice-details')
-      .then((res) => {
-        const flat: BillableRow[] = res.orders.flatMap((order) =>
-          order.details.map((d) => ({
-            ORDER_ID: order.ORDER_ID,
-            ORDER_ITEM_ID: d.ORDER_ITEM_ID,
-            ITEM_NAME: d.ITEM_NAME,
-            QUANTITY: d.QUANTITY,
-            UNIT_PRICE: d.UNIT_PRICE,
-            SUBTOTAL: d.SUBTOTAL,
-          }))
-        );
-        setRows(flat);
-      })
+      .get<{ orders: TransactionWithBilling[] }>('/api/invoice-details')
+      .then((res) => setOrders(res.orders))
       .catch((err) => message.error(err.message))
       .finally(() => setLoading(false));
   }, []);
 
-  async function handleSubmit(values: Omit<Invoice, 'INVOICE_ID'>) {
-    if (selectedKeys.length === 0) {
-      message.warning('Pilih minimal satu item untuk ditagihkan');
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const selectedRows = rows.filter((r) => selectedKeys.includes(r.ORDER_ITEM_ID));
-      const details: Omit<InvoiceDetail, 'INVOICE_ID' | "INVOICE_ITEM_ID">[] = selectedRows.map((r) => ({
-        ORDER_ITEM_ID: r.ORDER_ITEM_ID,
-        QUANTITY_BILLED: r.QUANTITY,
-        PRICE_BILLED: r.SUBTOTAL,
-      }));
-
-      await apiClient.post('/api/invoices', {
-        invoice: {
-          ...values,
-          INVOICE_DATE: values.INVOICE_DATE
-            ? dayjs(values.INVOICE_DATE).format('YYYY-MM-DD')
-            : '',
-          DUE_DATE: values.DUE_DATE ? dayjs(values.DUE_DATE).format('YYYY-MM-DD') : '',
-        },
-        details,
-      });
-      message.success('Invoice berhasil dibuat');
-      router.push('/admin/invoice');
-    } catch (err) {
-      message.error((err as Error).message);
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
   return (
     <div>
-      <Title level={3}>Buat Invoice</Title>
-      <Card style={{ marginBottom: 16 }}>
-        <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ INVOICE_STATUS: 'UNPAID' }}>
-          <Form.Item label="Tanggal Invoice" name="INVOICE_DATE">
-            <DatePicker style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item label="Jatuh Tempo" name="DUE_DATE">
-            <DatePicker style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item label="Ditagihkan Ke" name="BILLED_TO" rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item label="Alamat Tagihan" name="BILLED_ADDRESS">
-            <Input.TextArea rows={2} />
-          </Form.Item>
-          <Form.Item label="Telepon Tagihan" name="BILLED_PHONE">
-            <Input />
-          </Form.Item>
-          <Form.Item label="Total Tagihan" name="TOTAL_AMOUNT">
-            <InputNumber style={{ width: '100%' }} min={0} />
-          </Form.Item>
-          <Form.Item label="Sudah Dibayar" name="AMOUNT_PAID">
-            <InputNumber style={{ width: '100%' }} min={0} />
-          </Form.Item>
-          <Form.Item label="Status Invoice" name="INVOICE_STATUS">
-            <Input placeholder="UNPAID / PARTIAL / PAID" />
-          </Form.Item>
-
-          <Card
-            type="inner"
-            title="Pilih item yang ditagihkan"
-            style={{ marginBottom: 16 }}
-          >
-            <Table
-              rowKey="ORDER_ITEM_ID"
-              loading={loading}
-              dataSource={rows}
-              size="small"
-              pagination={false}
-              rowSelection={{
-                selectedRowKeys: selectedKeys,
-                onChange: setSelectedKeys,
-              }}
-              columns={[
-                { title: 'Order ID', dataIndex: 'ORDER_ID' },
-                { title: 'Item', dataIndex: 'ITEM_NAME' },
-                { title: 'Qty', dataIndex: 'QUANTITY' },
-                {
-                  title: 'Subtotal',
-                  dataIndex: 'SUBTOTAL',
-                  render: (v) => Number(v || 0).toLocaleString('id-ID'),
-                },
-              ]}
-            />
-          </Card>
-
-          <Button type="primary" htmlType="submit" loading={submitting} block>
-            Buat Invoice
-          </Button>
-        </Form>
-      </Card>
+      <Title level={3}>Pilih Transaksi untuk Ditagih</Title>
+      <Paragraph type="secondary">
+        Pilih transaksi yang mau dibuatkan invoice. Transaksi yang sudah lunas ditagih
+        (semua qty item sudah masuk invoice) tidak bisa dibuatkan invoice baru lagi.
+      </Paragraph>
+      <Table
+        rowKey="ORDER_ID"
+        loading={loading}
+        dataSource={orders}
+        scroll={{ x: true }}
+        columns={[
+          { title: 'Order ID', dataIndex: 'ORDER_ID' },
+          { title: 'Pelanggan', dataIndex: 'CUSTOMER_NAME' },
+          {
+            title: 'Progress Penagihan',
+            key: 'progress',
+            width: 220,
+            render: (_, r) => {
+              const totalQty = r.details.reduce((s, d) => s + Number(d.QUANTITY || 0), 0);
+              const billedQty = r.details.reduce((s, d) => s + Number(d.billedQty || 0), 0);
+              const percent = totalQty ? Math.round((billedQty / totalQty) * 100) : 0;
+              return (
+                <Space orientation="vertical" size={4} style={{ width: '100%' }}>
+                  <Progress
+                    percent={percent}
+                    size="small"
+                    format={() => `${billedQty}/${totalQty} qty ditagih`}
+                  />
+                  <Tag color={STATUS_COLORS[r.invoiceStatus]}>
+                    {STATUS_LABELS[r.invoiceStatus]}
+                  </Tag>
+                </Space>
+              );
+            },
+          },
+          {
+            title: 'Grand Total',
+            dataIndex: 'GRAND_TOTAL',
+            render: (v, r) => (r.GRAND_TOTAL || 0).toLocaleString('id-ID'),
+          },
+          {
+            title: 'Aksi',
+            key: 'action',
+            render: (_, r) => (
+              <Button
+                type="primary"
+                size="small"
+                disabled={r.invoiceStatus === 'FULLY_INVOICED'}
+                onClick={() => router.push(`/admin/invoice/create/${r.ORDER_ID}`)}
+              >
+                Buat Invoice
+              </Button>
+            ),
+          },
+        ]}
+      />
     </div>
   );
 }

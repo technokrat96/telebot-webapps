@@ -1,11 +1,13 @@
 import 'server-only';
 import {prisma} from '@/lib/prismaClient';
-import {Invoice, InvoiceDetail, InvoiceWithDetails} from '@/types';
+import {Invoice, InvoiceDetail, InvoicePdfData, InvoiceWithDetails} from '@/types';
 import {InvoiceModel} from "@/generated/prisma/models/Invoice";
 import {InvoiceDetailModel} from "@/generated/prisma/models/InvoiceDetail";
 import dayjs from "dayjs";
 import {Decimal} from "@prisma/client-runtime-utils";
 import {generateInvoiceId, generateInvoiceItemId} from "@/lib/generateId";
+import { listTransactionsWithDetails } from '@/lib/db/transaction';
+import { OrderItemWithBilling, TransactionWithBilling } from '@/types';
 
 // ---- Prisma (camelCase) <-> App types (SNAKE_CASE) mappers ----
 
@@ -127,4 +129,82 @@ export async function updateInvoice(
     if (err?.code === 'P2025') return false; // record to update not found
     throw err;
   }
+}
+
+// ---- Billing summary (qty sudah ditagih vs sisa, per item & per order) ----
+
+async function getBilledQtyByOrderItem(): Promise<Record<string, number>> {
+  const details = await listInvoiceDetails();
+  return details.reduce((acc, d) => {
+    acc[d.ORDER_ITEM_ID] = (acc[d.ORDER_ITEM_ID] ?? 0) + Number(d.QUANTITY_BILLED || 0);
+    return acc;
+  }, {} as Record<string, number>);
+}
+
+/** Semua transaksi + status penagihan tiap item-nya (billed/sisa qty). */
+export async function listOrdersWithBillingSummary(): Promise<TransactionWithBilling[]> {
+  const [orders, billedMap] = await Promise.all([
+    listTransactionsWithDetails(),
+    getBilledQtyByOrderItem(),
+  ]);
+
+  return orders.map((order) => {
+    const details: OrderItemWithBilling[] = order.details.map((d) => {
+      const billedQty = billedMap[d.ORDER_ITEM_ID] ?? 0;
+      const remainingQty = Math.max(0, Number(d.QUANTITY || 0) - billedQty);
+      return { ...d, billedQty, remainingQty };
+    });
+
+    const totalQty = details.reduce((s, d) => s + Number(d.QUANTITY || 0), 0);
+    const totalRemaining = details.reduce((s, d) => s + d.remainingQty, 0);
+
+    const invoiceStatus: TransactionWithBilling['invoiceStatus'] =
+      totalRemaining === totalQty
+        ? 'NOT_INVOICED'
+        : totalRemaining === 0
+          ? 'FULLY_INVOICED'
+          : 'PARTIAL';
+
+    return { ...order, details, invoiceStatus };
+  });
+}
+
+/** Billing summary untuk satu transaksi (dipakai di halaman create invoice). */
+export async function getOrderBillingSummary(
+  orderId: string
+): Promise<TransactionWithBilling | null> {
+  const orders = await listOrdersWithBillingSummary();
+  return orders.find((o) => o.ORDER_ID === orderId) ?? null;
+}
+
+/** Invoice + nama item + data transaksi terkait, khusus untuk render PDF. */
+export async function getInvoicePdfData(invoiceId: string): Promise<InvoicePdfData | null> {
+  const invoice = await prisma.invoice.findUnique({
+    where: { invoiceId },
+    include: {
+      details: {
+        include: {
+          transactionDetail: {
+            include: { transaction: true },
+          },
+        },
+      },
+    },
+  });
+  if (!invoice) return null;
+
+  const firstDetail = invoice.details[0]?.transactionDetail;
+
+  return {
+    ...toInvoice(invoice),
+    orderId: firstDetail?.orderId ?? '',
+    customerName: firstDetail?.transaction.customerName ?? '',
+    customerAddress: firstDetail?.transaction.customerAddress ?? '',
+    customerPhone: firstDetail?.transaction.customerPhone ?? '',
+    items: invoice.details.map((d) => ({
+      ITEM_NAME: d.transactionDetail.itemName,
+      QUANTITY_BILLED: d.quantityBilled.toNumber(),
+      PRICE_BILLED: d.priceBilled.toNumber(),
+    })),
+  };
 }
