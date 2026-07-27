@@ -208,7 +208,7 @@ export async function updateTransaction(
 export async function updateTransactionDetailItemStatus(
   orderItemId: string,
   updates: Partial<
-    Pick<TransactionDetail, 'ITEM_STATUS'>
+    Pick<TransactionDetail, 'ITEM_STATUS' | 'DELIVERY_STATUS'>
   >
 ): Promise<boolean> {
   const data: Record<string, unknown> = {};
@@ -270,6 +270,16 @@ export async function updateAllItemStatusForOrder(
   await prisma.transactionDetail.updateMany({
     where: { orderId },
     data: { itemStatus },
+  });
+}
+
+export async function updateAllDeliveryStatusForOrder(
+  orderId: string,
+  deliveryStatus: string
+): Promise<void> {
+  await prisma.transactionDetail.updateMany({
+    where: { orderId },
+    data: { deliveryStatus },
   });
 }
 

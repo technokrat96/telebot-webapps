@@ -51,12 +51,9 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({
-      telegram: telegramUser,
       name: user.NAME,
       roles,
       username: user.USERNAME,
-      chatId: user.CHAT_ID,
-      telegramId: user.TELEGRAM_ID,
     });
   } catch (err) {
     console.error(err);

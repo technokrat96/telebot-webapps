@@ -18,11 +18,12 @@ import {
   Tag,
   Typography,
 } from 'antd';
-import dayjs, { Dayjs } from 'dayjs';
+import { Dayjs } from 'dayjs';
 import RoleGuard from '@/components/common/RoleGuard';
 import { apiClient } from '@/lib/apiClient';
 import MoneyInput from '@/components/MoneyInput';
 import { InvoiceDetail, TransactionWithBilling } from '@/types';
+import clientDayJs from "@/lib/cleint.dayjs";
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -58,7 +59,7 @@ function CreateInvoiceForOrderContent() {
 
   // Ringkasan invoice
   const [invoiceNumber, setInvoiceNumber] = useState('');
-  const [invoiceDate, setInvoiceDate] = useState<Dayjs>(dayjs());
+  const [invoiceDate, setInvoiceDate] = useState<Dayjs>(clientDayJs());
   const [dueDate, setDueDate] = useState<Dayjs | null>(null);
   const [isPaidFull, setIsPaidFull] = useState(true);
   const [amountPaid, setAmountPaid] = useState(0);
@@ -85,7 +86,7 @@ function CreateInvoiceForOrderContent() {
   // Auto-suggest nomor invoice sekali order sudah kebaca
   useEffect(() => {
     if (order && !invoiceNumber) {
-      setInvoiceNumber(`INV-${order.ORDER_ID}-${dayjs().valueOf().toString().slice(-6)}`);
+      setInvoiceNumber(`INV-${order.ORDER_ID}-${clientDayJs().valueOf().toString().slice(-6)}`);
     }
   }, [order, invoiceNumber]);
 

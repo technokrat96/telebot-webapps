@@ -143,7 +143,7 @@ export async function completeAssignment(assignmentId: string): Promise<void> {
 
   const { totalQty, completedQty } = await getItemQuantitySummary(target.orderItemId);
   if (completedQty >= totalQty) {
-    await updateTransactionDetailItemStatus(target.orderItemId, { ITEM_STATUS: 'DONE' });
+    await updateTransactionDetailItemStatus(target.orderItemId, { ITEM_STATUS: 'DONE', DELIVERY_STATUS: 'PICKUP' });
   }
 }
 

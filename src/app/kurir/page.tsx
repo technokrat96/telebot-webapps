@@ -20,7 +20,7 @@ const NEXT_ACTION: Partial<Record<string, { label: string; next: string }[]>> = 
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  READY_TO_PICKUP: 'gold',
+  PICKUP: 'gold',
   ON_DELIVERY: 'blue',
   DELIVERED: 'cyan',
   RECEIVED: 'green',
@@ -52,8 +52,8 @@ function KurirContent() {
         'ON DELIVERY',
         'DELIVERED',
       ];
-      const relevant = relevantStatuses.flatMap((status) =>
-        filterOrdersByDeliveryStatus(res.orders, status)
+      const relevant = relevantStatuses.flatMap((deliveryStatus) =>
+        filterOrdersByDeliveryStatus(res.orders, deliveryStatus)
       );
       setOrders(relevant);
     } catch (err) {
@@ -63,11 +63,11 @@ function KurirContent() {
     }
   }
 
-  async function advance(orderId: string, status: string) {
+  async function advance(orderId: string, deliveryStatus: string) {
     setBusyKey(orderId);
     try {
-      await apiClient.patch(`/api/transactions/${orderId}/status`, { status });
-      message.success(`Status pesanan diubah ke ${status}`);
+      await apiClient.patch(`/api/transactions/${orderId}/delivery-status`, { deliveryStatus });
+      message.success(`Status pesanan diubah ke ${deliveryStatus}`);
       await load();
     } catch (err) {
       message.error((err as Error).message);
@@ -89,7 +89,7 @@ function KurirContent() {
 
       <Space orientation="vertical" size={16} style={{ width: '100%' }}>
         {orders.map((order) => {
-          const currentStatus = order.details[0]?.ITEM_STATUS;
+          const currentStatus = order.details[0]?.DELIVERY_STATUS;
           const actions = NEXT_ACTION[currentStatus] ?? [];
           return (
             <Card key={order.ORDER_ID} loading={loading} title={`${order.ORDER_ID} · ${order.CUSTOMER_NAME}`}>

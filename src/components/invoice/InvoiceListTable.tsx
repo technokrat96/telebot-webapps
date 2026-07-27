@@ -72,7 +72,6 @@ export default function InvoiceListTable({
           render: (_, r) => (
             <>
               <Button
-                size="small"
                 icon={<DownloadOutlined />}
                 onClick={() =>
                   openInvoicePdf(r.INVOICE_ID).catch((err) => message.error((err as Error).message))
@@ -80,7 +79,7 @@ export default function InvoiceListTable({
               >
                 PDF
               </Button>
-              <Button size="small" icon={<SendOutlined />} onClick={() => handleSend(r)}>
+              <Button icon={<SendOutlined />} onClick={() => handleSend(r)}>
                 Kirim
               </Button>
             </>
@@ -93,7 +92,6 @@ export default function InvoiceListTable({
             rowKey="INVOICE_ITEM_ID"
             dataSource={record.details}
             pagination={false}
-            size="small"
             columns={[
               { title: 'Order Item ID', dataIndex: 'ORDER_ITEM_ID' },
               { title: 'Qty Ditagih', dataIndex: 'QUANTITY_BILLED' },

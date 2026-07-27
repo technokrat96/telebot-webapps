@@ -2,10 +2,10 @@
 
 import {Empty, Table, Tag, Typography} from 'antd';
 import useSWR from 'swr';
-import dayjs from 'dayjs';
 import {apiClient} from '@/lib/apiClient';
 import {useTelegramAuth} from '@/components/common/TelegramProvider';
 import {Attendance} from '@/types';
+import clientDayJs from "@/lib/cleint.dayjs";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -24,14 +24,15 @@ export default function AbsensiPage() {
       <Paragraph type="secondary">Halo, {name}. Catat kehadiranmu hari ini.</Paragraph>
       <Table
         rowKey="DATE"
+        scroll={{ x: true }}
         dataSource={history}
         loading={isLoading}
         pagination={{ pageSize: 10 }}
         locale={{ emptyText: <Empty description="Belum ada riwayat absensi" /> }}
         columns={[
-          { title: 'Tanggal', dataIndex: 'DATE', render: (v) => dayjs(v).format('DD MMM YYYY') },
-          { title: 'Masuk', dataIndex: 'CHECK_IN_AT', render: (v) => (v ? dayjs(v).format('HH:mm') : '-') },
-          { title: 'Pulang', dataIndex: 'CHECK_OUT_AT', render: (v) => (v ? dayjs(v).format('HH:mm') : '-') },
+          { title: 'Tanggal', dataIndex: 'DATE', render: (v) => clientDayJs(v).format('DD MMM YYYY') },
+          { title: 'Masuk', dataIndex: 'CHECK_IN_AT', render: (v) => (v ? clientDayJs(v).format('HH:mm') : '-') },
+          { title: 'Pulang', dataIndex: 'CHECK_OUT_AT', render: (v) => (v ? clientDayJs(v).format('HH:mm') : '-') },
           {
             title: 'Status',
             key: 'status',

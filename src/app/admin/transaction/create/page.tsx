@@ -7,8 +7,8 @@ import RoleGuard from '@/components/common/RoleGuard';
 import TransactionForm, {TransactionFormValues,} from '@/components/transaction/TransactionForm';
 import {apiClient} from '@/lib/apiClient';
 import {useTelegramAuth} from "@/components/common/TelegramProvider";
-import dayjs from "dayjs";
 import {Transaction, TransactionDetail} from "@/types";
+import clientDayJs from "@/lib/cleint.dayjs";
 
 const { Title } = Typography;
 
@@ -48,8 +48,8 @@ function CreateTransactionContent() {
         ...transaction
       } = values;
 
-      const deliveryDate = DELIVERY_DATE ? dayjs(DELIVERY_DATE as never).format('YYYY-MM-DD') : '';
-      const deliveryTime = DELIVERY_TIME ? dayjs(DELIVERY_TIME as never).format('HH:mm') : '';
+      const deliveryDate = DELIVERY_DATE ? clientDayJs(DELIVERY_DATE as never).format('YYYY-MM-DD') : '';
+      const deliveryTime = DELIVERY_TIME ? clientDayJs(DELIVERY_TIME as never).format('HH:mm') : '';
 
       await apiClient.post('/api/transactions', {
         transaction: {

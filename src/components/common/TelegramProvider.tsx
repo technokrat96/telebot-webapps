@@ -11,8 +11,6 @@ interface AuthState {
   name: string | null;
   roles: string[];
   username: string | null;
-  chatId: string | null;
-  telegramId: string | null;
 }
 
 interface TelegramContextValue extends AuthState {
@@ -40,8 +38,6 @@ export default function TelegramProvider({
     name: null,
     roles: [],
     username: null,
-    chatId: null,
-    telegramId: null,
   });
 
   const authenticate = useCallback(async () => {
@@ -70,8 +66,6 @@ export default function TelegramProvider({
           name: 'DEV',
           roles: ['ADMIN', 'FLORIST', 'KURIR'],
           username: 'DEV',
-          chatId: null,
-          telegramId: null,
         });
         return;
       }
@@ -81,8 +75,6 @@ export default function TelegramProvider({
         name: null,
         roles: [],
         username: null,
-        chatId: null,
-        telegramId: null,
       });
       return;
     }
@@ -102,8 +94,6 @@ export default function TelegramProvider({
           name: null,
           roles: [],
           username: null,
-          chatId: null,
-          telegramId: null,
         });
         return;
       }
@@ -114,8 +104,6 @@ export default function TelegramProvider({
         name: data.name,
         roles: data.roles ?? [],
         username: data.username,
-        chatId: data.chatId,
-        telegramId: data.telegramId,
       });
     } catch {
       setState({
@@ -124,8 +112,6 @@ export default function TelegramProvider({
         name: null,
         roles: [],
         username: null,
-        chatId: null,
-        telegramId: null,
       });
     }
   }, []);

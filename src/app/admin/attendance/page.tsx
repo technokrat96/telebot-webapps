@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import { Card, DatePicker, Table, Tag, Typography, Input, Space, App } from 'antd';
-import dayjs, { Dayjs } from 'dayjs';
 import useSWR from 'swr';
 import RoleGuard from '@/components/common/RoleGuard';
 import { apiClient } from '@/lib/apiClient';
 import { Attendance } from '@/types';
+import clientDayJs from "@/lib/cleint.dayjs";
+import {Dayjs} from "dayjs";
 
 const { Title, Paragraph } = Typography;
 const { RangePicker } = DatePicker;
@@ -22,8 +23,8 @@ export default function AdminAbsensiPage() {
 function AdminAbsensiContent() {
   const { message } = App.useApp();
   const [range, setRange] = useState<[Dayjs, Dayjs]>([
-    dayjs().startOf('month'),
-    dayjs().endOf('month'),
+    clientDayJs().startOf('month'),
+    clientDayJs().endOf('month'),
   ]);
   const [username, setUsername] = useState('');
 
@@ -63,12 +64,13 @@ function AdminAbsensiContent() {
         rowKey={(r) => `${r.USERNAME}-${r.DATE}`}
         dataSource={data?.attendance ?? []}
         loading={isLoading}
+        scroll={{ x: true }}
         columns={[
-          { title: 'Tanggal', dataIndex: 'DATE', render: (v) => dayjs(v).format('DD MMM YYYY') },
+          { title: 'Tanggal', dataIndex: 'DATE', render: (v) => clientDayJs(v).format('DD MMM YYYY') },
           { title: 'Nama', dataIndex: 'NAME' },
           { title: 'Username', dataIndex: 'USERNAME', render: (v) => `@${v}` },
-          { title: 'Masuk', dataIndex: 'CHECK_IN_AT', render: (v) => (v ? dayjs(v).format('HH:mm') : '-') },
-          { title: 'Pulang', dataIndex: 'CHECK_OUT_AT', render: (v) => (v ? dayjs(v).format('HH:mm') : '-') },
+          { title: 'Masuk', dataIndex: 'CHECK_IN_AT', render: (v) => (v ? clientDayJs(v).format('HH:mm') : '-') },
+          { title: 'Pulang', dataIndex: 'CHECK_OUT_AT', render: (v) => (v ? clientDayJs(v).format('HH:mm') : '-') },
           {
             title: 'Status',
             key: 'status',

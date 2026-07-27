@@ -1,12 +1,11 @@
 'use client';
 
 import {createContext, useContext, useEffect, useState} from 'react';
-import { Button, Card, Typography, Spin, App } from 'antd';
-import { ClockCircleOutlined, LoginOutlined } from '@ant-design/icons';
-import dayjs from 'dayjs';
-import { apiClient } from '@/lib/apiClient';
-import { useTelegramAuth } from './TelegramProvider';
-import {Attendance, MasterData} from '@/types';
+import {App, Typography} from 'antd';
+import {apiClient} from '@/lib/apiClient';
+import {useTelegramAuth} from './TelegramProvider';
+import {Attendance} from '@/types';
+import clientDayJs from "@/lib/cleint.dayjs";
 
 const { Title, Paragraph } = Typography;
 
@@ -50,7 +49,7 @@ export default function AttendanceGate({ children }: { children: React.ReactNode
         NAME: "Dev",
         CHECK_IN_AT: "00:00",
         CHECK_OUT_AT: null,
-        DATE: dayjs().format("YYYY-MM-DD"),
+        DATE: clientDayJs().format("YYYY-MM-DD"),
       });
       setLoading(false);
       return;
@@ -140,7 +139,7 @@ export default function AttendanceGate({ children }: { children: React.ReactNode
               Absen dulu, yuk!
             </Title>
             <Paragraph type="secondary">
-              Halo {name}, kamu belum absen hari ini ({dayjs().format('dddd, D MMMM YYYY')}).
+              Halo {name}, kamu belum absen hari ini ({clientDayJs().format('dddd, D MMMM YYYY')}).
               Silakan check-in dulu untuk lanjut ke aplikasi.
             </Paragraph>
             <Button
