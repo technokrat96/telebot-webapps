@@ -10,14 +10,14 @@ import { filterOrdersByDeliveryStatus } from '@/lib/statusUtils';
 const { Title, Text, Paragraph } = Typography;
 
 // Next available action for an order currently at a given status.
-const NEXT_ACTION: Partial<Record<string, { label: string; next: string }[]>> = {
+const NEXT_ACTION = {
   PICKUP: [{ label: 'Mulai Antar (On Delivery)', next: 'ON DELIVERY' }],
   "ON DELIVERY": [
     { label: 'Sudah Terkirim (Delivered)', next: 'DELIVERED' },
     { label: 'Dikembalikan (Returned)', next: 'RETURNED' },
   ],
   DELIVERED: [{ label: 'Diterima Pelanggan (Received)', next: 'RECEIVED' }],
-};
+} as const;
 
 const STATUS_COLORS: Record<string, string> = {
   PICKUP: 'gold',
@@ -47,11 +47,7 @@ function KurirContent() {
       const res = await apiClient.get<{ orders: TransactionWithDetails[] }>(
         '/api/transaction-details'
       );
-      const relevantStatuses: string[] = [
-        'PICKUP',
-        'ON DELIVERY',
-        'DELIVERED',
-      ];
+      const relevantStatuses = Object.keys(NEXT_ACTION) as unknown as (keyof typeof NEXT_ACTION)[];
       const relevant = relevantStatuses.flatMap((deliveryStatus) =>
         filterOrdersByDeliveryStatus(res.orders, deliveryStatus)
       );
