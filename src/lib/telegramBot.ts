@@ -316,7 +316,7 @@ telegramBot.command('registeruser', async (ctx) => {
       const htmlMessage = `
 ⚠️ <b>User Registered</b>
 
-An admin has been assign a role <b>${inputRole}<b> to you. Copy and send this command to check your role:
+An admin has been assign a role <b>${inputRole}</b> to you. Copy and send this command to check your role:
 
 <code>/${COMMANDS.whoami}</code>
 `;
