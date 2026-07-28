@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json(
         {
-          error: `Username @${telegramUser.username} is not registered in the Users sheet.`,
+          error: `Username @${telegramUser.username} is not registered in the Users database.`,
         },
         { status: 403 }
       );
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     if (roles.length === 0) {
       return NextResponse.json(
         {
-          error: `Username @${telegramUser.username} belum punya ROLE yang valid di sheet Users.`,
+          error: `Username @${telegramUser.username} belum punya ROLE yang valid.`,
         },
         { status: 403 }
       );

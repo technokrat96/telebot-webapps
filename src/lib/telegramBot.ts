@@ -1,7 +1,13 @@
 import 'server-only';
 import {User} from "@/types";
-import {Bot, InputFile} from "grammy";
-import {findUserByUsername, updateUserByUsername} from "@/lib/db/users";
+import {Bot, CommandContext, Context, InputFile} from "grammy";
+import {
+  findUserByUsername,
+  findUsersAdminAndHasChatIdOrTelegramId,
+  insertRoleUser,
+  updateUserByUsername
+} from "@/lib/db/users";
+import {getMasterData} from "@/lib/db/masterData";
 
 interface COMMAND_DATA {
   user: User;
@@ -17,7 +23,7 @@ const COMMANDS = {
   start: "start",
   help: "help",
   whoami: "whoami",
-  test: "test",
+  registerUser: "register-user",
 };
 
 const ALL_ROLE_COMMANDS = [
@@ -27,7 +33,7 @@ const ALL_ROLE_COMMANDS = [
 ] as const;
 
 const ROLE_COMMANDS: Record<string, Exclude<(keyof typeof COMMANDS), (typeof ALL_ROLE_COMMANDS)[number]>[]> = {
-  ADMIN: [],
+  ADMIN: ['registerUser'],
   FLORIST: [],
   KURIR: [],
 };
@@ -36,98 +42,244 @@ const COMMAND_DESC: Record<keyof typeof COMMANDS, string> = {
   start: "Memulai dan cek status aktif bot",
   help: "Menampilkan daftar perintah bot yang tersedia",
   whoami: "Cek profil data Anda yang terdaftar di sistem",
-  test: "test",
+  registerUser: "Register user",
 };
 
-const COMMAND_FN: Record<
-  keyof typeof COMMANDS,
-  (data: COMMAND_DATA) => string
-> = {
-  start: (data: COMMAND_DATA) => {
-    let messageReply = `Halo <b>${data.user.NAME || "Pengguna"}</b>! Status bot dalam keadaan aktif.`;
+function startMessage(user: User) {
+  let messageReply = `Halo <b>${user.NAME || "Pengguna"}</b>! Status bot dalam keadaan aktif.`;
 
-    // Memanggil fungsi help secara internal untuk menampilkan menu sesuai role USER
-    const daftarMenu = COMMAND_FN.help(data);
-    messageReply += `\n\n${daftarMenu}`;
+  // Memanggil fungsi help secara internal untuk menampilkan menu sesuai role USER
+  const daftarMenu = helpMessage(user);
+  messageReply += `\n\n${daftarMenu}`;
 
-    return messageReply;
-  },
+  return messageReply;
+}
 
-  help: ({ user }: COMMAND_DATA) => {
-    const allowedKeys = new Set<keyof typeof COMMANDS>([...ALL_ROLE_COMMANDS]);
+function helpMessage(user: User) {
+  const allowedKeys = new Set<keyof typeof COMMANDS>([...ALL_ROLE_COMMANDS]);
 
-    if (user.ROLES && Array.isArray(user.ROLES)) {
-      user.ROLES.forEach((roleName) => {
-        const roleCmds = ROLE_COMMANDS[roleName];
-        if (roleCmds) {
-          roleCmds.forEach((cmdKey) => allowedKeys.add(cmdKey));
-        }
-      });
-    }
+  if (user.ROLES && Array.isArray(user.ROLES)) {
+    user.ROLES.forEach((roleName) => {
+      const roleCmds = ROLE_COMMANDS[roleName];
+      if (roleCmds) {
+        roleCmds.forEach((cmdKey) => allowedKeys.add(cmdKey));
+      }
+    });
+  }
 
-    const commandList = Object.entries(COMMANDS)
-      .filter(([key]) => allowedKeys.has(key as keyof typeof COMMANDS))
-      .map(
-        ([key, cmd]) =>
-          `${cmd} - ${COMMAND_DESC[key as keyof typeof COMMANDS] || "Tanpa deskripsi"}`,
-      )
-      .join("\n");
+  const commandList = Object.entries(COMMANDS)
+    .filter(([key]) => allowedKeys.has(key as keyof typeof COMMANDS))
+    .map(
+      ([key, cmd]) =>
+        `${cmd} - ${COMMAND_DESC[key as keyof typeof COMMANDS] || "Tanpa deskripsi"}`,
+    )
+    .join("\n");
 
-    return `🤖 <b>Daftar Perintah Bot yang Tersedia untuk Anda</b>:\n\n${commandList}`;
-  },
+  return `🤖 <b>Daftar Perintah Bot yang Tersedia untuk Anda</b>:\n\n${commandList}`;
+}
 
-  whoami: ({ user }: COMMAND_DATA): string => {
-    const { USERNAME: username, NAME: name, ROLES: role } = user;
-    return (
-      `Berikut data Anda yang terdaftar di sistem:\n\n` +
-      `👤 <b>Nama:</b> ${name}\n` +
-      `🏷️ <b>Username:</b> @${username}\n` +
-      `💼 <b>Role:</b> <i>${role}</i>`
-    );
-  },
+async function registerUserMessage(ctx: CommandContext<Context>) {
+  const args = ctx.match;
+  if (!args) {
+    throw `❌ <b>Error:</b> Please provide both a username and a role.
+<b>Format:</b> <code>/role [username] [ROLE]</code>
+<i>Example: <code>/role john_doe ADMIN</code></i>`
+      ;
+  }
 
-  test: ({ user }: COMMAND_DATA): string => {
-    const { USERNAME: username, NAME: name, ROLES: role } = user;
-    return (
-      `Berikut data Anda yang terdaftar di sistem:\n\n` +
-      `👤 <b>Nama:</b> ${name}\n` +
-      `🏷️ <b>Username:</b> @${username}\n` +
-      `💼 <b>Role:</b> <i>${role}</i>`
-    );
-  },
-} as const;
+  const [inputUsername, inputRole] = args
+    .replace("\n", " ")
+    .trim()
+    .split(' ', 2);
+
+  if (!inputUsername || !inputRole) {
+    throw `⚠️ <b>Invalid Format!</b>
+Make sure you include both parameters.
+
+<b>Usage:</b> <code>/role [inputUsername] [ROLE]</code>`
+      ;
+  }
+
+  await ctx.reply(
+    `🔄 <b>Processing...</b>
+Assigning role <code>${inputRole.toUpperCase()}</code> to user <b>@${inputUsername}</b>.`,
+    {parse_mode: 'HTML'}
+  );
+
+  const user = await findUserByUsername(inputUsername);
+
+  if (!user) {
+    throw `Username @${inputUsername} is not registered in the Users database.`;
+  }
+  const { ROLES } = await getMasterData();
+
+  if (!ROLES.includes(inputRole)) {
+    throw `Role ${inputRole} is not registered in the Master Data database.`;
+  }
+
+  return {
+    user,
+    inputRole,
+  }
+}
 
 const telegramBot = new Bot(BOT_TOKEN);
 
-telegramBot.command('start', async (ctx) => {
+async function getParseData(ctx: CommandContext<Context>) {
   const chatId = ctx.message?.chat?.id;
   const chatType = ctx.message?.chat?.type;
   const messageId = ctx.message?.message_id;
   const userId = ctx.message?.from?.id;
   const username = ctx.message?.from?.username ?? ctx.message?.chat?.username;
-  const messageReceived = ctx.message?.text;
 
-  if (username) {
-    const user = await findUserByUsername(username);
-    if (user) {
-      await updateUserByUsername(username, {
-        telegramId: userId ? String(userId) : undefined,
-        chatId: chatId ? String(chatId) : undefined,
-      })
+  if (!username) {
+    throw `Username is missing`;
+  }
 
-      await ctx.reply(COMMAND_FN.start({
-        user,
-        messageReceived: messageReceived ?? "",
-      }), {
-        parse_mode: "HTML"
-      });
-      return;
+  return {
+    chatId,
+    chatType,
+    messageId,
+    userId,
+    username,
+  }
+}
+
+async function getUser({username, chatId, userId}: {
+  username: string,
+  chatId?: string | number,
+  userId?: string | number
+}) {
+  const user = await findUserByUsername(username);
+
+  if (!user) {
+    const adminUser = await findUsersAdminAndHasChatIdOrTelegramId();
+    if (adminUser.length > 0) {
+      for (const user of adminUser) {
+        if (user.CHAT_ID == null && user.TELEGRAM_ID == null) continue;
+
+        const htmlMessage = `
+⚠️ <b>New User Registration Notif</b>
+
+An admin needs to assign a role to this user. Copy and send this command to the bot:
+
+<code>/register-user ${username} &lt;role&gt;</code>
+`;
+        await telegramBot.api.sendMessage(
+          user.CHAT_ID ?? user.TELEGRAM_ID ?? "",
+          htmlMessage,
+          {
+            parse_mode: "HTML",
+          },
+        );
+      }
+
+      throw `Username @${username} is not registered in the Users database. Please wait admin registering you.`;
+    } else {
+      throw `No administrators found in the user database`;
+    }
+  }
+
+  await updateUserByUsername(username, {
+    telegramId: userId ? String(userId) : undefined,
+    chatId: chatId ? String(chatId) : undefined,
+  })
+
+  return user;
+}
+
+telegramBot.command('start', async (ctx) => {
+  try {
+    const {
+      chatId,
+      userId,
+      username,
+    } = await getParseData(ctx);
+
+    const user = await getUser({username, chatId, userId});
+
+    await ctx.reply(startMessage(user), {
+      parse_mode: "HTML"
+    });
+    return;
+  } catch (e) {
+    if (e instanceof Error) {
+      await ctx.reply(`Error ${e.message}`);
+    } else if (typeof e == "string") {
+      await ctx.reply(e);
     }
   }
 });
 
 telegramBot.command('help', async (ctx) => {
-  await ctx.reply('Ada yang bisa saya bantu? Kirim pesan apa saja, nanti saya tiru.');
+  try {
+    const {
+      chatId,
+      userId,
+      username,
+    } = await getParseData(ctx);
+
+    const user = await getUser({username, chatId, userId});
+
+    await ctx.reply(helpMessage(user), {
+      parse_mode: "HTML"
+    });
+    return;
+  } catch (e) {
+    if (e instanceof Error) {
+      await ctx.reply(`Error ${e.message}`);
+    } else if (typeof e == "string") {
+      await ctx.reply(e);
+    }
+  }
+});
+
+telegramBot.command('register-user', async (ctx) => {
+  try {
+    const {
+      chatId,
+      userId,
+      username,
+    } = await getParseData(ctx);
+
+    await getUser({username, chatId, userId});
+
+    const {
+      user: inputUser,
+      inputRole,
+    } = await registerUserMessage(ctx);
+
+    await insertRoleUser(inputUser.USERNAME, inputRole);
+
+    if (!(inputUser.CHAT_ID == null && inputUser.TELEGRAM_ID == null)) {
+      const htmlMessage = `
+⚠️ <b>User Registered</b>
+
+An admin has been assign a role <b>${inputRole}<b> to you. Copy and send this command to check your role:
+
+<code>/whoami</code>
+`;
+      await telegramBot.api.sendMessage(
+        inputUser.CHAT_ID ?? inputUser.TELEGRAM_ID ?? "",
+        htmlMessage,
+        {
+          parse_mode: "HTML",
+        },
+      );
+    }
+
+    await ctx.reply(
+      `✅ <b>Successfully.</b>
+Assigning role <code>${inputRole.toUpperCase()}</code> to user <b>@${inputUser.USERNAME}</b>.`,
+      {parse_mode: 'HTML'}
+    );
+  } catch (e) {
+    if (e instanceof Error) {
+      await ctx.reply(`Error ${e.message}`, {parse_mode: 'HTML'});
+    } else if (typeof e == "string") {
+      await ctx.reply(e, {parse_mode: 'HTML'});
+    }
+  }
 });
 
 telegramBot.on('message:text', async (ctx) => {
@@ -151,7 +303,11 @@ export async function sendTelegramDocument(
   filename: string,
   caption?: string
 ): Promise<void> {
-  await telegramBot.api.sendDocument(chatId, new InputFile(new Uint8Array(fileBuffer), filename), {
+  await telegramBot.api.sendDocument(
+    chatId,
+    new InputFile(new Uint8Array(fileBuffer), filename),
+    {
     caption: caption,
-  });
+    },
+  );
 }

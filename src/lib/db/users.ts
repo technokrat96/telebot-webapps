@@ -42,6 +42,37 @@ export async function findUserByUsername(
   return user ? toUser(user) : null;
 }
 
+export async function findUsersAdminAndHasChatIdOrTelegramId(): Promise<User[]> {
+  const user = await prisma.appUser.findMany({
+    take: 2,
+    orderBy: {
+      username: "asc",
+    },
+    where: {
+      roles: {
+        some: {
+          role: {
+            in: ['ADMIN']
+          }
+        }
+      },
+      OR: [
+        { chatId: { not: null } },
+        { telegramId: { not: null } }
+      ]
+    },
+    include: {
+      roles: {
+        select: {
+          role: true,
+        }
+      },
+    }
+  });
+
+  return user.map(toUser);
+}
+
 export async function updateUserByUsername(username: string, {
   telegramId,
   chatId,
@@ -53,6 +84,15 @@ export async function updateUserByUsername(username: string, {
   await prisma.appUser.updateMany({
     where: { username: { contains: normalized, mode: 'insensitive' } },
     data,
+  });
+}
+
+export async function insertRoleUser(username: string, role: string): Promise<void> {
+  await prisma.userRole.create({
+    data: {
+      username,
+      role,
+    },
   });
 }
 
