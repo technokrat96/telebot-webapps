@@ -42,13 +42,16 @@ export async function findUserByUsername(
   return user ? toUser(user) : null;
 }
 
-export async function findUsersAdminAndHasChatIdOrTelegramId(): Promise<User[]> {
+export async function findUsersAdminNotMeAndHasChatIdOrTelegramId(username: string): Promise<User[]> {
   const user = await prisma.appUser.findMany({
     take: 2,
     orderBy: {
       username: "asc",
     },
     where: {
+      username: {
+        not: username,
+      },
       roles: {
         some: {
           role: {

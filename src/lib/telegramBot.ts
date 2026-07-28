@@ -3,7 +3,7 @@ import {User} from "@/types";
 import {Bot, CommandContext, Context, InputFile} from "grammy";
 import {
   findUserByUsername,
-  findUsersAdminAndHasChatIdOrTelegramId,
+  findUsersAdminNotMeAndHasChatIdOrTelegramId,
   insertRoleUser, insertUser,
   updateUserByUsername
 } from "@/lib/db/users";
@@ -71,7 +71,7 @@ function helpMessage(user: User) {
     .filter(([key]) => allowedKeys.has(key as keyof typeof COMMANDS))
     .map(
       ([key, cmd]) =>
-        `${cmd} - ${COMMAND_DESC[key as keyof typeof COMMANDS] || "Tanpa deskripsi"}`,
+        `/${cmd} - ${COMMAND_DESC[key as keyof typeof COMMANDS] || "Tanpa deskripsi"}`,
     )
     .join("\n");
 
@@ -187,7 +187,7 @@ async function getUser({username, name, chatId, userId}: {
       telegramId: userId ?? null,
     });
 
-    const adminUser = await findUsersAdminAndHasChatIdOrTelegramId();
+    const adminUser = await findUsersAdminNotMeAndHasChatIdOrTelegramId(username);
     if (adminUser.length > 0) {
       for (const user of adminUser) {
         if (user.CHAT_ID == null && user.TELEGRAM_ID == null) continue;
