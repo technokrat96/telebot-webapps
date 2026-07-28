@@ -42,7 +42,7 @@ const COMMAND_DESC: Record<keyof typeof COMMANDS, string> = {
   start: "Memulai dan cek status aktif bot",
   help: "Menampilkan daftar perintah bot yang tersedia",
   whoami: "Cek profil data Anda yang terdaftar di sistem",
-  registerUser: "Register user",
+  registerUser: "Register user dan assign role",
 };
 
 function startMessage(user: User) {
@@ -78,12 +78,22 @@ function helpMessage(user: User) {
   return `🤖 <b>Daftar Perintah Bot yang Tersedia untuk Anda</b>:\n\n${commandList}`;
 }
 
+function whoAmMessage(user: User) {
+  const { USERNAME, NAME, ROLES } = user;
+  return (
+    `Berikut data Anda yang terdaftar di sistem:\n\n` +
+    `👤 <b>Nama:</b> ${NAME}\n` +
+    `🏷️ <b>Username:</b> @${USERNAME}\n` +
+    `💼 <b>Role:</b> <i>${ROLES.join(", ")}</i>`
+  );
+}
+
 async function registerUserMessage(ctx: CommandContext<Context>) {
   const args = ctx.match;
   if (!args) {
     throw `❌ <b>Error:</b> Please provide both a username and a role.
-<b>Format:</b> <code>/role [username] [ROLE]</code>
-<i>Example: <code>/role john_doe ADMIN</code></i>`
+<b>Format:</b> <code>/${COMMANDS.registerUser} [username] [ROLE]</code>
+<i>Example: <code>/${COMMANDS.registerUser} john_doe ADMIN</code></i>`
       ;
   }
 
@@ -96,7 +106,8 @@ async function registerUserMessage(ctx: CommandContext<Context>) {
     throw `⚠️ <b>Invalid Format!</b>
 Make sure you include both parameters.
 
-<b>Usage:</b> <code>/role [inputUsername] [ROLE]</code>`
+<b>Format:</b> <code>/${COMMANDS.registerUser} [username] [ROLE]</code>
+<i>Example: <code>/${COMMANDS.registerUser} john_doe ADMIN</code></i>`
       ;
   }
 
@@ -149,10 +160,10 @@ async function getParseData(ctx: CommandContext<Context>) {
   }
 
   return {
-    chatId,
+    chatId: chatId ? String(chatId) : undefined,
     chatType,
-    messageId,
-    userId,
+    messageId: messageId ? String(messageId) : undefined,
+    userId: userId ? String(userId) : undefined,
     username,
     name,
   }
@@ -161,8 +172,8 @@ async function getParseData(ctx: CommandContext<Context>) {
 async function getUser({username, name, chatId, userId}: {
   username: string,
   name: string,
-  chatId?: string | number,
-  userId?: string | number
+  chatId?: string,
+  userId?: string,
 }) {
   const user = await findUserByUsername(username);
 
@@ -172,8 +183,8 @@ async function getUser({username, name, chatId, userId}: {
     await insertUser({
       username,
       name,
-      chatId: chatId ? String(chatId) : null,
-      telegramId: userId ? String(userId) : null,
+      chatId: chatId ?? null,
+      telegramId: userId ?? null,
     });
 
     const adminUser = await findUsersAdminAndHasChatIdOrTelegramId();
@@ -259,6 +270,30 @@ telegramBot.command('help', async (ctx) => {
   }
 });
 
+telegramBot.command('whoami', async (ctx) => {
+  try {
+    const {
+      chatId,
+      userId,
+      username,
+      name,
+    } = await getParseData(ctx);
+
+    const user = await getUser({username, name, chatId, userId});
+
+    await ctx.reply(whoAmMessage(user), {
+      parse_mode: "HTML"
+    });
+    return;
+  } catch (e) {
+    if (e instanceof Error) {
+      await ctx.reply(`Error ${e.message}`);
+    } else if (typeof e == "string") {
+      await ctx.reply(e);
+    }
+  }
+});
+
 telegramBot.command('registeruser', async (ctx) => {
   try {
     const {
@@ -283,15 +318,18 @@ telegramBot.command('registeruser', async (ctx) => {
 
 An admin has been assign a role <b>${inputRole}<b> to you. Copy and send this command to check your role:
 
-<code>/whoami</code>
+<code>/${COMMANDS.whoami}</code>
 `;
-      await telegramBot.api.sendMessage(
-        inputUser.CHAT_ID ?? inputUser.TELEGRAM_ID ?? "",
-        htmlMessage,
-        {
-          parse_mode: "HTML",
-        },
-      );
+      const targetChatId = inputUser.CHAT_ID ?? inputUser.TELEGRAM_ID ?? "";
+      if (targetChatId) {
+        await telegramBot.api.sendMessage(
+          targetChatId,
+          htmlMessage,
+          {
+            parse_mode: "HTML",
+          },
+        );
+      }
     }
 
     await ctx.reply(
@@ -312,7 +350,7 @@ telegramBot.on('message:text', async (ctx) => {
   const text = ctx.message?.text;
 
   if (text && text.startsWith('/')) {
-    await ctx.reply(`Maaf, perintah "${text}" tidak dikenali. Ketik /help untuk melihat bantuan.`, {
+    await ctx.reply(`Maaf, perintah "${text}" tidak dikenali. Ketik /${COMMANDS.help} untuk melihat bantuan.`, {
       parse_mode: "HTML"
     });
   } else {
