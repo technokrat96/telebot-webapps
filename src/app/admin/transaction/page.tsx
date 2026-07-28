@@ -93,7 +93,7 @@ function TransactionListContent() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <Title level={3} style={{ margin: 0 }}>Pekerjaan Florist</Title>
+          <Title level={3} style={{ margin: 0 }}>Transaksi</Title>
           <Tooltip title="Waktu sampai refresh data berikutnya" placement={"right"}>
             <Progress
               type="circle"

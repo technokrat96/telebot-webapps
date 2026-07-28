@@ -27,7 +27,7 @@ export async function findUserByUsername(
   const user = await prisma.appUser.findFirst({
     where: {
       username: {
-        contains: normalized,
+        equals: normalized,
         mode: 'insensitive',
       },
     },
