@@ -74,6 +74,7 @@ export async function findUsersAdminAndHasChatIdOrTelegramId(): Promise<User[]> 
 }
 
 export async function updateUserByUsername(username: string, {
+  name,
   telegramId,
   chatId,
 }: Partial<AppUserModel>): Promise<void> {
@@ -81,14 +82,15 @@ export async function updateUserByUsername(username: string, {
   const data: Partial<AppUserModel> = {};
   if (telegramId) data.telegramId = telegramId;
   if (chatId) data.chatId = chatId;
+  if (name) data.name = name;
   await prisma.appUser.updateMany({
     where: { username: { contains: normalized, mode: 'insensitive' } },
     data,
   });
 }
 
-export async function insertUser({ username, name, chatId, telegramId }: AppUserModel): Promise<void> {
-  await prisma.appUser.create({
+export async function insertUser({ username, name, chatId, telegramId }: AppUserModel): Promise<User> {
+  const user = await prisma.appUser.create({
     data: {
       username,
       name,
@@ -96,6 +98,8 @@ export async function insertUser({ username, name, chatId, telegramId }: AppUser
       telegramId
     },
   });
+
+  return toUser({ ...user, roles: [] });
 }
 
 export async function insertRoleUser(username: string, role: string): Promise<void> {

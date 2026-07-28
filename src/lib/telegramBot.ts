@@ -106,10 +106,16 @@ Assigning role <code>${inputRole.toUpperCase()}</code> to user <b>@${inputUserna
     {parse_mode: 'HTML'}
   );
 
-  const user = await findUserByUsername(inputUsername);
+  let user = await findUserByUsername(inputUsername);
 
   if (!user) {
-    throw `Username @${inputUsername} is not registered in the Users database.`;
+    // throw `Username @${inputUsername} is not registered in the Users database.`;
+    user = await insertUser({
+      username: inputUsername,
+      name: '',
+      chatId: null,
+      telegramId: null,
+    })
   }
   const { ROLES } = await getMasterData();
 
@@ -197,6 +203,7 @@ ${ROLES.map((role) => `<code>/${COMMANDS.registerUser} ${username} ${role}</code
   }
 
   await updateUserByUsername(username, {
+    name: name,
     telegramId: userId ? String(userId) : undefined,
     chatId: chatId ? String(chatId) : undefined,
   })
