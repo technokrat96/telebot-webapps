@@ -23,7 +23,7 @@ const COMMANDS = {
   start: "start",
   help: "help",
   whoami: "whoami",
-  registerUser: "register-user",
+  registerUser: "registeruser",
 };
 
 const ALL_ROLE_COMMANDS = [
@@ -152,6 +152,8 @@ async function getUser({username, chatId, userId}: {
 }) {
   const user = await findUserByUsername(username);
 
+  const { ROLES } = await getMasterData();
+
   if (!user) {
     const adminUser = await findUsersAdminAndHasChatIdOrTelegramId();
     if (adminUser.length > 0) {
@@ -162,8 +164,7 @@ async function getUser({username, chatId, userId}: {
 ⚠️ <b>New User Registration Notif</b>
 
 An admin needs to assign a role to this user. Copy and send this command to the bot:
-
-<code>/register-user ${username} &lt;role&gt;</code>
+${ROLES.map((role) => `<code>/register-user ${username} ${role}</code>`).join('\n')}
 `;
         await telegramBot.api.sendMessage(
           user.CHAT_ID ?? user.TELEGRAM_ID ?? "",
@@ -234,7 +235,7 @@ telegramBot.command('help', async (ctx) => {
   }
 });
 
-telegramBot.command('register-user', async (ctx) => {
+telegramBot.command('registeruser', async (ctx) => {
   try {
     const {
       chatId,
