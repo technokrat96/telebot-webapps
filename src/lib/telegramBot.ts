@@ -4,7 +4,7 @@ import {Bot, CommandContext, Context, InputFile} from "grammy";
 import {
   findUserByUsername,
   findUsersAdminAndHasChatIdOrTelegramId,
-  insertRoleUser,
+  insertRoleUser, insertUser,
   updateUserByUsername
 } from "@/lib/db/users";
 import {getMasterData} from "@/lib/db/masterData";
@@ -132,6 +132,12 @@ async function getParseData(ctx: CommandContext<Context>) {
   const userId = ctx.message?.from?.id;
   const username = ctx.message?.from?.username ?? ctx.message?.chat?.username;
 
+  const firstName = ctx.message?.from?.first_name ?? ctx.message?.chat?.first_name ?? '';
+  const lastName = ctx.message?.from?.last_name ?? ctx.message?.chat?.last_name ?? '';
+
+// Menggabungkan nama depan dan nama belakang, lalu menghapus spasi berlebih
+  const name = `${firstName} ${lastName}`.trim();
+
   if (!username) {
     throw `Username is missing`;
   }
@@ -142,11 +148,13 @@ async function getParseData(ctx: CommandContext<Context>) {
     messageId,
     userId,
     username,
+    name,
   }
 }
 
-async function getUser({username, chatId, userId}: {
+async function getUser({username, name, chatId, userId}: {
   username: string,
+  name: string,
   chatId?: string | number,
   userId?: string | number
 }) {
@@ -155,6 +163,13 @@ async function getUser({username, chatId, userId}: {
   const { ROLES } = await getMasterData();
 
   if (!user) {
+    await insertUser({
+      username,
+      name,
+      chatId: chatId ? String(chatId) : null,
+      telegramId: userId ? String(userId) : null,
+    });
+
     const adminUser = await findUsersAdminAndHasChatIdOrTelegramId();
     if (adminUser.length > 0) {
       for (const user of adminUser) {
@@ -164,7 +179,7 @@ async function getUser({username, chatId, userId}: {
 ⚠️ <b>New User Registration Notif</b>
 
 An admin needs to assign a role to this user. Copy and send this command to the bot:
-${ROLES.map((role) => `<code>/register-user ${username} ${role}</code>`).join('\n')}
+${ROLES.map((role) => `<code>/${COMMANDS.registerUser} ${username} ${role}</code>`).join('\n')}
 `;
         await telegramBot.api.sendMessage(
           user.CHAT_ID ?? user.TELEGRAM_ID ?? "",
@@ -195,9 +210,10 @@ telegramBot.command('start', async (ctx) => {
       chatId,
       userId,
       username,
+      name,
     } = await getParseData(ctx);
 
-    const user = await getUser({username, chatId, userId});
+    const user = await getUser({username, name, chatId, userId});
 
     await ctx.reply(startMessage(user), {
       parse_mode: "HTML"
@@ -218,9 +234,10 @@ telegramBot.command('help', async (ctx) => {
       chatId,
       userId,
       username,
+      name,
     } = await getParseData(ctx);
 
-    const user = await getUser({username, chatId, userId});
+    const user = await getUser({username, name, chatId, userId});
 
     await ctx.reply(helpMessage(user), {
       parse_mode: "HTML"
@@ -241,9 +258,10 @@ telegramBot.command('registeruser', async (ctx) => {
       chatId,
       userId,
       username,
+      name,
     } = await getParseData(ctx);
 
-    await getUser({username, chatId, userId});
+    await getUser({username, name, chatId, userId});
 
     const {
       user: inputUser,

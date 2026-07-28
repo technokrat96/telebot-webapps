@@ -87,6 +87,17 @@ export async function updateUserByUsername(username: string, {
   });
 }
 
+export async function insertUser({ username, name, chatId, telegramId }: AppUserModel): Promise<void> {
+  await prisma.appUser.create({
+    data: {
+      username,
+      name,
+      chatId,
+      telegramId
+    },
+  });
+}
+
 export async function insertRoleUser(username: string, role: string): Promise<void> {
   await prisma.userRole.create({
     data: {
