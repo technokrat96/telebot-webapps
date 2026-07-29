@@ -44,7 +44,9 @@ An admin has been assign a role <b>${inputRole}</b> to you. Copy and send this c
     const messageReply = `✅ <b>Successfully.</b>
 Assigning role <code>${inputRole.toUpperCase()}</code> to user <b>@${inputUser.USERNAME}</b>.`;
 
-    await ctx.reply(messageReply, {parse_mode: 'HTML'});
+    await ctx.reply(messageReply, {
+      parse_mode: "HTML"
+    });
   } catch (e) {
     if (e instanceof Error) {
       await ctx.reply(`Error ${e.message}`, {
@@ -98,7 +100,7 @@ Assigning role <b>${inputRole.toUpperCase()}</b> to user <b>@${inputUsername}</b
       telegramId: null,
     })
   }
-  const { ROLES } = await getMasterData();
+  const {ROLES} = await getMasterData();
 
   if (!ROLES.includes(inputRole)) {
     throw `Role ${inputRole} is not registered in the Master Data database.`;

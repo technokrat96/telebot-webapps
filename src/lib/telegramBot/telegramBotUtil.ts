@@ -6,7 +6,6 @@ import {
   updateUserByUsername
 } from "@/lib/db/users";
 import {getMasterData} from "@/lib/db/masterData";
-import telegramBot from "@/lib/telegramBot/index";
 import {COMMAND_LIST} from "@/lib/telegramBot/telegramBotConst";
 
 export async function parseDataTelegram(ctx: CommandContext<Context>) {
@@ -43,7 +42,7 @@ export async function validateUser(ctx: CommandContext<Context>, {username, name
 }) {
   const user = await findUserByUsername(username);
 
-  const { ROLES } = await getMasterData();
+  const {ROLES} = await getMasterData();
 
   if (!user) {
     await insertUser({

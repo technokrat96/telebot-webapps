@@ -26,7 +26,9 @@ const botCmdCheckUser = async (ctx: CommandContext<Context>) => {
       `💼 <b>Role:</b> <i>${ROLES.join(", ")}</i>`
     );
 
-    await ctx.reply(messageReply, {parse_mode: 'HTML'});
+    await ctx.reply(messageReply, {
+      parse_mode: "HTML"
+    });
   } catch (e) {
     if (e instanceof Error) {
       await ctx.reply(`Error ${e.message}`, {

@@ -21,7 +21,7 @@ export async function sendTelegramDocument(
     chatId,
     new InputFile(new Uint8Array(fileBuffer), filename),
     {
-    caption: caption,
+      caption: caption,
     },
   );
 }
