@@ -47,9 +47,13 @@ Assigning role <code>${inputRole.toUpperCase()}</code> to user <b>@${inputUser.U
     await ctx.reply(messageReply, {parse_mode: 'HTML'});
   } catch (e) {
     if (e instanceof Error) {
-      await ctx.reply(`Error ${e.message}`);
+      await ctx.reply(`Error ${e.message}`, {
+        parse_mode: "HTML",
+      },);
     } else if (typeof e == "string") {
-      await ctx.reply(e);
+      await ctx.reply(e, {
+        parse_mode: "HTML",
+      },);
     }
   }
 }

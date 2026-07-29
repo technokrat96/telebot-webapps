@@ -45,9 +45,13 @@ const botCmdHelp = async (ctx: CommandContext<Context>) => {
     });
   } catch (e) {
     if (e instanceof Error) {
-      await ctx.reply(`Error ${e.message}`);
+      await ctx.reply(`Error ${e.message}`, {
+        parse_mode: "HTML",
+      },);
     } else if (typeof e == "string") {
-      await ctx.reply(e);
+      await ctx.reply(e, {
+        parse_mode: "HTML",
+      },);
     }
   }
 }
