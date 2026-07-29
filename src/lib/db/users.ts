@@ -114,19 +114,23 @@ export async function insertRoleUser(username: string, role: string): Promise<vo
   });
 }
 
-export async function getTelegramIdByUsername(username: string): Promise<string | null> {
+export async function getTelegramIdByUsername(username: string) {
   const normalized = normalizedUsername(username);
   const user = await prisma.appUser.findFirst({
     where: { username: { contains: normalized, mode: 'insensitive' } },
-    select: { telegramId: true },
   });
-  return user?.telegramId ?? null;
+  return user;
 }
 
 /** Untuk dropdown "kirim ke" — semua staff yang sudah pernah login (punya telegramId). */
 export async function listUsersWithTelegramId(): Promise<{ username: string; name: string }[]> {
   const rows = await prisma.appUser.findMany({
-    where: { telegramId: { not: null } },
+    where: {
+      OR: [
+        { telegramId: { not: null } },
+        { chatId: { not: null } },
+      ]
+    },
     select: { username: true, name: true },
   });
   return rows;

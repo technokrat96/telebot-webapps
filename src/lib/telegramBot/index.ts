@@ -11,20 +11,4 @@ if (!SECRET_TOKEN) throw new Error('Secret Token belum diatur!');
 const telegramBot = new Bot(BOT_TOKEN);
 telegramBotCommand(telegramBot);
 
-export async function sendTelegramDocument(
-  chatId: string,
-  fileBuffer: Buffer,
-  filename: string,
-  caption?: string
-): Promise<void> {
-  await telegramBot.api.sendDocument(
-    chatId,
-    new InputFile(new Uint8Array(fileBuffer), filename),
-    {
-      caption: caption,
-    },
-  );
-}
-
-export {telegramBot};
 export default telegramBot;
