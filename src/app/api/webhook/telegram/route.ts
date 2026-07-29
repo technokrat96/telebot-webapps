@@ -1,5 +1,5 @@
 import {webhookCallback} from 'grammy';
-import {telegramBot} from "@/lib/telegramBot";
+import telegramBot from "@/lib/telegramBot";
 
 const SECRET_TOKEN = process.env.TELEGRAM_BOT_SECRET_TOKEN;
 if (!SECRET_TOKEN) throw new Error('Secret Token belum diatur!');
