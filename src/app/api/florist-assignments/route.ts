@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
-import { claimItem, listMyAssignmentsWithDetail } from '@/lib/db/floristAssignment';
+import { claimItem, listMyAssignmentsWithDetailPaged } from '@/lib/db/floristAssignment';
 
 export async function GET(req: NextRequest) {
   const auth = await requireAuth(req, ['FLORIST', 'ADMIN']);
   if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const assignments = await listMyAssignmentsWithDetail(auth.TELEGRAM_USER);
-  return NextResponse.json({ assignments });
+  const { searchParams } = new URL(req.url);
+  const page = Number(searchParams.get('page') ?? '1') || 1;
+  const pageSize = Number(searchParams.get('pageSize') ?? '10') || 10;
+
+  const { assignments, total } = await listMyAssignmentsWithDetailPaged(auth.TELEGRAM_USER, { page, pageSize });
+  return NextResponse.json({ assignments, total, page, pageSize });
 }
 
 export async function POST(req: NextRequest) {

@@ -20,12 +20,16 @@ import ItemImageGallery from '@/components/common/ItemImageGallery';
 import { useTelegramAuth } from '@/components/common/TelegramProvider';
 import { apiClient } from '@/lib/apiClient';
 import { AvailableFloristItem, MyFloristAssignment } from '@/types';
-import useSWR from "swr";
+import useSWRInfinite from 'swr/infinite';
 
 const { Title, Text, Paragraph } = Typography;
 
 const fetcher = <T,>(url: string) => apiClient.get<T>(url);
 const POLL_INTERVAL = 1000 * 5;
+const PAGE_SIZE = 5;
+
+type AvailableResponse = { items: AvailableFloristItem[]; total: number };
+type MineResponse = { assignments: MyFloristAssignment[]; total: number };
 
 export default function FloristPage() {
   return (
@@ -66,48 +70,55 @@ function FloristContent() {
   const { name } = useTelegramAuth();
   const { message } = App.useApp();
   const { progress, reset } = usePollingProgress(POLL_INTERVAL);
-  const [loading, setLoading] = useState(true);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [qtyInput, setQtyInput] = useState<Record<string, number>>({});
 
-  const { data: availRes, mutate: mutateAvail } = useSWR<{ items: AvailableFloristItem[] }>(
-    '/api/florist-assignments/available',
+  const {
+    data: availPages,
+    size: availSize,
+    setSize: setAvailSize,
+    isLoading: availLoading,
+    isValidating: availValidating,
+    mutate: mutateAvail,
+  } = useSWRInfinite<AvailableResponse>(
+    (pageIndex, previousPageData) => {
+      if (previousPageData && pageIndex * PAGE_SIZE >= previousPageData.total) return null;
+      return `/api/florist-assignments/available?page=${pageIndex + 1}&pageSize=${PAGE_SIZE}`;
+    },
     fetcher,
     {
       refreshInterval: POLL_INTERVAL,
       onSuccess: reset, // progress balik ke 0 tiap kali fetch sukses
+      revalidateFirstPage: false, // biar polling gak lompat balik ke halaman 1 doang
     }
   );
-  const { data: mineRes, mutate: mutateMine } = useSWR<{ assignments: MyFloristAssignment[] }>(
-    '/api/florist-assignments',
+
+  const {
+    data: minePages,
+    size: mineSize,
+    setSize: setMineSize,
+    isLoading: mineLoading,
+    isValidating: mineValidating,
+    mutate: mutateMine,
+  } = useSWRInfinite<MineResponse>(
+    (pageIndex, previousPageData) => {
+      if (previousPageData && pageIndex * PAGE_SIZE >= previousPageData.total) return null;
+      return `/api/florist-assignments?page=${pageIndex + 1}&pageSize=${PAGE_SIZE}`;
+    },
     fetcher,
     {
       refreshInterval: POLL_INTERVAL,
+      revalidateFirstPage: false,
     }
   );
 
-  const available = availRes?.items ?? [];
-  const mine = mineRes?.assignments ?? [];
+  const available = availPages?.flatMap((p) => p.items) ?? [];
+  const availTotal = availPages?.[0]?.total ?? 0;
+  const hasMoreAvail = available.length < availTotal;
 
-  async function load() {
-    setLoading(true);
-    try {
-      const [availRes, mineRes] = await Promise.all([
-        apiClient.get<{ items: AvailableFloristItem[] }>('/api/florist-assignments/available'),
-        apiClient.get<{ assignments: MyFloristAssignment[] }>('/api/florist-assignments'),
-      ]);
-      mutateAvail();
-      mutateMine();
-    } catch (err) {
-      message.error((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    load();
-  }, []);
+  const mine = minePages?.flatMap((p) => p.assignments) ?? [];
+  const mineTotal = minePages?.[0]?.total ?? 0;
+  const hasMoreMine = mine.length < mineTotal;
 
   async function claimItem(item: AvailableFloristItem) {
     const qty = qtyInput[item.ORDER_ITEM_ID] ?? item.remainingQty;
@@ -174,12 +185,12 @@ function FloristContent() {
       </Paragraph>
 
       {/* ================= PEKERJAAN SAYA ================= */}
-      <Title level={4}>Pekerjaan Saya ({mine.length})</Title>
+      <Title level={4}>Pekerjaan Saya ({mineTotal})</Title>
       <Space orientation="vertical" size={16} style={{ width: '100%', marginBottom: 24 }}>
         {mine.map((a) => (
           <Card
             key={a.ASSIGNMENT_ID}
-            loading={loading}
+            loading={mineLoading}
             title={`${a.ORDER_ID} · ${a.item?.CUSTOMER_NAME}`}
           >
             <Space orientation="vertical" size={4} style={{ width: '100%' }}>
@@ -205,18 +216,27 @@ function FloristContent() {
             </Space>
           </Card>
         ))}
-        {!loading && mine.length === 0 && <Empty description="Kamu belum mengambil pekerjaan apapun." />}
+        {!mineLoading && mine.length === 0 && <Empty description="Kamu belum mengambil pekerjaan apapun." />}
+        {hasMoreMine && (
+          <Button
+            block
+            loading={mineValidating}
+            onClick={() => setMineSize(mineSize + 1)}
+          >
+            Muat Lebih Banyak (sisa {mineTotal - mine.length})
+          </Button>
+        )}
       </Space>
 
       <Divider />
 
       {/* ================= ORDER TERSEDIA ================= */}
-      <Title level={4}>Order Tersedia ({available.length})</Title>
+      <Title level={4}>Order Tersedia ({availTotal})</Title>
       <Space orientation="vertical" size={16} style={{ width: '100%' }}>
         {available.map((item) => (
           <Card
             key={item.ORDER_ITEM_ID}
-            loading={loading}
+            loading={availLoading}
             title={`${item.ORDER_ID} · ${item.CUSTOMER_NAME}`}
           >
             <Space orientation="vertical" size={4} style={{ width: '100%' }}>
@@ -245,7 +265,16 @@ function FloristContent() {
             </Space>
           </Card>
         ))}
-        {!loading && available.length === 0 && <Empty description="Tidak ada order tersedia saat ini." />}
+        {!availLoading && available.length === 0 && <Empty description="Tidak ada order tersedia saat ini." />}
+        {hasMoreAvail && (
+          <Button
+            block
+            loading={availValidating}
+            onClick={() => setAvailSize(availSize + 1)}
+          >
+            Muat Lebih Banyak (sisa {availTotal - available.length})
+          </Button>
+        )}
       </Space>
     </div>
   );

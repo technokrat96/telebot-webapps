@@ -68,29 +68,52 @@ export async function checkOut(username: string): Promise<Attendance> {
   return toAttendance(row);
 }
 
-export async function listMyAttendance(username: string, limit = 30): Promise<Attendance[]> {
-  const rows = await prisma.attendance.findMany({
-    where: { username },
-    orderBy: { date: 'desc' },
-    take: limit,
-  });
-  return rows.map(toAttendance);
+export async function listMyAttendance(
+  username: string,
+  options: { page?: number; pageSize?: number } = {}
+): Promise<{ attendance: Attendance[]; total: number }> {
+  const page = Math.max(1, options.page ?? 1);
+  const pageSize = Math.min(100, Math.max(1, options.pageSize ?? 10)); // cap 100 biar gak disalahgunakan
+
+  const [rows, total] = await Promise.all([
+    prisma.attendance.findMany({
+      where: { username },
+      orderBy: { date: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.attendance.count({ where: { username } }),
+  ]);
+
+  return { attendance: rows.map(toAttendance), total };
 }
 
 export async function listAllAttendance(options: {
   from?: string; // 'YYYY-MM-DD'
   to?: string;
   username?: string;
-} = {}): Promise<Attendance[]> {
+  page?: number;
+  pageSize?: number;
+} = {}): Promise<{ attendance: Attendance[]; total: number }> {
   const from = options.from ? serverDayJs(options.from).toDate() : serverDayJs().startOf('month').toDate();
   const to = options.to ? serverDayJs(options.to).toDate() : serverDayJs().endOf('month').toDate();
+  const page = Math.max(1, options.page ?? 1);
+  const pageSize = Math.min(100, Math.max(1, options.pageSize ?? 10));
 
-  const rows = await prisma.attendance.findMany({
-    where: {
-      date: { gte: from, lte: to },
-      ...(options.username ? { username: options.username } : {}),
-    },
-    orderBy: [{ date: 'desc' }, { username: 'asc' }],
-  });
-  return rows.map(toAttendance);
+  const where = {
+    date: { gte: from, lte: to },
+    ...(options.username ? { username: options.username } : {}),
+  };
+
+  const [rows, total] = await Promise.all([
+    prisma.attendance.findMany({
+      where,
+      orderBy: [{ date: 'desc' }, { username: 'asc' }],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.attendance.count({ where }),
+  ]);
+
+  return { attendance: rows.map(toAttendance), total };
 }

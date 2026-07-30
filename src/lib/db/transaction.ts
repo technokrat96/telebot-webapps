@@ -30,7 +30,7 @@ function toTransaction(row: TransactionModel): Transaction {
   };
 }
 
-function toTransactionDetail(row: TransactionDetailModel): TransactionDetail {
+export function toTransactionDetail(row: TransactionDetailModel): TransactionDetail {
   return {
     ORDER_ITEM_ID: row.orderItemId,
     ORDER_ID: row.orderId,
@@ -445,6 +445,44 @@ export async function listTransactionsWithDetailsAndAssignments(
   }));
 
   return { transactions, total };
+}
+
+// Status pesanan yang relevan buat kurir (siap diambil s/d dalam perjalanan).
+// Order dianggap masuk satu kategori kalau SEMUA item-nya kompak di status
+// yang sama -- persis semantik `filterOrdersByDeliveryStatus` versi lama,
+// cuma sekarang di-filter di DB (bukan fetch semua transaksi lalu disaring
+// di JS) supaya bisa di-page.
+const KURIR_DELIVERY_STATUSES = ['PICKUP', 'ON DELIVERY', 'DELIVERED'] as const;
+
+export async function listOrdersForKurirPaged(
+  options: { page?: number; pageSize?: number } = {}
+): Promise<{ orders: TransactionWithDetails[]; total: number }> {
+  const page = Math.max(1, options.page ?? 1);
+  const pageSize = Math.min(50, Math.max(1, options.pageSize ?? 10));
+
+  const where = {
+    OR: KURIR_DELIVERY_STATUSES.map((status) => ({
+      details: { some: {}, every: { deliveryStatus: status } },
+    })),
+  };
+
+  const [rows, total] = await Promise.all([
+    prisma.transaction.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: { details: true },
+    }),
+    prisma.transaction.count({ where }),
+  ]);
+
+  const orders: TransactionWithDetails[] = rows.map((t) => ({
+    ...toTransaction(t),
+    details: t.details.map(toTransactionDetail),
+  }));
+
+  return { orders, total };
 }
 
 // isOrderFullyDone / filterOrdersByDeliveryStatus moved to '@/lib/statusUtils'

@@ -10,7 +10,9 @@ export async function GET(req: NextRequest) {
   const from = searchParams.get('from') ?? undefined;
   const to = searchParams.get('to') ?? undefined;
   const username = searchParams.get('username') ?? undefined;
+  const page = Number(searchParams.get('page') ?? '1') || 1;
+  const pageSize = Number(searchParams.get('pageSize') ?? '10') || 10;
 
-  const attendance = await listAllAttendance({ from, to, username });
-  return NextResponse.json({ attendance });
+  const { attendance, total } = await listAllAttendance({ from, to, username, page, pageSize });
+  return NextResponse.json({ attendance, total, page, pageSize });
 }

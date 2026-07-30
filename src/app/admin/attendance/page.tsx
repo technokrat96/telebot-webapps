@@ -12,6 +12,10 @@ import {Dayjs} from "dayjs";
 const { Title, Paragraph } = Typography;
 const { RangePicker } = DatePicker;
 
+type AttendanceAllResponse = { attendance: Attendance[]; total: number };
+
+const fetcher = (url: string) => apiClient.get<AttendanceAllResponse>(url);
+
 export default function AdminAbsensiPage() {
   return (
     <RoleGuard allow={['ADMIN']}>
@@ -27,13 +31,16 @@ function AdminAbsensiContent() {
     clientDayJs().endOf('month'),
   ]);
   const [username, setUsername] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const from = range[0].format('YYYY-MM-DD');
   const to = range[1].format('YYYY-MM-DD');
 
-  const { data, isLoading, error } = useSWR(
-    `/api/attendance/all?from=${from}&to=${to}${username ? `&username=${encodeURIComponent(username)}` : ''}`,
-    (url: string) => apiClient.get<{ attendance: Attendance[] }>(url)
+  const { data, isLoading, error } = useSWR<AttendanceAllResponse>(
+    `/api/attendance/all?from=${from}&to=${to}${username ? `&username=${encodeURIComponent(username)}` : ''}&page=${page}&pageSize=${pageSize}`,
+    fetcher,
+    { keepPreviousData: true } // biar pas ganti halaman/filter gak flash loading
   );
 
   if (error) message.error(error.message);
@@ -47,13 +54,21 @@ function AdminAbsensiContent() {
         <Space wrap>
           <RangePicker
             value={range}
-            onChange={(v) => v && v[0] && v[1] && setRange([v[0], v[1]])}
+            onChange={(v) => {
+              if (v && v[0] && v[1]) {
+                setRange([v[0], v[1]]);
+                setPage(1); // filter berubah -> balik ke halaman 1
+              }
+            }}
             format="YYYY-MM-DD"
           />
           <Input
             placeholder="Filter username (opsional)"
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            onChange={(e) => {
+              setUsername(e.target.value);
+              setPage(1);
+            }}
             style={{ width: 220 }}
             allowClear
           />
@@ -65,6 +80,21 @@ function AdminAbsensiContent() {
         dataSource={data?.attendance ?? []}
         loading={isLoading}
         scroll={{ x: true }}
+        pagination={{
+          current: page,
+          pageSize,
+          total: data?.total ?? 0,
+          showSizeChanger: true,
+          showTotal: (t) => `Total ${t} data`,
+          onChange: (nextPage, nextPageSize) => {
+            setPage(nextPage);
+            setPageSize(nextPageSize);
+          },
+          onShowSizeChange: (nextPage, nextPageSize) => {
+            setPage(nextPage);
+            setPageSize(nextPageSize);
+          },
+        }}
         columns={[
           { title: 'Tanggal', dataIndex: 'DATE', render: (v) => clientDayJs(v).format('DD MMM YYYY') },
           { title: 'Nama', dataIndex: 'NAME' },

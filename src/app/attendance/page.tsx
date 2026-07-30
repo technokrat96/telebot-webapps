@@ -1,5 +1,6 @@
 'use client';
 
+import {useState} from 'react';
 import {Empty, Table, Tag, Typography} from 'antd';
 import useSWR from 'swr';
 import {apiClient} from '@/lib/apiClient';
@@ -7,14 +8,26 @@ import {useTelegramAuth} from '@/components/common/TelegramProvider';
 import {Attendance} from '@/types';
 import clientDayJs from "@/lib/cleint.dayjs";
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Paragraph } = Typography;
 
-const fetcher = (url: string) =>
-  apiClient.get<{ today: Attendance | null; history: Attendance[] }>(url);
+type AttendanceHistoryResponse = {
+  today: Attendance | null;
+  history: Attendance[];
+  total: number;
+};
+
+const fetcher = (url: string) => apiClient.get<AttendanceHistoryResponse>(url);
 
 export default function AbsensiPage() {
   const { name } = useTelegramAuth();
-  const { data, mutate, isLoading } = useSWR('/api/attendance', fetcher);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const { data, isLoading } = useSWR<AttendanceHistoryResponse>(
+    `/api/attendance?page=${page}&pageSize=${pageSize}`,
+    fetcher,
+    { keepPreviousData: true } // biar pas ganti halaman gak flash loading
+  );
 
   const history = data?.history ?? [];
 
@@ -27,7 +40,21 @@ export default function AbsensiPage() {
         scroll={{ x: true }}
         dataSource={history}
         loading={isLoading}
-        pagination={{ pageSize: 10 }}
+        pagination={{
+          current: page,
+          pageSize,
+          total: data?.total ?? 0,
+          showSizeChanger: true,
+          showTotal: (t) => `Total ${t} absensi`,
+          onChange: (nextPage, nextPageSize) => {
+            setPage(nextPage);
+            setPageSize(nextPageSize);
+          },
+          onShowSizeChange: (nextPage, nextPageSize) => {
+            setPage(nextPage);
+            setPageSize(nextPageSize);
+          },
+        }}
         locale={{ emptyText: <Empty description="Belum ada riwayat absensi" /> }}
         columns={[
           { title: 'Tanggal', dataIndex: 'DATE', render: (v) => clientDayJs(v).format('DD MMM YYYY') },

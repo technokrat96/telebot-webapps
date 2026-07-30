@@ -88,18 +88,41 @@ export async function listInvoiceDetails(): Promise<InvoiceDetail[]> {
   return rows.map(toInvoiceDetail);
 }
 
-export async function listInvoicesWithDetails(): Promise<
-  InvoiceWithDetails[]
-> {
-  const invoices = await prisma.invoice.findMany({
-    orderBy: { createdAt: 'desc' }, // newest first, dulu didapat dari .reverse()
-    include: { details: true },
-  });
+export async function listInvoicesWithDetails(
+  options: { page?: number; pageSize?: number } = {}
+): Promise<{ invoices: InvoiceWithDetails[]; total: number }> {
+  const page = Math.max(1, options.page ?? 1);
+  const pageSize = Math.min(100, Math.max(1, options.pageSize ?? 10)); // cap 100 biar gak disalahgunakan
 
-  return invoices.map((inv) => ({
+  const [rows, total] = await Promise.all([
+    prisma.invoice.findMany({
+      orderBy: { createdAt: 'desc' }, // newest first, dulu didapat dari .reverse()
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: { details: true },
+    }),
+    prisma.invoice.count(),
+  ]);
+
+  const invoices: InvoiceWithDetails[] = rows.map((inv) => ({
     ...toInvoice(inv),
     details: inv.details.map(toInvoiceDetail),
   }));
+
+  return { invoices, total };
+}
+
+/** Satu invoice by id, dipakai di /api/invoices/[id] (sebelumnya nge-fetch
+ * semua invoice lalu .find() -- jadi ikut kepotong pagination di atas). */
+export async function getInvoiceWithDetailsById(
+  invoiceId: string
+): Promise<InvoiceWithDetails | null> {
+  const inv = await prisma.invoice.findUnique({
+    where: { invoiceId },
+    include: { details: true },
+  });
+  if (!inv) return null;
+  return { ...toInvoice(inv), details: inv.details.map(toInvoiceDetail) };
 }
 
 export async function createInvoice(

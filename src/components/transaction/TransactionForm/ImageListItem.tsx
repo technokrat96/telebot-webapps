@@ -4,7 +4,7 @@ import {Button, Image, Typography} from 'antd';
 import {DeleteOutlined} from '@ant-design/icons';
 import {useEffect, useState} from 'react';
 import {apiClient} from '@/lib/apiClient';
-import {fileToDataUrl} from '@/lib/fileToDataUrl';
+import {fileToDataUrl} from '@/lib/file.util';
 
 /**
  * Satu baris di list foto item pesanan. Bisa merepresentasikan salah satu:

@@ -14,10 +14,10 @@ export default function ItemPesananList({expandAllSignal}: {expandAllSignal: num
         return (
           <ItemPesananCollapse
             fields={fields}
-            add={add}
-            remove={remove}
+            addAction={add}
+            removeAction={remove}
             activeKeys={activeKeys}
-            setActiveKeys={setActiveKeys}
+            setActiveKeysAction={setActiveKeys}
             expandAllSignal={expandAllSignal}
           />
         );

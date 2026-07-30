@@ -1,6 +1,6 @@
 'use client';
 
-import {Table, Tag, Button, App, Space, Modal, Select} from 'antd';
+import {Table, Tag, Button, App, Space, Modal, Select, TablePaginationConfig} from 'antd';
 import {DownloadOutlined, SendOutlined} from '@ant-design/icons';
 import { InvoiceWithDetails } from '@/types';
 import { apiClient } from '@/lib/apiClient';
@@ -25,9 +25,11 @@ async function openInvoicePdf(invoiceId: string) {
 export default function InvoiceListTable({
                                            data,
                                            loading,
+                                           pagination,
                                          }: {
   data: InvoiceWithDetails[];
   loading?: boolean;
+  pagination?: TablePaginationConfig | false;
 }) {
   const { message } = App.useApp();
   const [sendModalInvoice, setSendModalInvoice] = useState<InvoiceWithDetails | null>(null);
@@ -71,6 +73,7 @@ export default function InvoiceListTable({
         loading={loading}
         dataSource={data}
         scroll={{ x: true }}
+        pagination={pagination}
         columns={[
           { title: 'Invoice #', dataIndex: 'INVOICE_NUMBER' },
           { title: 'Tanggal', dataIndex: 'INVOICE_DATE' },

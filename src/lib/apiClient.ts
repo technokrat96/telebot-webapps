@@ -1,7 +1,7 @@
 'use client';
 
 import {retrieveRawInitData} from "@tma.js/sdk-react";
-import {fileToDataUrl} from "@/lib/fileToDataUrl";
+import {fileToDataUrl} from "@/lib/file.util";
 
 export function getTelegramInitDataHeader(): Record<string, string> {
   return { 'x-telegram-init-data': getInitData() };

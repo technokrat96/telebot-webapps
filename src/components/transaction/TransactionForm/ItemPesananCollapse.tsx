@@ -7,12 +7,12 @@ import ItemPesananFields from './ItemPesananFields';
 import type {TransactionFormValues} from './types';
 
 /** Daftar Item Pesanan sebagai panel-panel Collapse yang bisa ditambah/dihapus. */
-export default function ItemPesananCollapse({fields, add, remove, activeKeys, setActiveKeys, expandAllSignal}: {
+export default function ItemPesananCollapse({fields, addAction, removeAction, activeKeys, setActiveKeysAction, expandAllSignal}: {
   fields: FormListFieldData[],
-  add: FormListOperation["add"]
-  remove: FormListOperation["add"],
+  addAction: FormListOperation["add"]
+  removeAction: FormListOperation["add"],
   activeKeys: string[],
-  setActiveKeys: Dispatch<SetStateAction<string[]>>,
+  setActiveKeysAction: Dispatch<SetStateAction<string[]>>,
   expandAllSignal: number,
 }) {
   const form = Form.useFormInstance<TransactionFormValues>();
@@ -22,7 +22,7 @@ export default function ItemPesananCollapse({fields, add, remove, activeKeys, se
   useEffect(() => {
     if (fields.length === 1) {
       const onlyKey = fields[0].key.toString();
-      setActiveKeys((prev: string[]) =>
+      setActiveKeysAction((prev: string[]) =>
         prev.includes(onlyKey) ? prev : [onlyKey]
       );
     }
@@ -36,14 +36,14 @@ export default function ItemPesananCollapse({fields, add, remove, activeKeys, se
       isFirstExpandSignal.current = false;
       return;
     }
-    setActiveKeys(fields.map((f) => f.key.toString()));
+    setActiveKeysAction(fields.map((f) => f.key.toString()));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expandAllSignal]);
 
   return (
     <>
       {fields.length > 0 && (
-        <Collapse activeKey={activeKeys} onChange={(keys) => setActiveKeys(keys as string[])}
+        <Collapse activeKey={activeKeys} onChange={(keys) => setActiveKeysAction(keys as string[])}
                   style={{marginBottom: 16}}
                   items={
                     fields.map((field, idx) => {
@@ -62,7 +62,7 @@ export default function ItemPesananCollapse({fields, add, remove, activeKeys, se
                                 <MinusCircleOutlined
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    remove(field.name);
+                                    removeAction(field.name);
                                   }}
                                   style={{color: '#ff4d4f'}}
                                 />
@@ -83,9 +83,9 @@ export default function ItemPesananCollapse({fields, add, remove, activeKeys, se
       <Button
         type="dashed"
         onClick={() => {
-          add();
+          addAction();
           // key baru dari antd biasanya = max(existing keys) + 1
-          setActiveKeys((prev: string[]) => {
+          setActiveKeysAction((prev: string[]) => {
             const maxKey = fields.length > 0 ? Math.max(...fields.map((f: any) => f.key)) : -1;
             return [...prev, (maxKey + 1).toString()];
           });

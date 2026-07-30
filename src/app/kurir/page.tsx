@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {Button, Card, Space, Tag, Typography, App} from 'antd';
 import RoleGuard from '@/components/common/RoleGuard';
 import { apiClient } from '@/lib/apiClient';
 import {TransactionWithDetails} from '@/types';
-import { filterOrdersByDeliveryStatus } from '@/lib/statusUtils';
+import useSWRInfinite from 'swr/infinite';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -27,6 +27,11 @@ const STATUS_COLORS: Record<string, string> = {
   RETURNED: 'red',
 };
 
+const fetcher = (url: string) => apiClient.get<OrdersResponse>(url);
+const PAGE_SIZE = 5;
+
+type OrdersResponse = { orders: TransactionWithDetails[]; total: number };
+
 export default function KurirPage() {
   return (
     <RoleGuard allow={['KURIR']}>
@@ -36,45 +41,40 @@ export default function KurirPage() {
 }
 
 function KurirContent() {
-  const [orders, setOrders] = useState<TransactionWithDetails[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [busyKey, setBusyKey] = useState<string | null>(null);
   const { message } = App.useApp();
+  const [busyKey, setBusyKey] = useState<string | null>(null);
 
-  async function load() {
-    setLoading(true);
-    try {
-      const res = await apiClient.get<{ orders: TransactionWithDetails[] }>(
-        '/api/transaction-details'
-      );
-      const relevantStatuses = Object.keys(NEXT_ACTION) as unknown as (keyof typeof NEXT_ACTION)[];
-      const relevant = relevantStatuses.flatMap((deliveryStatus) =>
-        filterOrdersByDeliveryStatus(res.orders, deliveryStatus)
-      );
-      setOrders(relevant);
-    } catch (err) {
-      message.error((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const {
+    data: pages,
+    size,
+    setSize,
+    isLoading,
+    isValidating,
+    mutate,
+  } = useSWRInfinite<OrdersResponse>(
+    (pageIndex, previousPageData) => {
+      if (previousPageData && pageIndex * PAGE_SIZE >= previousPageData.total) return null;
+      return `/api/transaction-details?page=${pageIndex + 1}&pageSize=${PAGE_SIZE}`;
+    },
+    fetcher
+  );
+
+  const orders = pages?.flatMap((p) => p.orders) ?? [];
+  const total = pages?.[0]?.total ?? 0;
+  const hasMore = orders.length < total;
 
   async function advance(orderId: string, deliveryStatus: string) {
     setBusyKey(orderId);
     try {
       await apiClient.patch(`/api/transactions/${orderId}/delivery-status`, { deliveryStatus });
       message.success(`Status pesanan diubah ke ${deliveryStatus}`);
-      await load();
+      await mutate(); // refresh semua halaman yang udah di-load
     } catch (err) {
       message.error((err as Error).message);
     } finally {
       setBusyKey(null);
     }
   }
-
-  useEffect(() => {
-    load();
-  }, []);
 
   return (
     <div>
@@ -88,7 +88,7 @@ function KurirContent() {
           const currentStatus = order.details[0]?.DELIVERY_STATUS;
           const actions = NEXT_ACTION[currentStatus] ?? [];
           return (
-            <Card key={order.ORDER_ID} loading={loading} title={`${order.ORDER_ID} · ${order.CUSTOMER_NAME}`}>
+            <Card key={order.ORDER_ID} loading={isLoading} title={`${order.ORDER_ID} · ${order.CUSTOMER_NAME}`}>
               <Space orientation="vertical" style={{ width: '100%' }}>
                 <Text>Alamat: {order.CUSTOMER_ADDRESS}</Text>
                 <Text>Telepon: {order.CUSTOMER_PHONE}</Text>
@@ -109,8 +109,13 @@ function KurirContent() {
             </Card>
           );
         })}
-        {!loading && orders.length === 0 && (
+        {!isLoading && orders.length === 0 && (
           <Text type="secondary">Belum ada pesanan yang siap diambil.</Text>
+        )}
+        {hasMore && (
+          <Button block loading={isValidating} onClick={() => setSize(size + 1)}>
+            Muat Lebih Banyak (sisa {total - orders.length})
+          </Button>
         )}
       </Space>
     </div>
