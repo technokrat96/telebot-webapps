@@ -90,6 +90,7 @@ model TransactionDetail {
   receiverName       String?             @map("receiver_name") @db.VarChar(150)
   receiverAddress    String?             @map("receiver_address") @db.VarChar(500)
   receiverPhone      String?             @map("receiver_phone") @db.VarChar(20)
+  imageUrls          String[]            @default([]) @map("image_urls")
   floristAssignments FloristAssignment[]
   invoiceDetails     InvoiceDetail[]
   transaction        Transaction         @relation(fields: [orderId], references: [orderId], onDelete: Cascade, onUpdate: NoAction)

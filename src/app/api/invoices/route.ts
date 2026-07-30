@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = (await req.json()) as {
-    invoice: Invoice;
+    invoice: Omit<Invoice, "INVOICE_ID">;
     details: Omit<InvoiceDetail, "INVOICE_ID" | "INVOICE_ITEM_ID">[];
   };
 

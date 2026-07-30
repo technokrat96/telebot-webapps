@@ -16,6 +16,7 @@ import {
   Tooltip
 } from 'antd';
 import RoleGuard from '@/components/common/RoleGuard';
+import ItemImageGallery from '@/components/common/ItemImageGallery';
 import { useTelegramAuth } from '@/components/common/TelegramProvider';
 import { apiClient } from '@/lib/apiClient';
 import { AvailableFloristItem, MyFloristAssignment } from '@/types';
@@ -184,9 +185,8 @@ function FloristContent() {
             <Space orientation="vertical" size={4} style={{ width: '100%' }}>
               <Text strong>{a.item?.ITEM_NAME}</Text>
               <Tag color="blue">Qty diambil: {a.QUANTITY_ASSIGNED}</Tag>
+              <ItemImageGallery urls={a.item?.IMAGE_URLS}/>
               {a.item?.CUSTOM_NOTES && <Text type="secondary">Catatan: {a.item.CUSTOM_NOTES}</Text>}
-              {a.item?.CARD_TO && <Text type="secondary">Kartu untuk: {a.item.CARD_TO}</Text>}
-              {a.item?.CARD_MESSAGE && <Text type="secondary">Pesan: {a.item.CARD_MESSAGE}</Text>}
               <Space wrap>
                 <Popconfirm title="Tandai bagian ini selesai?" onConfirm={() => completeAssignment(a)}>
                   <Button type="primary" loading={busyKey === a.ASSIGNMENT_ID}>
@@ -221,6 +221,7 @@ function FloristContent() {
           >
             <Space orientation="vertical" size={4} style={{ width: '100%' }}>
               <Text strong>{item.ITEM_NAME}</Text>
+              <ItemImageGallery urls={item.IMAGE_URLS}/>
               {item.CUSTOM_NOTES && <Text type="secondary">Catatan: {item.CUSTOM_NOTES}</Text>}
               <Progress
                 percent={Math.round(((item.totalQty - item.remainingQty) / item.totalQty) * 100)}

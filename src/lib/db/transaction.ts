@@ -57,6 +57,7 @@ function toTransactionDetail(row: TransactionDetailModel): TransactionDetail {
     RECEIVER_NAME: row.receiverName ?? "",
     RECEIVER_ADDRESS: row.receiverAddress ?? "",
     RECEIVER_PHONE: row.receiverPhone ?? "",
+    IMAGE_URLS: row.imageUrls ?? [],
   };
 }
 
@@ -74,7 +75,7 @@ function toAssignmentLocal(row: FloristAssignmentModel): FloristAssignment {
   };
 }
 
-function fromTransaction(t: Transaction): Omit<TransactionModel, "orderId" | "createdAt"> {
+function fromTransaction(t: Omit<Transaction, 'ORDER_ID'>): Omit<TransactionModel, "orderId" | "createdAt"> {
   return {
     orderSource: t.ORDER_SOURCE,
     salesName: t.SALES_NAME,
@@ -89,7 +90,7 @@ function fromTransaction(t: Transaction): Omit<TransactionModel, "orderId" | "cr
   };
 }
 
-function fromTransactionDetail(d: Omit<TransactionDetail, 'ORDER_ID'>): Omit<TransactionDetailModel, "orderId" | "orderItemId"> {
+function fromTransactionDetail(d: Omit<TransactionDetail, 'ORDER_ID' | 'ORDER_ITEM_ID'>): Omit<TransactionDetailModel, "orderId" | "orderItemId"> {
   return {
     itemName: d.ITEM_NAME,
     quantity: Number(d.QUANTITY || 0),
@@ -114,7 +115,51 @@ function fromTransactionDetail(d: Omit<TransactionDetail, 'ORDER_ID'>): Omit<Tra
     receiverName: d.RECEIVER_NAME,
     receiverAddress: d.RECEIVER_ADDRESS,
     receiverPhone: d.RECEIVER_PHONE,
+    imageUrls: d.IMAGE_URLS ?? [],
   };
+}
+
+/**
+ * Versi partial dari `fromTransactionDetail` di atas — dipakai untuk UPDATE
+ * item yang sudah ada. Cuma field yang benar-benar dikirim (!== undefined)
+ * yang dimasukkan ke `data`, jadi field lain di row lama tidak ketiban
+ * kosong/0 kalau kebetulan tidak disertakan di request.
+ */
+function fromTransactionDetailUpdates(
+  d: Partial<Omit<TransactionDetail, 'ORDER_ID' | 'ORDER_ITEM_ID'>>
+): Partial<Omit<TransactionDetailModel, "orderId" | "orderItemId">> {
+  const data: Partial<Omit<TransactionDetailModel, "orderId" | "orderItemId">> = {};
+  if (d.ITEM_NAME !== undefined) data.itemName = d.ITEM_NAME;
+  if (d.QUANTITY !== undefined) data.quantity = Number(d.QUANTITY || 0);
+  if (d.UNIT_PRICE !== undefined) data.unitPrice = new Decimal(d.UNIT_PRICE);
+  if (d.CURRENCY !== undefined) data.currency = d.CURRENCY;
+  if (d.CURRENCY_RATE !== undefined) data.currencyRate = new Decimal(d.CURRENCY_RATE);
+  if (d.CUSTOM_NOTES !== undefined) data.customNotes = d.CUSTOM_NOTES;
+  if (d.SUBTOTAL !== undefined) data.subtotal = new Decimal(d.SUBTOTAL);
+  if (d.ITEM_STATUS !== undefined) data.itemStatus = d.ITEM_STATUS;
+  if (d.CARD_TO !== undefined) data.cardTo = d.CARD_TO;
+  if (d.CARD_MESSAGE !== undefined) data.cardMessage = d.CARD_MESSAGE;
+  if (d.CARD_FROM !== undefined) data.cardFrom = d.CARD_FROM;
+  if (d.CARD_NOTE !== undefined) data.cardNote = d.CARD_NOTE;
+  if (d.CARD_CREATED_BY !== undefined) data.cardCreatedBy = d.CARD_CREATED_BY;
+  if (d.CARD_STATUS !== undefined) data.cardStatus = d.CARD_STATUS;
+  if (d.DELIVERY_BY !== undefined) data.deliveryBy = d.DELIVERY_BY;
+  if (d.DELIVERY_METHOD !== undefined) data.deliveryMethod = d.DELIVERY_METHOD;
+  if (d.DELIVERY_DATE !== undefined) {
+    data.deliveryDate = d.DELIVERY_DATE ? serverDayJs(d.DELIVERY_DATE).toDate() : null;
+  }
+  if (d.DELIVERY_TIME !== undefined) {
+    data.deliveryTime = d.DELIVERY_TIME
+      ? serverDayJs(`${d.DELIVERY_DATE ? d.DELIVERY_DATE : serverDayJs().format("YYYY-MM-DD")} ${d.DELIVERY_TIME}`).toDate()
+      : null;
+  }
+  if (d.DELIVERY_STATUS !== undefined) data.deliveryStatus = d.DELIVERY_STATUS;
+  if (d.SHIPPING_FEE !== undefined) data.shippingFee = new Decimal(d.SHIPPING_FEE);
+  if (d.RECEIVER_NAME !== undefined) data.receiverName = d.RECEIVER_NAME;
+  if (d.RECEIVER_ADDRESS !== undefined) data.receiverAddress = d.RECEIVER_ADDRESS;
+  if (d.RECEIVER_PHONE !== undefined) data.receiverPhone = d.RECEIVER_PHONE;
+  if (d.IMAGE_URLS !== undefined) data.imageUrls = d.IMAGE_URLS ?? [];
+  return data;
 }
 
 function fromTransactionUpdates(updates: Partial<Transaction>): Partial<TransactionModel> {
@@ -171,8 +216,8 @@ export async function getTransactionById(
 }
 
 export async function createTransaction(
-  transaction: Transaction,
-  details: Omit<TransactionDetail, 'ORDER_ID'>[]
+  transaction: Omit<Transaction, 'ORDER_ID'>,
+  details: Omit<TransactionDetail, 'ORDER_ID' | 'ORDER_ITEM_ID'>[]
 ): Promise<void> {
   const orderId = generateOrderId();
   await prisma.transaction.create({
@@ -201,6 +246,94 @@ export async function updateTransaction(
     return true;
   } catch (err: any) {
     if (err?.code === 'P2025') return false;
+    throw err;
+  }
+}
+
+/**
+ * Update transaksi SEKALIGUS baris-baris `details`-nya (dipanggil dari halaman
+ * edit transaksi). Sebelumnya `updateTransaction` di atas cuma nyentuh tabel
+ * Transaction, jadi perubahan item pesanan (tambah/hapus/ubah item, foto, dll)
+ * saat edit tidak pernah tersimpan.
+ *
+ * Setiap detail yang dikirim dicocokkan ke row lama lewat ORDER_ITEM_ID:
+ * - Ada ORDER_ITEM_ID & masih ada di DB -> UPDATE row itu.
+ * - Tidak ada ORDER_ITEM_ID (item baru yang ditambah user saat edit) -> CREATE
+ *   row baru dengan orderItemId baru, lanjut dari suffix terbesar yang ada.
+ * - Row lama yang ORDER_ITEM_ID-nya tidak lagi ada di detail yang dikirim
+ *   (dihapus user lewat tombol "Hapus Item") -> DELETE.
+ *
+ * Semua dibungkus 1 transaction db. Kalau ada row yang mau dihapus tapi masih
+ * dipakai FloristAssignment/InvoiceDetail (FK-nya `onDelete: NoAction`), DB
+ * akan menolak (P2003) dan seluruh perubahan di-rollback.
+ */
+export type TransactionDetailUpdateInput = Partial<Omit<TransactionDetail, 'ORDER_ID' | 'ORDER_ITEM_ID'>> & {
+  ORDER_ITEM_ID?: string;
+};
+
+export async function updateTransactionWithDetails(
+  orderId: string,
+  updates: Partial<Transaction>,
+  details: TransactionDetailUpdateInput[]
+): Promise<{ ok: true } | { ok: false; reason: 'NOT_FOUND' | 'ITEM_IN_USE' }> {
+  const existingRows = await prisma.transactionDetail.findMany({
+    where: { orderId },
+    select: { orderItemId: true },
+  });
+  const existingIds = new Set(existingRows.map((r) => r.orderItemId));
+
+  const incomingIds = new Set(
+    details.map((d) => d.ORDER_ITEM_ID).filter((v): v is string => !!v)
+  );
+  const idsToDelete = [...existingIds].filter((id) => !incomingIds.has(id));
+
+  // Nomor urut item baru lanjut dari suffix terbesar yang sudah ada (mis.
+  // ORD-xxx-01, -02 -> item baru jadi -03), biar tidak tabrakan sama id lama.
+  let nextIndex = existingRows.reduce((max, r) => {
+    const m = r.orderItemId.match(/-(\d+)$/);
+    return m ? Math.max(max, parseInt(m[1], 10)) : max;
+  }, 0);
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.transaction.update({
+        where: { orderId },
+        data: fromTransactionUpdates(updates),
+      });
+
+      if (idsToDelete.length > 0) {
+        await tx.transactionDetail.deleteMany({
+          where: { orderItemId: { in: idsToDelete } },
+        });
+      }
+
+      for (const d of details) {
+        const { ORDER_ITEM_ID, ...rest } = d;
+        if (ORDER_ITEM_ID && existingIds.has(ORDER_ITEM_ID)) {
+          // Item lama -> PATCH: cuma field yang dikirim (!== undefined) yang
+          // ditimpa, field lain di row itu tetap seperti sebelumnya.
+          await tx.transactionDetail.update({
+            where: { orderItemId: ORDER_ITEM_ID },
+            data: fromTransactionDetailUpdates(rest),
+          });
+        } else {
+          // Item baru -> perlu data lengkap (itemName, quantity, dll wajib
+          // ada di kolom DB), jadi tetap pakai mapper full di sini.
+          nextIndex += 1;
+          await tx.transactionDetail.create({
+            data: {
+              ...fromTransactionDetail(rest as Omit<TransactionDetail, 'ORDER_ID' | 'ORDER_ITEM_ID'>),
+              orderItemId: generateOrderItemId(orderId, nextIndex - 1),
+              orderId,
+            },
+          });
+        }
+      }
+    });
+    return { ok: true };
+  } catch (err: any) {
+    if (err?.code === 'P2025') return { ok: false, reason: 'NOT_FOUND' };
+    if (err?.code === 'P2003') return { ok: false, reason: 'ITEM_IN_USE' };
     throw err;
   }
 }

@@ -23,13 +23,9 @@ export async function POST(req: NextRequest) {
   if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = (await req.json()) as {
-    transaction: Transaction;
-    details: Omit<TransactionDetail, 'ORDER_ID'>[];
+    transaction: Omit<Transaction, 'ORDER_ID'>;
+    details: Omit<TransactionDetail, 'ORDER_ID' | 'ORDER_ITEM_ID'>[];
   };
-
-  if (!body.transaction?.ORDER_ID) {
-    return NextResponse.json({ error: 'ORDER_ID is required' }, { status: 400 });
-  }
 
   await createTransaction(body.transaction, body.details ?? []);
   return NextResponse.json({ ok: true });

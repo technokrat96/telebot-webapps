@@ -14,7 +14,6 @@ export async function PATCH(
   const body = await req.json();
   const ok = await updateTransactionDetailItemStatus(id, {
     ITEM_STATUS: body.ITEM_STATUS,
-    FLORIST_NAME: body.FLORIST_NAME ?? auth.USER.NAME,
   });
 
   if (!ok) return NextResponse.json({ error: 'Not found' }, { status: 404 });

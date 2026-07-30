@@ -26,7 +26,7 @@ function CreateTransactionContent() {
   const router = useRouter();
   const { name, roles, username } = useTelegramAuth();
 
-  async function handleSubmit(values: TransactionFormValues) {
+  async function handleSubmit(values: TransactionFormValues): Promise<boolean> {
     setSubmitting(true);
     try {
       const {
@@ -48,8 +48,8 @@ function CreateTransactionContent() {
         ...transaction
       } = values;
 
-      const deliveryDate = DELIVERY_DATE ? clientDayJs(DELIVERY_DATE as never).format('YYYY-MM-DD') : '';
-      const deliveryTime = DELIVERY_TIME ? clientDayJs(DELIVERY_TIME as never).format('HH:mm') : '';
+      const deliveryDate = DELIVERY_DATE ? clientDayJs(DELIVERY_DATE).format('YYYY-MM-DD') : '';
+      const deliveryTime = DELIVERY_TIME ? clientDayJs(DELIVERY_TIME).format('HH:mm') : '';
 
       await apiClient.post('/api/transactions', {
         transaction: {
@@ -77,8 +77,10 @@ function CreateTransactionContent() {
       });
       message.success('Transaksi berhasil dibuat');
       router.push('/admin/transaction');
+      return true;
     } catch (err) {
       message.error((err as Error).message);
+      return false;
     } finally {
       setSubmitting(false);
     }

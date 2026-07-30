@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
-    "sync": "prisma db pull && prisma generate"
+    "db:sync": "prisma db pull && prisma generate",
+    "db:push": "prisma db push && prisma generate"
   },
   "dependencies": {
     "@ant-design/cssinjs": "^2.1.2",
@@ -18,6 +19,7 @@
     "@prisma/client": "^7.9.0",
     "@tma.js/init-data-node": "^2.0.8",
     "@tma.js/sdk-react": "^3.0.23",
+    "@vercel/blob": "^2.6.1",
     "antd": "^6.5.1",
     "dayjs": "^1.11.21",
     "grammy": "^1.45.1",

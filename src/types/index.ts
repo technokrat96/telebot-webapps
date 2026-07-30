@@ -46,6 +46,7 @@ export type TransactionDetail = {
   RECEIVER_NAME: string;
   RECEIVER_ADDRESS: string;
   RECEIVER_PHONE: string;
+  IMAGE_URLS: string[];
 }
 
 export type Invoice = {

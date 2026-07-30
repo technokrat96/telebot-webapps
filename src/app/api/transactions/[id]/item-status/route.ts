@@ -18,7 +18,7 @@ export async function PATCH(
   const { ITEM_STATUSES } = await getMasterData();
 
   const { id } = await params;
-  const { status } = await req.json();
+  const { status } = await req.json() as { status: string };
   if (!ITEM_STATUSES.includes(status)) {
     return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
   }
