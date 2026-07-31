@@ -46,56 +46,55 @@ model UserRole {
 }
 
 model Transaction {
-  orderId            String              @id @map("order_id") @db.VarChar(30)
-  orderSource        String?             @map("order_source") @db.VarChar(40)
-  salesName          String?             @map("sales_name") @db.VarChar(32)
-  customerName       String              @map("customer_name") @db.VarChar(150)
-  customerAddress    String?             @map("customer_address") @db.VarChar(500)
-  customerPhone      String?             @map("customer_phone") @db.VarChar(20)
-  customerEmail      String?             @map("customer_email") @db.VarChar(150)
-  grandTotal         Decimal             @default(0) @map("grand_total") @db.Decimal(18, 2)
-  downPayment        Decimal             @default(0) @map("down_payment") @db.Decimal(18, 2)
-  remainingBalance   Decimal             @default(0) @map("remaining_balance") @db.Decimal(18, 2)
-  paymentMethod      String?             @map("payment_method") @db.VarChar(40)
-  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
-  floristAssignments FloristAssignment[]
-  details            TransactionDetail[]
+  orderId                   String                     @id @map("order_id") @db.VarChar(30)
+  orderSource               String?                    @map("order_source") @db.VarChar(40)
+  salesName                 String?                    @map("sales_name") @db.VarChar(32)
+  customerName              String                     @map("customer_name") @db.VarChar(150)
+  customerAddress           String?                    @map("customer_address") @db.VarChar(500)
+  customerPhone             String?                    @map("customer_phone") @db.VarChar(20)
+  customerEmail             String?                    @map("customer_email") @db.VarChar(150)
+  grandTotal                Decimal                    @default(0) @map("grand_total") @db.Decimal(18, 2)
+  downPayment               Decimal                    @default(0) @map("down_payment") @db.Decimal(18, 2)
+  remainingBalance          Decimal                    @default(0) @map("remaining_balance") @db.Decimal(18, 2)
+  paymentMethod             String?                    @map("payment_method") @db.VarChar(40)
+  createdAt                 DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
+  floristAssignments        FloristAssignment[]
+  deliveryDriverAssignments DeliveryDriverAssignment[]
+  details                   TransactionDetail[]
 
   @@map("transaction")
 }
 
 model TransactionDetail {
-  orderItemId        String              @id @map("order_item_id") @db.VarChar(40)
-  orderId            String              @map("order_id") @db.VarChar(30)
-  itemName           String              @map("item_name") @db.VarChar(150)
-  quantity           Int                 @default(0)
-  unitPrice          Decimal             @default(0) @map("unit_price") @db.Decimal(18, 2)
-  currency           String              @default("IDR") @db.VarChar(3)
-  currencyRate       Decimal             @default(1) @map("currency_rate") @db.Decimal(18, 2)
-  customNotes        String?             @map("custom_notes") @db.VarChar(1000)
-  subtotal           Decimal             @default(0) @db.Decimal(18, 2)
-  itemStatus         String              @default("NEW ORDER") @map("item_status") @db.VarChar(20)
-  cardTo             String?             @map("card_to") @db.VarChar(100)
-  cardFrom           String?             @map("card_from") @db.VarChar(100)
-  cardMessage        String?             @map("card_message") @db.VarChar(1000)
-  cardNote           String?             @map("card_note") @db.VarChar(1000)
-  cardCreatedBy      String?             @map("card_created_by") @db.VarChar(100)
-  cardStatus         String?             @map("card_status") @db.VarChar(20)
-  deliveryMethod     String?             @map("delivery_method") @db.VarChar(40)
-  deliveryDate       DateTime?           @map("delivery_date") @db.Date
-  deliveryTime       DateTime?           @map("delivery_time") @db.Time(6)
-  deliveryBy         String?             @map("delivery_by") @db.VarChar(100)
-  deliveryStatus     String?             @map("delivery_status") @db.VarChar(20)
-  shippingFee        Decimal             @default(0) @map("shipping_fee") @db.Decimal(18, 2)
-  receiverName       String?             @map("receiver_name") @db.VarChar(150)
-  receiverAddress    String?             @map("receiver_address") @db.VarChar(500)
-  receiverPhone      String?             @map("receiver_phone") @db.VarChar(20)
-  imageUrls          String[]            @default([]) @map("image_urls")
-  floristAssignments FloristAssignment[]
-  invoiceDetails     InvoiceDetail[]
-  transaction        Transaction         @relation(fields: [orderId], references: [orderId], onDelete: Cascade, onUpdate: NoAction)
+  orderItemId               String                     @id @map("order_item_id") @db.VarChar(40)
+  orderId                   String                     @map("order_id") @db.VarChar(30)
+  itemName                  String                     @map("item_name") @db.VarChar(150)
+  quantity                  Int                        @default(0)
+  unitPrice                 Decimal                    @default(0) @map("unit_price") @db.Decimal(18, 2)
+  currency                  String                     @default("IDR") @db.VarChar(3)
+  currencyRate              Decimal                    @default(1) @map("currency_rate") @db.Decimal(18, 2)
+  customNotes               String?                    @map("custom_notes") @db.VarChar(1000)
+  subtotal                  Decimal                    @default(0) @db.Decimal(18, 2)
+  itemStatus                String                     @default("NEW ORDER") @map("item_status") @db.VarChar(20)
+  cardTo                    String?                    @map("card_to") @db.VarChar(100)
+  cardFrom                  String?                    @map("card_from") @db.VarChar(100)
+  cardMessage               String?                    @map("card_message") @db.VarChar(1000)
+  cardNote                  String?                    @map("card_note") @db.VarChar(1000)
+  cardCreatedBy             String?                    @map("card_created_by") @db.VarChar(100)
+  cardStatus                String?                    @map("card_status") @db.VarChar(20)
+  deliveryMethod            String?                    @map("delivery_method") @db.VarChar(40)
+  deliveryDate              DateTime?                  @map("delivery_date") @db.Date
+  deliveryTime              DateTime?                  @map("delivery_time") @db.Time(6)
+  shippingFee               Decimal                    @default(0) @map("shipping_fee") @db.Decimal(18, 2)
+  receiverName              String?                    @map("receiver_name") @db.VarChar(150)
+  receiverAddress           String?                    @map("receiver_address") @db.VarChar(500)
+  receiverPhone             String?                    @map("receiver_phone") @db.VarChar(20)
+  imageUrls                 String[]                   @default([]) @map("image_urls")
+  floristAssignments        FloristAssignment[]
+  deliveryDriverAssignments DeliveryDriverAssignment[]
+  invoiceDetails            InvoiceDetail[]
+  transaction               Transaction                @relation(fields: [orderId], references: [orderId], onDelete: Cascade, onUpdate: NoAction)
 
-  @@index([deliveryStatus], map: "idx_transaction_detail_delivery_status")
   @@index([itemStatus], map: "idx_transaction_detail_item_status")
   @@index([orderId], map: "idx_transaction_detail_order_id")
   @@map("transaction_detail")
@@ -148,6 +147,27 @@ model FloristAssignment {
   @@index([floristUsername, status], map: "idx_florist_assignment_florist")
   @@index([orderItemId], map: "idx_florist_assignment_order_item_id")
   @@map("florist_assignment")
+}
+
+model DeliveryDriverAssignment {
+  assignmentId           String            @id @map("assignment_id") @db.VarChar(60)
+  orderItemId            String            @map("order_item_id") @db.VarChar(40)
+  orderId                String            @map("order_id") @db.VarChar(30)
+  deliveryDriverUsername String            @map("delivery_driver_username") @db.VarChar(32)
+  deliveryDriverName     String            @map("delivery_driver_name") @db.VarChar(100)
+  quantityAssigned       Decimal           @map("quantity_assigned") @db.Decimal(18, 2)
+  assignedAt             DateTime          @default(now()) @map("assigned_at") @db.Timestamptz(6)
+  status                 String            @default("ASSIGNED") @db.VarChar(20)
+  deliveryStatus         String?           @map("delivery_status") @db.VarChar(20)
+  completedAt            DateTime?         @map("completed_at") @db.Timestamptz(6)
+  imageUrls              String[]          @default([]) @map("image_urls")
+  transaction            Transaction       @relation(fields: [orderId], references: [orderId], onDelete: NoAction, onUpdate: NoAction)
+  transactionDetail      TransactionDetail @relation(fields: [orderItemId], references: [orderItemId], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([deliveryDriverUsername, status], map: "idx_delivery_driver_assignment_driver")
+  @@index([orderItemId], map: "idx_delivery_driver_assignment_order_item_id")
+  @@index([orderId], map: "idx_delivery_driver_assignment_order_id")
+  @@map("delivery_driver_assignment")
 }
 
 model Attendance {

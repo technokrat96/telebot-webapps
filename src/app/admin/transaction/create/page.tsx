@@ -43,7 +43,6 @@ function CreateTransactionContent() {
         DELIVERY_METHOD,
         DELIVERY_DATE,
         DELIVERY_TIME,
-        DELIVERY_BY,
         SHIPPING_FEE,
         ...transaction
       } = values;
@@ -69,7 +68,6 @@ function CreateTransactionContent() {
           DELIVERY_METHOD,
           DELIVERY_DATE: deliveryDate,
           DELIVERY_TIME: deliveryTime,
-          DELIVERY_BY,
           SHIPPING_FEE,
           ITEM_STATUS: 'NEW ORDER',
           CARD_STATUS: 'NEW ORDER',

@@ -24,6 +24,10 @@ export async function POST(req: NextRequest) {
     details: Omit<InvoiceDetail, "INVOICE_ID" | "INVOICE_ITEM_ID">[];
   };
 
-  await createInvoice(body.invoice, body.details ?? []);
-  return NextResponse.json({ ok: true });
+  try {
+    await createInvoice(body.invoice, body.details ?? []);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    return NextResponse.json({ error: (err as Error).message }, { status: 409 });
+  }
 }

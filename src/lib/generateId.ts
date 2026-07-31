@@ -10,6 +10,11 @@ export function generateFloristAssignmentId(): string {
   return `ASG-${serverDayJs().valueOf()}-${rand}`;
 }
 
+export function generateDeliveryDriverAssignmentId(): string {
+  const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `DDA-${serverDayJs().valueOf()}-${rand}`;
+}
+
 export function generateInvoiceId(): string {
   const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
   return `INV-${serverDayJs().valueOf()}-${rand}`;

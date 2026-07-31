@@ -37,11 +37,9 @@ export type TransactionDetail = {
   CARD_NOTE: string;
   CARD_CREATED_BY: string;
   CARD_STATUS: string;
-  DELIVERY_BY: string;
   DELIVERY_METHOD: string;
   DELIVERY_DATE: string;
   DELIVERY_TIME: string;
-  DELIVERY_STATUS: string;
   SHIPPING_FEE: number;
   RECEIVER_NAME: string;
   RECEIVER_ADDRESS: string;
@@ -82,6 +80,20 @@ export type FloristAssignment = {
   COMPLETED_AT: string;
 }
 
+export type DeliveryDriverAssignment = {
+  ASSIGNMENT_ID: string;
+  ORDER_ITEM_ID: string;
+  ORDER_ID: string;
+  DELIVERY_DRIVER_USERNAME: string;
+  DELIVERY_DRIVER_NAME: string;
+  QUANTITY_ASSIGNED: number;
+  ASSIGNED_AT: string;
+  STATUS: string;
+  DELIVERY_STATUS: string;
+  COMPLETED_AT: string;
+  IMAGE_URLS: string[];
+}
+
 export type Attendance = {
   USERNAME: string;
   NAME: string;
@@ -118,12 +130,30 @@ export type TransactionWithDetails = Transaction & {
   details: TransactionDetail[];
 }
 
+// Item yang qty-nya belum habis diklaim kurir (ITEM_STATUS sudah DONE, siap
+// dikirim) -- ditampilkan di tab "Order Tersedia" halaman kurir. Sama
+// persis semantiknya dengan AvailableFloristItem, cuma sumber "siap
+// diambil"-nya beda (DONE, bukan belum-DONE).
+export type AvailableDeliveryItem = TransactionDetail & {
+  ORDER_ID: string;
+  CUSTOMER_NAME: string;
+  totalQty: number;
+  remainingQty: number;
+};
+
+// Assignment aktif (qty tertentu dari satu item) yang sedang dipegang satu
+// kurir -- ditampilkan di tab "Order Saya" halaman kurir.
+export type MyDeliveryAssignment = DeliveryDriverAssignment & {
+  item?: TransactionDetail & { CUSTOMER_NAME: string };
+};
+
 export type InvoiceWithDetails = Invoice & {
   details: InvoiceDetail[];
 }
 
 export type TransactionDetailWithAssignments = TransactionDetail & {
   assignments: FloristAssignment[];
+  deliveryAssignments: DeliveryDriverAssignment[];
 };
 
 export type TransactionWithDetailsAndAssignments = Transaction & {

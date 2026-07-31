@@ -3,9 +3,9 @@ import {AvailableFloristItem, FloristAssignment, MyFloristAssignment, Transactio
 import {
   listTransactionDetails,
   toTransactionDetail,
-  updateTransactionDetailItemStatus
 } from '@/lib/db/transaction';
 import {prisma} from "@/lib/prismaClient";
+import {Prisma} from "@/generated/prisma/client";
 import {FloristAssignmentModel} from "@/generated/prisma/models/FloristAssignment";
 import {generateFloristAssignmentId} from "@/lib/generateId";
 import serverDayJs from "@/lib/server.dayjs";
@@ -71,6 +71,33 @@ export async function getItemQuantitySummary(orderItemId: string) {
   };
 }
 
+/**
+ * Kunci baris TransactionDetail (SELECT ... FOR UPDATE) lalu hitung ulang
+ * ringkasan qty-nya di dalam transaction yang sama. Dipakai buat operasi
+ * yang mutusin sesuatu berdasarkan qty lalu langsung nulis (claim,
+ * complete) -- supaya dua request yang balapan di item yang sama nggak
+ * baca angka yang sama-sama basi. Request kedua otomatis nunggu di baris
+ * FOR UPDATE sampai transaction pertama commit, baru lanjut baca angka
+ * yang udah ke-update.
+ */
+async function lockAndSummarizeItem(tx: Prisma.TransactionClient, orderItemId: string) {
+  await tx.$queryRaw`SELECT order_item_id FROM transaction_detail WHERE order_item_id = ${orderItemId} FOR UPDATE`;
+
+  const item = await tx.transactionDetail.findUnique({ where: { orderItemId } });
+  if (!item) throw new Error('Order item tidak ditemukan');
+
+  const assignments = await tx.floristAssignment.findMany({ where: { orderItemId } });
+  const totalQty = Number(item.quantity || 0);
+  const claimedQty = assignments
+    .filter((a) => a.status !== 'RELEASED')
+    .reduce((sum, a) => sum + a.quantityAssigned.toNumber(), 0);
+  const completedQty = assignments
+    .filter((a) => a.status === 'COMPLETED')
+    .reduce((sum, a) => sum + a.quantityAssigned.toNumber(), 0);
+
+  return { item, totalQty, claimedQty, completedQty, remainingQty: totalQty - claimedQty };
+}
+
 /** Klaim sebagian/seluruh qty suatu item. */
 export async function claimItem(
   orderItemId: string,
@@ -80,49 +107,66 @@ export async function claimItem(
 ): Promise<FloristAssignment> {
   if (quantity <= 0) throw new Error('Qty harus lebih dari 0');
 
-  const { remainingQty } = await getItemQuantitySummary(orderItemId);
-  if (quantity > remainingQty) {
-    throw new Error(`Qty tersisa cuma ${remainingQty}, tidak bisa ambil ${quantity}`);
-  }
+  const created = await prisma.$transaction(async (tx) => {
+    const { item, remainingQty } = await lockAndSummarizeItem(tx, orderItemId);
 
-  const created = await prisma.floristAssignment.create({
-    data: {
-      assignmentId: generateFloristAssignmentId(),
-      orderItemId,
-      orderId,
-      floristUsername: florist.username,
-      floristName: florist.name,
-      quantityAssigned: quantity,
-      status: 'ASSIGNED',
-    },
+    if (quantity > remainingQty) {
+      throw new Error(`Qty tersisa cuma ${remainingQty}, tidak bisa ambil ${quantity}`);
+    }
+
+    const row = await tx.floristAssignment.create({
+      data: {
+        assignmentId: generateFloristAssignmentId(),
+        orderItemId,
+        orderId,
+        floristUsername: florist.username,
+        floristName: florist.name,
+        quantityAssigned: quantity,
+        status: 'ASSIGNED',
+      },
+    });
+
+    if (item.itemStatus === 'NEW ORDER') {
+      await tx.transactionDetail.update({
+        where: { orderItemId },
+        data: { itemStatus: 'ON PROGRESS' },
+      });
+    }
+
+    return row;
   });
-
-  const item = await prisma.transactionDetail.findUnique({ where: { orderItemId } });
-  if (item?.itemStatus === 'NEW ORDER') {
-    await updateTransactionDetailItemStatus(orderItemId, { ITEM_STATUS: 'ON PROGRESS' });
-  }
 
   return toAssignment(created);
 }
 
 export async function releaseAssignment(assignmentId: string): Promise<boolean> {
-  const target = await prisma.floristAssignment.findUnique({ where: { assignmentId } });
-  if (!target) return false;
+  return prisma.$transaction(async (tx) => {
+    const target = await tx.floristAssignment.findUnique({ where: { assignmentId } });
+    if (!target) return false;
 
-  await prisma.floristAssignment.update({
-    where: { assignmentId },
-    data: { status: 'RELEASED' },
+    // Kunci baris item duluan -- biar florist/admin lain yang lagi
+    // claim/release/complete di item yang sama nunggu, bukan baca
+    // claimedQty yang belum ke-update punya kita.
+    await lockAndSummarizeItem(tx, target.orderItemId);
+
+    await tx.floristAssignment.update({
+      where: { assignmentId },
+      data: { status: 'RELEASED' },
+    });
+
+    // Kalau sekarang tidak ada assignment aktif (ASSIGNED/COMPLETED) yang
+    // tersisa untuk item ini, balikin status ke NEW ORDER supaya florist
+    // lain tahu item ini kosong lagi (bukan "masih diproses").
+    const { claimedQty } = await lockAndSummarizeItem(tx, target.orderItemId);
+    if (claimedQty === 0) {
+      await tx.transactionDetail.update({
+        where: { orderItemId: target.orderItemId },
+        data: { itemStatus: 'NEW ORDER' },
+      });
+    }
+
+    return true;
   });
-
-  // Kalau sekarang tidak ada assignment aktif (ASSIGNED/COMPLETED) yang
-  // tersisa untuk item ini, balikin status ke NEW ORDER supaya florist
-  // lain tahu item ini kosong lagi (bukan "masih diproses").
-  const { claimedQty } = await getItemQuantitySummary(target.orderItemId);
-  if (claimedQty === 0) {
-    await updateTransactionDetailItemStatus(target.orderItemId, { ITEM_STATUS: 'NEW ORDER' });
-  }
-
-  return true;
 }
 
 /**
@@ -131,20 +175,32 @@ export async function releaseAssignment(assignmentId: string): Promise<boolean> 
  * Detail otomatis diubah ke DONE.
  */
 export async function completeAssignment(assignmentId: string): Promise<void> {
-  const target = await prisma.floristAssignment.findUnique({
-    where: { assignmentId },
-  });
-  if (!target) throw new Error('Assignment tidak ditemukan');
+  await prisma.$transaction(async (tx) => {
+    const target = await tx.floristAssignment.findUnique({ where: { assignmentId } });
+    if (!target) throw new Error('Assignment tidak ditemukan');
 
-  await prisma.floristAssignment.update({
-    where: { assignmentId },
-    data: { status: 'COMPLETED', completedAt: new Date() },
-  });
+    // Kunci baris item duluan, SEBELUM update status assignment -- biar
+    // florist lain yang lagi nyelesain assignment lain di item yang sama
+    // nunggu di sini, bukan baca completedQty yang belum ke-update punya kita.
+    await lockAndSummarizeItem(tx, target.orderItemId);
 
-  const { totalQty, completedQty } = await getItemQuantitySummary(target.orderItemId);
-  if (completedQty >= totalQty) {
-    await updateTransactionDetailItemStatus(target.orderItemId, { ITEM_STATUS: 'DONE', DELIVERY_STATUS: 'PICKUP' });
-  }
+    await tx.floristAssignment.update({
+      where: { assignmentId },
+      data: { status: 'COMPLETED', completedAt: new Date() },
+    });
+
+    const { totalQty, completedQty } = await lockAndSummarizeItem(tx, target.orderItemId);
+    if (completedQty >= totalQty) {
+      // itemStatus: 'DONE' menandai item siap diambil kurir -- lihat
+      // listAvailableItemsPaged di deliveryDriverAssignment.ts, yang
+      // menggantikan deliveryStatus: 'PICKUP' versi lama (field itu sekarang
+      // milik DeliveryDriverAssignment, bukan TransactionDetail).
+      await tx.transactionDetail.update({
+        where: { orderItemId: target.orderItemId },
+        data: { itemStatus: 'DONE' },
+      });
+    }
+  });
 }
 
 export async function listAssignmentsByFlorist(

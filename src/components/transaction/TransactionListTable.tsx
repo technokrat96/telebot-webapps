@@ -179,6 +179,31 @@ export default function TransactionListTable({
                 },
               },
               {
+                title: 'Kurir',
+                key: 'kurir',
+                render: (_: unknown, r: TransactionDetail | TransactionDetailWithAssignments) => {
+                  if (!hasAssignments(r)) return <Text type="secondary">-</Text>;
+
+                  const activeAssignments = r.deliveryAssignments.filter((a) => a.STATUS !== 'RELEASED');
+                  if (activeAssignments.length === 0) {
+                    return <Tag>Belum diambil</Tag>;
+                  }
+
+                  return (
+                    <Space orientation="vertical" size={2}>
+                      {activeAssignments.map((a) => (
+                        <Space key={a.ASSIGNMENT_ID} size={4}>
+                          <Tag color={ASSIGNMENT_STATUS_COLORS[a.STATUS] ?? 'default'}>
+                            {ASSIGNMENT_STATUS_LABELS[a.STATUS] ?? a.STATUS}
+                          </Tag>
+                          <Text>{a.DELIVERY_DRIVER_NAME} · qty {a.QUANTITY_ASSIGNED} · {a.DELIVERY_STATUS}</Text>
+                        </Space>
+                      ))}
+                    </Space>
+                  );
+                },
+              },
+              {
                 title: 'Kartu Ucapan',
                 key: 'card',
                 render: (v, r) => (

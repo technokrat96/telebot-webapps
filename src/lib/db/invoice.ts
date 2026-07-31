@@ -129,18 +129,61 @@ export async function createInvoice(
   invoice: Omit<Invoice, "INVOICE_ID">,
   details: Omit<InvoiceDetail, "INVOICE_ID" | "INVOICE_ITEM_ID">[]
 ): Promise<void> {
+  if (details.length === 0) throw new Error('Invoice harus punya minimal 1 item');
+
   const invoiceId = generateInvoiceId();
-  await prisma.invoice.create({
-    data: {
-      ...fromInvoice(invoice),
-      invoiceId,
-      details: {
-        create: details.map((e, i) => ({
-          ...fromInvoiceDetail(e),
-          invoiceItemId: generateInvoiceItemId(invoiceId, e.ORDER_ITEM_ID)
-        })),
+  // Urutan konsisten (sorted) biar kalau ada 2 invoice yang overlap order
+  // item-nya kebentuk barengan, dua-duanya ngunci baris dengan urutan yang
+  // sama -- nyegah deadlock.
+  const orderItemIds = [...new Set(details.map((d) => d.ORDER_ITEM_ID))].sort();
+
+  await prisma.$transaction(async (tx) => {
+    for (const id of orderItemIds) {
+      await tx.$queryRaw`SELECT order_item_id FROM transaction_detail WHERE order_item_id = ${id} FOR UPDATE`;
+    }
+
+    const items = await tx.transactionDetail.findMany({
+      where: { orderItemId: { in: orderItemIds } },
+    });
+    const itemById = new Map(items.map((i) => [i.orderItemId, i]));
+
+    const billedRows = await tx.invoiceDetail.findMany({
+      where: { orderItemId: { in: orderItemIds } },
+    });
+    // Qty yang sudah ditagih invoice lain, dihitung ulang dari DB sekarang
+    // (bukan dipercaya dari payload client yang render-nya bisa udah basi).
+    const runningBilled = billedRows.reduce((acc, r) => {
+      acc[r.orderItemId] = (acc[r.orderItemId] ?? 0) + r.quantityBilled.toNumber();
+      return acc;
+    }, {} as Record<string, number>);
+
+    for (const d of details) {
+      const item = itemById.get(d.ORDER_ITEM_ID);
+      if (!item) throw new Error(`Order item ${d.ORDER_ITEM_ID} tidak ditemukan`);
+
+      const alreadyBilled = runningBilled[d.ORDER_ITEM_ID] ?? 0;
+      const remaining = Number(item.quantity || 0) - alreadyBilled;
+      if (d.QUANTITY_BILLED > remaining) {
+        throw new Error(
+          `"${item.itemName}" sisa qty yang bisa ditagih cuma ${remaining}, tidak bisa tagih ${d.QUANTITY_BILLED}`
+        );
+      }
+      // Akumulasi biar 2 baris item yang sama dalam 1 invoice yang sama juga kecek bareng.
+      runningBilled[d.ORDER_ITEM_ID] = alreadyBilled + d.QUANTITY_BILLED;
+    }
+
+    await tx.invoice.create({
+      data: {
+        ...fromInvoice(invoice),
+        invoiceId,
+        details: {
+          create: details.map((e) => ({
+            ...fromInvoiceDetail(e),
+            invoiceItemId: generateInvoiceItemId(invoiceId, e.ORDER_ITEM_ID),
+          })),
+        },
       },
-    },
+    });
   });
 }
 

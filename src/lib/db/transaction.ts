@@ -2,6 +2,7 @@ import 'server-only';
 import {prisma} from '@/lib/prismaClient';
 import {
   FloristAssignment,
+  DeliveryDriverAssignment,
   Transaction,
   TransactionDetail,
   TransactionWithDetails,
@@ -10,11 +11,12 @@ import {
 import {TransactionModel} from "@/generated/prisma/models/Transaction";
 import {TransactionDetailModel} from "@/generated/prisma/models/TransactionDetail";
 import {FloristAssignmentModel} from "@/generated/prisma/models/FloristAssignment";
+import {DeliveryDriverAssignmentModel} from "@/generated/prisma/models/DeliveryDriverAssignment";
 import {Decimal} from "@prisma/client-runtime-utils";
 import {generateOrderId, generateOrderItemId} from "@/lib/generateId";
 import serverDayJs from "@/lib/server.dayjs";
 
-function toTransaction(row: TransactionModel): Transaction {
+export function toTransaction(row: TransactionModel): Transaction {
   return {
     ORDER_ID: row.orderId,
     ORDER_SOURCE: row.orderSource ?? "",
@@ -48,11 +50,9 @@ export function toTransactionDetail(row: TransactionDetailModel): TransactionDet
     CARD_NOTE: row.cardNote ?? "",
     CARD_CREATED_BY: row.cardCreatedBy ?? "",
     CARD_STATUS: row.cardStatus ?? "",
-    DELIVERY_BY: row.deliveryBy ?? "",
     DELIVERY_METHOD: row.deliveryMethod ?? "",
     DELIVERY_DATE: row.deliveryDate ? serverDayJs(row.deliveryDate).format("YYYY-MM-DD HH:mm:ss") : "",
     DELIVERY_TIME: row.deliveryTime ? serverDayJs(row.deliveryTime).format("YYYY-MM-DD HH:mm:ss") : "",
-    DELIVERY_STATUS: row.deliveryStatus ?? "",
     SHIPPING_FEE: row.shippingFee.toNumber(),
     RECEIVER_NAME: row.receiverName ?? "",
     RECEIVER_ADDRESS: row.receiverAddress ?? "",
@@ -72,6 +72,22 @@ function toAssignmentLocal(row: FloristAssignmentModel): FloristAssignment {
     ASSIGNED_AT: row.assignedAt ? serverDayJs(row.assignedAt).format("YYYY-MM-DD HH:mm:ss") : "",
     STATUS: row.status,
     COMPLETED_AT: row.completedAt ? serverDayJs(row.completedAt).format("YYYY-MM-DD HH:mm:ss") : "",
+  };
+}
+
+function toDeliveryAssignmentLocal(row: DeliveryDriverAssignmentModel): DeliveryDriverAssignment {
+  return {
+    ASSIGNMENT_ID: row.assignmentId,
+    ORDER_ITEM_ID: row.orderItemId,
+    ORDER_ID: row.orderId,
+    DELIVERY_DRIVER_USERNAME: row.deliveryDriverUsername,
+    DELIVERY_DRIVER_NAME: row.deliveryDriverName,
+    QUANTITY_ASSIGNED: row.quantityAssigned.toNumber(),
+    ASSIGNED_AT: row.assignedAt ? serverDayJs(row.assignedAt).format("YYYY-MM-DD HH:mm:ss") : "",
+    STATUS: row.status,
+    DELIVERY_STATUS: row.deliveryStatus ?? "",
+    COMPLETED_AT: row.completedAt ? serverDayJs(row.completedAt).format("YYYY-MM-DD HH:mm:ss") : "",
+    IMAGE_URLS: row.imageUrls ?? [],
   };
 }
 
@@ -106,11 +122,9 @@ function fromTransactionDetail(d: Omit<TransactionDetail, 'ORDER_ID' | 'ORDER_IT
     cardNote: d.CARD_NOTE,
     cardCreatedBy: d.CARD_CREATED_BY,
     cardStatus: d.CARD_STATUS,
-    deliveryBy: d.DELIVERY_BY,
     deliveryMethod: d.DELIVERY_METHOD,
     deliveryDate: d.DELIVERY_DATE ? serverDayJs(d.DELIVERY_DATE).toDate() : null,
     deliveryTime: d.DELIVERY_TIME ? serverDayJs(`${d.DELIVERY_DATE ? d.DELIVERY_DATE : serverDayJs().format("YYYY-MM-DD")} ${d.DELIVERY_TIME}`).toDate() : null,
-    deliveryStatus: d.DELIVERY_STATUS,
     shippingFee: new Decimal(d.SHIPPING_FEE),
     receiverName: d.RECEIVER_NAME,
     receiverAddress: d.RECEIVER_ADDRESS,
@@ -143,7 +157,6 @@ function fromTransactionDetailUpdates(
   if (d.CARD_NOTE !== undefined) data.cardNote = d.CARD_NOTE;
   if (d.CARD_CREATED_BY !== undefined) data.cardCreatedBy = d.CARD_CREATED_BY;
   if (d.CARD_STATUS !== undefined) data.cardStatus = d.CARD_STATUS;
-  if (d.DELIVERY_BY !== undefined) data.deliveryBy = d.DELIVERY_BY;
   if (d.DELIVERY_METHOD !== undefined) data.deliveryMethod = d.DELIVERY_METHOD;
   if (d.DELIVERY_DATE !== undefined) {
     data.deliveryDate = d.DELIVERY_DATE ? serverDayJs(d.DELIVERY_DATE).toDate() : null;
@@ -153,7 +166,6 @@ function fromTransactionDetailUpdates(
       ? serverDayJs(`${d.DELIVERY_DATE ? d.DELIVERY_DATE : serverDayJs().format("YYYY-MM-DD")} ${d.DELIVERY_TIME}`).toDate()
       : null;
   }
-  if (d.DELIVERY_STATUS !== undefined) data.deliveryStatus = d.DELIVERY_STATUS;
   if (d.SHIPPING_FEE !== undefined) data.shippingFee = new Decimal(d.SHIPPING_FEE);
   if (d.RECEIVER_NAME !== undefined) data.receiverName = d.RECEIVER_NAME;
   if (d.RECEIVER_ADDRESS !== undefined) data.receiverAddress = d.RECEIVER_ADDRESS;
@@ -341,7 +353,7 @@ export async function updateTransactionWithDetails(
 export async function updateTransactionDetailItemStatus(
   orderItemId: string,
   updates: Partial<
-    Pick<TransactionDetail, 'ITEM_STATUS' | 'DELIVERY_STATUS'>
+    Pick<TransactionDetail, 'ITEM_STATUS'>
   >
 ): Promise<boolean> {
   const data: Record<string, unknown> = {};
@@ -373,28 +385,11 @@ export async function updateTransactionDetailCardStatus(
   }
 }
 
-export async function updateTransactionDetailDeliveryStatus(
-  orderItemId: string,
-  updates: Partial<
-    Pick<TransactionDetail, 'DELIVERY_STATUS' | 'DELIVERY_BY'>
-  >
-): Promise<boolean> {
-  const data: Record<string, unknown> = {};
-  if (updates.DELIVERY_STATUS !== undefined) data.deliveryStatus = updates.DELIVERY_STATUS;
-  if (updates.DELIVERY_BY !== undefined) data.deliveryBy = updates.DELIVERY_BY;
-  try {
-    await prisma.transactionDetail.update({ where: { orderItemId }, data });
-    return true;
-  } catch (err: any) {
-    if (err?.code === 'P2025') return false;
-    throw err;
-  }
-}
-
 /**
  * Bulk-updates the ITEM_STATUS of every line item belonging to one order.
- * Used for order-level actions: Florist "Mark order done" (-> READY_TO_PICKUP)
- * and Kurir's On Delivery / Delivered / Received / Returned actions.
+ * Used for order-level actions: Florist "Mark order done" (-> READY_TO_PICKUP).
+ * (Kurir's delivery-status actions now live in
+ * src/lib/db/deliveryDriverAssignment.ts, since that's a separate entity.)
  */
 export async function updateAllItemStatusForOrder(
   orderId: string,
@@ -403,16 +398,6 @@ export async function updateAllItemStatusForOrder(
   await prisma.transactionDetail.updateMany({
     where: { orderId },
     data: { itemStatus },
-  });
-}
-
-export async function updateAllDeliveryStatusForOrder(
-  orderId: string,
-  deliveryStatus: string
-): Promise<void> {
-  await prisma.transactionDetail.updateMany({
-    where: { orderId },
-    data: { deliveryStatus },
   });
 }
 
@@ -429,7 +414,7 @@ export async function listTransactionsWithDetailsAndAssignments(
       take: pageSize,
       include: {
         details: {
-          include: { floristAssignments: true },
+          include: { floristAssignments: true, deliveryDriverAssignments: true },
         },
       },
     }),
@@ -441,51 +426,16 @@ export async function listTransactionsWithDetailsAndAssignments(
     details: t.details.map((d) => ({
       ...toTransactionDetail(d),
       assignments: d.floristAssignments.map(toAssignmentLocal),
+      deliveryAssignments: d.deliveryDriverAssignments.map(toDeliveryAssignmentLocal),
     })),
   }));
 
   return { transactions, total };
 }
 
-// Status pesanan yang relevan buat kurir (siap diambil s/d dalam perjalanan).
-// Order dianggap masuk satu kategori kalau SEMUA item-nya kompak di status
-// yang sama -- persis semantik `filterOrdersByDeliveryStatus` versi lama,
-// cuma sekarang di-filter di DB (bukan fetch semua transaksi lalu disaring
-// di JS) supaya bisa di-page.
-const KURIR_DELIVERY_STATUSES = ['PICKUP', 'ON DELIVERY', 'DELIVERED'] as const;
-
-export async function listOrdersForKurirPaged(
-  options: { page?: number; pageSize?: number } = {}
-): Promise<{ orders: TransactionWithDetails[]; total: number }> {
-  const page = Math.max(1, options.page ?? 1);
-  const pageSize = Math.min(50, Math.max(1, options.pageSize ?? 10));
-
-  const where = {
-    OR: KURIR_DELIVERY_STATUSES.map((status) => ({
-      details: { some: {}, every: { deliveryStatus: status } },
-    })),
-  };
-
-  const [rows, total] = await Promise.all([
-    prisma.transaction.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      include: { details: true },
-    }),
-    prisma.transaction.count({ where }),
-  ]);
-
-  const orders: TransactionWithDetails[] = rows.map((t) => ({
-    ...toTransaction(t),
-    details: t.details.map(toTransactionDetail),
-  }));
-
-  return { orders, total };
-}
-
-// isOrderFullyDone / filterOrdersByDeliveryStatus moved to '@/lib/statusUtils'
-// (that module has no server-only imports, so it's safe to use from
-// client components too — see src/app/florist/page.tsx and kurir/page.tsx).
-export { isOrderFullyDone, filterOrdersByDeliveryStatus } from '@/lib/statusUtils';
+// isOrderFullyDone moved to '@/lib/statusUtils' (that module has no
+// server-only imports, so it's safe to use from client components too — see
+// src/app/florist/page.tsx and kurir/page.tsx). Kurir's own queue queries
+// (available/mine, based on DeliveryDriverAssignment claims) now live in
+// src/lib/db/deliveryDriverAssignment.ts.
+export { isOrderFullyDone } from '@/lib/statusUtils';

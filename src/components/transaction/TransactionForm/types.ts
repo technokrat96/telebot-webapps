@@ -12,14 +12,13 @@ export type TransactionFormValues = Omit<Transaction, 'ORDER_ID'>
   "CARD_NOTE" |
   "CARD_CREATED_BY" |
   "DELIVERY_METHOD" |
-  "DELIVERY_BY" |
   "SHIPPING_FEE"
 > & {
   ORDER_ID?: string;
   DELIVERY_DATE?: Dayjs;
   DELIVERY_TIME?: Dayjs;
   details: (Omit<TransactionDetail,
-    'ORDER_ID' | 'ORDER_ITEM_ID' | 'ITEM_STATUS' | 'FLORIST_NAME' | 'CARD_STATUS' | 'DELIVERY_STATUS'
+    'ORDER_ID' | 'ORDER_ITEM_ID' | 'ITEM_STATUS' | 'FLORIST_NAME' | 'CARD_STATUS'
   > & {
     // Kosong untuk item baru (belum pernah disimpan). Untuk item lama yang
     // sedang diedit, ini dibawa balik lewat hidden Form.Item supaya saat

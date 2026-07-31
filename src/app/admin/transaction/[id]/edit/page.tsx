@@ -43,7 +43,6 @@ function EditTransactionContent() {
           DELIVERY_METHOD,
           DELIVERY_DATE,
           DELIVERY_TIME,
-          DELIVERY_BY,
           SHIPPING_FEE,
         } = res.transaction.details[0];
 
@@ -63,7 +62,6 @@ function EditTransactionContent() {
           DELIVERY_METHOD,
           DELIVERY_DATE: deliveryDate,
           DELIVERY_TIME: deliveryTime,
-          DELIVERY_BY,
           SHIPPING_FEE,
         });
       })
@@ -88,7 +86,6 @@ function EditTransactionContent() {
         DELIVERY_METHOD,
         DELIVERY_DATE,
         DELIVERY_TIME,
-        DELIVERY_BY,
         SHIPPING_FEE,
         ...transaction
       } = values;
@@ -113,7 +110,6 @@ function EditTransactionContent() {
           DELIVERY_METHOD,
           DELIVERY_DATE: deliveryDate,
           DELIVERY_TIME: deliveryTime,
-          DELIVERY_BY,
           SHIPPING_FEE,
         })) as TransactionDetail[],
       });
