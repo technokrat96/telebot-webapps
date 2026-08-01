@@ -399,9 +399,10 @@ export async function updateTransactionDetailCardStatus(
 
 /**
  * Bulk-updates the ITEM_STATUS of every line item belonging to one order.
- * Used for order-level actions: Florist "Mark order done" (-> READY_TO_PICKUP).
- * (Kurir's delivery-status actions now live in
- * src/lib/db/deliveryDriverAssignment.ts, since that's a separate entity.)
+ * Currently unused -- item status transitions (NEW ORDER -> WORK IN PROGRESS
+ * -> READY TO PICKUP -> ON DELIVERY -> DONE) are now driven per-item by qty
+ * claim/complete logic in src/lib/db/floristAssignment.ts and
+ * src/lib/db/deliveryDriverAssignment.ts, not bulk order-level actions.
  */
 export async function updateAllItemStatusForOrder(
   orderId: string,

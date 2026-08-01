@@ -203,7 +203,7 @@ function CreateInvoiceForOrderContent() {
           description="Masih ada sisa item? Kamu bisa langsung buat invoice lain untuk transaksi yang sama di bawah, atau selesai."
           style={{ marginBottom: 16 }}
           action={
-            <Button size="small" onClick={() => router.push('/admin/invoice')}>
+            <Button onClick={() => router.push('/admin/invoice')}>
               Selesai
             </Button>
           }
@@ -215,7 +215,6 @@ function CreateInvoiceForOrderContent() {
           rowKey="ORDER_ITEM_ID"
           loading={loading}
           dataSource={order?.details ?? []}
-          size="small"
           pagination={false}
           rowSelection={{
             selectedRowKeys: selectedKeys,

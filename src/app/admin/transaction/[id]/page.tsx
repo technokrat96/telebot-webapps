@@ -36,7 +36,9 @@ const fetcher = <T,>(url: string) => apiClient.get<T>(url);
 
 const STATUS_COLORS: Record<string, GetProp<typeof Tag, 'color'>> = {
   'NEW ORDER': 'default',
-  'ON PROGRESS': 'processing',
+  'WORK IN PROGRESS': 'processing',
+  'READY TO PICKUP': 'blue',
+  'ON DELIVERY': 'gold',
   DONE: 'success',
   CANCELLED: 'red',
   PENDING: 'cyan',
@@ -54,6 +56,48 @@ const ASSIGNMENT_STATUS_COLORS: Record<string, GetProp<typeof Tag, 'color'>> = {
   COMPLETED: 'success',
   RELEASED: 'default',
 };
+
+const DELIVERY_STATUS_COLORS: Record<string, GetProp<typeof Tag, 'color'>> = {
+  PICKUP: 'gold',
+  'ON DELIVERY': 'blue',
+  DELIVERED: 'green',
+  RETURNED: 'red',
+};
+
+/**
+ * Foto bukti kurir (DeliveryDriverAssignment.IMAGE_URLS) ditambahkan tepat 1
+ * per perubahan status (lihat advanceAssignmentDeliveryStatus di
+ * deliveryDriverAssignment.ts), dengan urutan yang deterministik mengikuti
+ * alur PICKUP -> ON DELIVERY -> DELIVERED/RETURNED. Jadi foto pertama di
+ * array selalu bukti "ON DELIVERY", foto kedua (kalau ada) selalu bukti
+ * status terminal-nya -- dipakai buat kasih label per foto di bawah.
+ */
+function deliveryPhotoLabels(deliveryStatus: string): string[] {
+  const labels = ['ON DELIVERY'];
+  if (deliveryStatus === 'DELIVERED' || deliveryStatus === 'RETURNED') {
+    labels.push(deliveryStatus);
+  }
+  return labels;
+}
+
+function KurirProofPhotos({ assignment }: { assignment: DeliveryDriverAssignment }) {
+  if (!assignment.IMAGE_URLS || assignment.IMAGE_URLS.length === 0) return null;
+
+  const labels = deliveryPhotoLabels(assignment.DELIVERY_STATUS);
+
+  return (
+    <Space wrap size={12} style={{ marginTop: 4 }}>
+      {assignment.IMAGE_URLS.map((url, idx) => (
+        <Space key={url} orientation="vertical" size={2} align="center">
+          <Tag color={DELIVERY_STATUS_COLORS[labels[idx]] ?? 'default'} style={{ margin: 0 }}>
+            {labels[idx] ?? 'Foto'}
+          </Tag>
+          <ItemImageGallery urls={[url]} />
+        </Space>
+      ))}
+    </Space>
+  );
+}
 
 type StaffUser = { username: string; name: string };
 
@@ -107,6 +151,14 @@ function TransactionDetailContent() {
   );
 
   const transaction = data?.transaction;
+
+  // Sama kayak hasDeliveryPastPickup di TransactionCardList.tsx -- begitu
+  // ada kurir aktif yang udah lewat PICKUP (ON DELIVERY/DELIVERED/
+  // RETURNED), transaksi ini gak boleh diubah lagi.
+  const hasDeliveryPastPickup =
+    transaction?.details.some((d) =>
+      d.deliveryAssignments.some((a) => a.STATUS !== 'RELEASED' && a.DELIVERY_STATUS !== 'PICKUP')
+    ) ?? false;
 
   function openAssignModal(role: 'FLORIST' | 'KURIR', item: TransactionDetailWithAssignments) {
     setAssignTarget({ role, item });
@@ -185,15 +237,17 @@ function TransactionDetailContent() {
         <Title level={3} style={{ margin: 0 }}>Detail Transaksi {id}</Title>
         <Space>
           <Button onClick={() => router.push('/admin/transaction')}>Kembali</Button>
-          <Button type="primary" onClick={() => router.push(`/admin/transaction/${id}/edit`)}>
-            Ubah Transaksi
-          </Button>
+          {!hasDeliveryPastPickup && (
+            <Button type="primary" onClick={() => router.push(`/admin/transaction/${id}/edit`)}>
+              Ubah Transaksi
+            </Button>
+          )}
         </Space>
       </div>
 
       <Card loading={isLoading} title="Informasi Transaksi" style={{ marginBottom: 16 }}>
         {transaction && (
-          <Descriptions column={2} size="small" bordered>
+          <Descriptions column={2} bordered>
             <Descriptions.Item label="Order ID">{transaction.ORDER_ID}</Descriptions.Item>
             <Descriptions.Item label="Sumber Order">{transaction.ORDER_SOURCE || '-'}</Descriptions.Item>
             <Descriptions.Item label="Sales">{transaction.SALES_NAME || '-'}</Descriptions.Item>
@@ -220,7 +274,8 @@ function TransactionDetailContent() {
         {transaction?.details.map((item) => {
           const activeFlorist = item.assignments.filter((a) => a.STATUS !== 'RELEASED');
           const activeKurir = item.deliveryAssignments.filter((a) => a.STATUS !== 'RELEASED');
-          const canAssignKurir = item.ITEM_STATUS === 'DONE';
+          const canAssignFlorist = remainingQty(item, 'FLORIST') > 0;
+          const canAssignKurir = item.ITEM_STATUS === 'READY TO PICKUP';
 
           return (
             <Card
@@ -255,9 +310,15 @@ function TransactionDetailContent() {
                 <div style={{ flex: 1, minWidth: 260 }}>
                   <Space align="center" style={{ marginBottom: 8 }}>
                     <Text strong>Florist</Text>
-                    <Button size="small" type="primary" onClick={() => openAssignModal('FLORIST', item)}>
-                      Assign Florist
-                    </Button>
+                    <Tooltip title={canAssignFlorist ? '' : 'Qty item ini sudah habis diambil florist'}>
+                      <Button
+                        type="primary"
+                        disabled={!canAssignFlorist}
+                        onClick={() => openAssignModal('FLORIST', item)}
+                      >
+                        Assign Florist
+                      </Button>
+                    </Tooltip>
                   </Space>
                   <div>
                     {activeFlorist.length === 0 && <Empty description="Belum ada florist" />}
@@ -268,11 +329,16 @@ function TransactionDetailContent() {
                             {ASSIGNMENT_STATUS_LABELS[a.STATUS] ?? a.STATUS}
                           </Tag>
                           <Text>{a.FLORIST_NAME} · qty {a.QUANTITY_ASSIGNED}</Text>
-                          <Popconfirm title="Lepas assignment ini?" onConfirm={() => releaseFloristAssignment(a)}>
-                            <Button size="small" danger loading={busyKey === a.ASSIGNMENT_ID}>
-                              Lepas
-                            </Button>
-                          </Popconfirm>
+                          {/* Begitu udah ada kurir yang ambil item ini,
+                              assignment florist-nya gak boleh dilepas lagi
+                              -- barangnya udah dipegang kurir. */}
+                          {activeKurir.length === 0 && (
+                            <Popconfirm title="Lepas assignment ini?" onConfirm={() => releaseFloristAssignment(a)}>
+                              <Button danger loading={busyKey === a.ASSIGNMENT_ID}>
+                                Lepas
+                              </Button>
+                            </Popconfirm>
+                          )}
                         </Space>
                       ))}
                     </Space>
@@ -282,9 +348,8 @@ function TransactionDetailContent() {
                 <div style={{ flex: 1, minWidth: 260 }}>
                   <Space align="center" style={{ marginBottom: 8 }}>
                     <Text strong>Kurir</Text>
-                    <Tooltip title={canAssignKurir ? '' : 'Item harus berstatus DONE dulu sebelum bisa di-assign ke kurir'}>
+                    <Tooltip title={canAssignKurir ? '' : 'Item harus berstatus READY TO PICKUP dulu sebelum bisa di-assign ke kurir'}>
                       <Button
-                        size="small"
                         type="primary"
                         disabled={!canAssignKurir}
                         onClick={() => openAssignModal('KURIR', item)}
@@ -297,17 +362,24 @@ function TransactionDetailContent() {
                     {activeKurir.length === 0 && <Empty description="Belum ada kurir" />}
                     <Space orientation="vertical" size={4} style={{ width: '100%' }}>
                       {activeKurir.map((a) => (
-                        <Space key={a.ASSIGNMENT_ID} size={4} wrap>
-                          <Tag color={ASSIGNMENT_STATUS_COLORS[a.STATUS] ?? 'default'}>
-                            {a.DELIVERY_STATUS || ASSIGNMENT_STATUS_LABELS[a.STATUS] || a.STATUS}
-                          </Tag>
-                          <Text>{a.DELIVERY_DRIVER_NAME} · qty {a.QUANTITY_ASSIGNED}</Text>
-                          <Popconfirm title="Lepas assignment ini?" onConfirm={() => releaseDeliveryAssignment(a)}>
-                            <Button size="small" danger loading={busyKey === a.ASSIGNMENT_ID}>
-                              Lepas
-                            </Button>
-                          </Popconfirm>
-                        </Space>
+                        <div key={a.ASSIGNMENT_ID}>
+                          <Space size={4} wrap>
+                            <Tag color={ASSIGNMENT_STATUS_COLORS[a.STATUS] ?? 'default'}>
+                              {a.DELIVERY_STATUS || ASSIGNMENT_STATUS_LABELS[a.STATUS] || a.STATUS}
+                            </Tag>
+                            <Text>{a.DELIVERY_DRIVER_NAME} · qty {a.QUANTITY_ASSIGNED}</Text>
+                            {/* Begitu udah mulai antar (lewat PICKUP), gak
+                                boleh dilepas lagi -- kurir udah bawa barangnya. */}
+                            {a.DELIVERY_STATUS === 'PICKUP' && (
+                              <Popconfirm title="Lepas assignment ini?" onConfirm={() => releaseDeliveryAssignment(a)}>
+                                <Button danger loading={busyKey === a.ASSIGNMENT_ID}>
+                                  Lepas
+                                </Button>
+                              </Popconfirm>
+                            )}
+                          </Space>
+                          <KurirProofPhotos assignment={a} />
+                        </div>
                       ))}
                     </Space>
                   </div>

@@ -70,7 +70,6 @@ function PickTransactionContent() {
                 <Space orientation="vertical" size={4} style={{ width: '100%' }}>
                   <Progress
                     percent={percent}
-                    size="small"
                     format={() => `${billedQty}/${totalQty} qty ditagih`}
                   />
                   <Tag color={STATUS_COLORS[r.invoiceStatus]}>
@@ -91,7 +90,6 @@ function PickTransactionContent() {
             render: (_, r) => (
               <Button
                 type="primary"
-                size="small"
                 disabled={r.invoiceStatus === 'FULLY_INVOICED'}
                 onClick={() => router.push(`/admin/invoice/create/${r.ORDER_ID}`)}
               >

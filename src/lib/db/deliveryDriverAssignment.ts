@@ -10,7 +10,10 @@ import serverDayJs from "@/lib/server.dayjs";
 // Status delivery yang dianggap "selesai" -- begitu tercapai, assignment
 // otomatis ditandai COMPLETED (analog completeAssignment di
 // floristAssignment.ts, tapi triggernya deliveryStatus, bukan qty).
-const TERMINAL_DELIVERY_STATUSES = ['RECEIVED', 'RETURNED'];
+// Alur: PICKUP (default awal) -> ON DELIVERY (kurir berangkat) -> lalu
+// DELIVERED atau RETURNED (keduanya terminal). CANCELED/RESCHEDULED
+// menyusul nanti.
+const TERMINAL_DELIVERY_STATUSES = ['DELIVERED', 'RETURNED'];
 
 function toAssignment(row: DeliveryDriverAssignmentModel): DeliveryDriverAssignment {
   return {
@@ -49,13 +52,20 @@ async function lockAndSummarizeItem(tx: Prisma.TransactionClient, orderItemId: s
   const claimedQty = assignments
     .filter((a) => a.status !== 'RELEASED')
     .reduce((sum, a) => sum + a.quantityAssigned.toNumber(), 0);
+  const deliveredQty = assignments
+    .filter((a) => a.deliveryStatus === 'DELIVERED')
+    .reduce((sum, a) => sum + a.quantityAssigned.toNumber(), 0);
 
-  return { item, totalQty, claimedQty, remainingQty: totalQty - claimedQty };
+  return { item, totalQty, claimedQty, deliveredQty, remainingQty: totalQty - claimedQty };
 }
 
 /**
- * Klaim sebagian/seluruh qty suatu item -- item harus sudah DONE (florist
- * selesai) sebelum bisa diambil kurir.
+ * Klaim sebagian/seluruh qty suatu item -- item harus sudah READY TO PICKUP
+ * (florist selesai) sebelum bisa diambil kurir. ON DELIVERY juga diterima --
+ * itu berarti kurir lain sudah ambil sebagian duluan, sisa qty-nya tetap
+ * boleh diambil kurir berikutnya. Klaim pertama pada item ini yang mendorong
+ * ITEM_STATUS dari READY TO PICKUP ke ON DELIVERY (analog claimItem florist
+ * yang mendorong NEW ORDER -> WORK IN PROGRESS).
  */
 export async function claimItem(
   orderItemId: string,
@@ -68,14 +78,14 @@ export async function claimItem(
   const created = await prisma.$transaction(async (tx) => {
     const { item, remainingQty } = await lockAndSummarizeItem(tx, orderItemId);
 
-    if (item.itemStatus !== 'DONE') {
+    if (item.itemStatus !== 'READY TO PICKUP' && item.itemStatus !== 'ON DELIVERY') {
       throw new Error('Item belum selesai dikerjakan florist');
     }
     if (quantity > remainingQty) {
       throw new Error(`Qty tersisa cuma ${remainingQty}, tidak bisa ambil ${quantity}`);
     }
 
-    return tx.deliveryDriverAssignment.create({
+    const row = await tx.deliveryDriverAssignment.create({
       data: {
         assignmentId: generateDeliveryDriverAssignmentId(),
         orderItemId,
@@ -87,12 +97,26 @@ export async function claimItem(
         deliveryStatus: 'PICKUP',
       },
     });
+
+    if (item.itemStatus === 'READY TO PICKUP') {
+      await tx.transactionDetail.update({
+        where: { orderItemId },
+        data: { itemStatus: 'ON DELIVERY' },
+      });
+    }
+
+    return row;
   });
 
   return toAssignment(created);
 }
 
-/** Lepas satu assignment, supaya qty-nya bisa diambil kurir lain lagi. */
+/**
+ * Lepas satu assignment, supaya qty-nya bisa diambil kurir lain lagi. Kalau
+ * sekarang tidak ada assignment aktif (ASSIGNED/COMPLETED) yang tersisa
+ * untuk item ini, balikin ITEM_STATUS ke READY TO PICKUP -- analog
+ * releaseAssignment di floristAssignment.ts.
+ */
 export async function releaseAssignment(assignmentId: string): Promise<boolean> {
   return prisma.$transaction(async (tx) => {
     const target = await tx.deliveryDriverAssignment.findUnique({ where: { assignmentId } });
@@ -108,6 +132,14 @@ export async function releaseAssignment(assignmentId: string): Promise<boolean> 
       data: { status: 'RELEASED' },
     });
 
+    const { claimedQty } = await lockAndSummarizeItem(tx, target.orderItemId);
+    if (claimedQty === 0) {
+      await tx.transactionDetail.update({
+        where: { orderItemId: target.orderItemId },
+        data: { itemStatus: 'READY TO PICKUP' },
+      });
+    }
+
     return true;
   });
 }
@@ -117,8 +149,11 @@ export async function releaseAssignment(assignmentId: string): Promise<boolean> 
  * Foto bukti WAJIB tepat 1 di setiap perubahan status -- lihat validasi
  * imageUrls di bawah (juga divalidasi lagi di route.ts sebelum panggil ini,
  * tapi dicek ulang di sini supaya pemanggil lain tidak bisa melewatinya).
- * Kalau status barunya "terminal" (RECEIVED/RETURNED), assignment sekalian
- * ditandai COMPLETED.
+ * Kalau status barunya "terminal" (DELIVERED/RETURNED), assignment sekalian
+ * ditandai COMPLETED. Kalau semua qty item ini sudah DELIVERED, ITEM_STATUS
+ * di TransactionDetail otomatis diubah ke DONE (analog completeAssignment di
+ * floristAssignment.ts). RETURNED tidak ikut dihitung -- qty yang balik
+ * nunggu proses reschedule, nanti.
  */
 export async function advanceAssignmentDeliveryStatus(
   assignmentId: string,
@@ -150,6 +185,16 @@ export async function advanceAssignmentDeliveryStatus(
       },
     });
 
+    if (deliveryStatus === 'DELIVERED') {
+      const { totalQty, deliveredQty } = await lockAndSummarizeItem(tx, target.orderItemId);
+      if (deliveredQty >= totalQty) {
+        await tx.transactionDetail.update({
+          where: { orderItemId: target.orderItemId },
+          data: { itemStatus: 'DONE' },
+        });
+      }
+    }
+
     return true;
   });
 }
@@ -176,9 +221,14 @@ export async function addProofImages(
 }
 
 /**
- * Semua item yang statusnya DONE (siap dikirim) dan qty-nya belum habis
- * diklaim kurir, buat "load more" -- lihat listAvailableItemsPaged di
- * floristAssignment.ts untuk penjelasan pattern query-nya.
+ * Semua item yang statusnya READY TO PICKUP atau ON DELIVERY (siap dikirim,
+ * termasuk yang sebagian qty-nya sudah diambil kurir lain) dan qty-nya
+ * belum habis diklaim kurir, buat "load more" -- lihat listAvailableItemsPaged
+ * di floristAssignment.ts untuk penjelasan pattern query-nya. ON DELIVERY
+ * wajib ikut di-include -- claimItem menaikkan status ke ON DELIVERY begitu
+ * klaim pertama masuk (walau qty-nya cuma sebagian), jadi kalau di sini
+ * cuma filter READY TO PICKUP, sisa qty item itu jadi ngilang dari kurir
+ * lain padahal masih ada yang belum diambil.
  */
 export async function listAvailableItemsPaged(
   options: { page?: number; pageSize?: number } = {}
@@ -187,7 +237,7 @@ export async function listAvailableItemsPaged(
   const pageSize = Math.min(50, Math.max(1, options.pageSize ?? 10));
 
   const rows = await prisma.transactionDetail.findMany({
-    where: { itemStatus: 'DONE' },
+    where: { itemStatus: { in: ['READY TO PICKUP', 'ON DELIVERY'] } },
     orderBy: [{ transaction: { createdAt: 'desc' } }, { orderItemId: 'asc' }],
     include: {
       transaction: true,
@@ -222,28 +272,20 @@ export async function listAvailableItemsPaged(
 }
 
 /**
- * Assignment aktif milik satu kurir, di-join dengan detail item + nama
- * pelanggan -- lihat listMyAssignmentsWithDetailPaged di
- * floristAssignment.ts untuk penjelasan pattern query-nya.
+ * Semua assignment aktif milik satu kurir, di-join dengan detail item +
+ * nama pelanggan. Tidak dipaginasi -- lihat listMyAssignmentsWithDetail di
+ * floristAssignment.ts untuk alasannya (daftar "punya saya" kecil, cuma
+ * "tersedia" yang dipaginasi).
  */
-export async function listMyAssignmentsWithDetailPaged(
-  username: string,
-  options: { page?: number; pageSize?: number } = {}
-): Promise<{ assignments: MyDeliveryAssignment[]; total: number }> {
-  const page = Math.max(1, options.page ?? 1);
-  const pageSize = Math.min(50, Math.max(1, options.pageSize ?? 10));
-
+export async function listMyAssignmentsWithDetail(
+  username: string
+): Promise<MyDeliveryAssignment[]> {
   const where = { deliveryDriverUsername: username, status: 'ASSIGNED' };
 
-  const [rows, total] = await Promise.all([
-    prisma.deliveryDriverAssignment.findMany({
-      where,
-      orderBy: { assignedAt: 'desc' },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    }),
-    prisma.deliveryDriverAssignment.count({ where }),
-  ]);
+  const rows = await prisma.deliveryDriverAssignment.findMany({
+    where,
+    orderBy: { assignedAt: 'desc' },
+  });
 
   const orderItemIds = rows.map((r) => r.orderItemId);
   const details = orderItemIds.length
@@ -256,9 +298,7 @@ export async function listMyAssignmentsWithDetailPaged(
     details.map((d) => [d.orderItemId, { ...toTransactionDetail(d), CUSTOMER_NAME: d.transaction.customerName }])
   );
 
-  const assignments: MyDeliveryAssignment[] = rows
+  return rows
     .map((r) => ({ ...toAssignment(r), item: itemById.get(r.orderItemId) }))
     .filter((a) => !!a.item);
-
-  return { assignments, total };
 }

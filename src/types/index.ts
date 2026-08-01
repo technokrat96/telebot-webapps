@@ -130,10 +130,11 @@ export type TransactionWithDetails = Transaction & {
   details: TransactionDetail[];
 }
 
-// Item yang qty-nya belum habis diklaim kurir (ITEM_STATUS sudah DONE, siap
-// dikirim) -- ditampilkan di tab "Order Tersedia" halaman kurir. Sama
-// persis semantiknya dengan AvailableFloristItem, cuma sumber "siap
-// diambil"-nya beda (DONE, bukan belum-DONE).
+// Item yang qty-nya belum habis diklaim kurir (ITEM_STATUS sudah READY TO
+// PICKUP, siap dikirim) -- ditampilkan di tab "Order Tersedia" halaman
+// kurir. Sama persis semantiknya dengan AvailableFloristItem, cuma sumber
+// "siap diambil"-nya beda (READY TO PICKUP, bukan NEW ORDER/WORK IN
+// PROGRESS).
 export type AvailableDeliveryItem = TransactionDetail & {
   ORDER_ID: string;
   CUSTOMER_NAME: string;

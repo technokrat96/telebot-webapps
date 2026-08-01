@@ -108,7 +108,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             />)}
           </Flex>
         </div>
-        <Divider style={{ borderColor: 'white' }} size={"small"} />
+        <Divider style={{ borderColor: 'white' }} />
         {(checkedIn && !checkedOut) && (<Menu
           theme="dark"
           mode="inline"

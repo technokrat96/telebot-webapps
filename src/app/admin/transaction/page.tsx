@@ -5,7 +5,7 @@ import {App, Button, Progress, Tooltip, Typography} from 'antd';
 import {PlusOutlined} from '@ant-design/icons';
 import {useRouter} from 'next/navigation';
 import RoleGuard from '@/components/common/RoleGuard';
-import TransactionListTable from '@/components/transaction/TransactionListTable';
+import TransactionCardList from '@/components/transaction/TransactionCardList';
 import {apiClient} from '@/lib/apiClient';
 import {TransactionWithDetailsAndAssignments} from '@/types';
 import useSWR from "swr";
@@ -111,7 +111,7 @@ function TransactionListContent() {
           Buat Transaksi
         </Button>
       </div>
-      <TransactionListTable
+      <TransactionCardList
         data={data?.transactions ?? []}
         loading={isLoading}
         pagination={{

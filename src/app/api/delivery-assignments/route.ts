@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
-import { claimItem, listMyAssignmentsWithDetailPaged } from '@/lib/db/deliveryDriverAssignment';
+import { claimItem, listAvailableItemsPaged, listMyAssignmentsWithDetail } from '@/lib/db/deliveryDriverAssignment';
 import { findUserByUsername } from '@/lib/db/users';
 import { hasAnyRole } from '@/lib/roles';
 
+// GET gabungan: "punya saya" (semua, tidak dipaginasi) + "tersedia"
+// (dipaginasi lewat page/pageSize) dalam satu response -- lihat
+// api/florist-assignments/route.ts untuk pola yang sama.
 export async function GET(req: NextRequest) {
   const auth = await requireAuth(req, ['KURIR', 'ADMIN']);
   if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -12,8 +15,12 @@ export async function GET(req: NextRequest) {
   const page = Number(searchParams.get('page') ?? '1') || 1;
   const pageSize = Number(searchParams.get('pageSize') ?? '10') || 10;
 
-  const { assignments, total } = await listMyAssignmentsWithDetailPaged(auth.TELEGRAM_USER, { page, pageSize });
-  return NextResponse.json({ assignments, total, page, pageSize });
+  const [mine, available] = await Promise.all([
+    listMyAssignmentsWithDetail(auth.TELEGRAM_USER),
+    listAvailableItemsPaged({ page, pageSize }),
+  ]);
+
+  return NextResponse.json({ mine, available, page, pageSize });
 }
 
 export async function POST(req: NextRequest) {

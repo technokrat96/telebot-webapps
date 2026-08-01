@@ -120,7 +120,7 @@ export default function ImageListItem({
       <Typography.Text style={{flex: 1, minWidth: 0}} ellipsis type={hasError ? 'danger' : undefined}>
         {file ? file.name : (hasError ? 'Gagal memuat gambar' : 'Foto tersimpan')}
       </Typography.Text>
-      <Button size="small" danger icon={<DeleteOutlined/>} onClick={onRemove}/>
+      <Button danger icon={<DeleteOutlined/>} onClick={onRemove}/>
     </div>
   );
 }

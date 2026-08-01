@@ -28,8 +28,17 @@ const fetcher = <T,>(url: string) => apiClient.get<T>(url);
 const POLL_INTERVAL = 1000 * 60;
 const PAGE_SIZE = 5;
 
-type AvailableResponse = { items: AvailableFloristItem[]; total: number };
-type MineResponse = { assignments: MyFloristAssignment[]; total: number };
+// GET /api/florist-assignments sekarang gabungan: "punya saya" (mine, tidak
+// dipaginasi) + "tersedia" (available, dipaginasi lewat page/pageSize)
+// dalam satu response. Cuma "available" yang butuh infinite-scroll, jadi
+// cuma itu yang dijadiin key useSWRInfinite -- "mine" cukup diambil dari
+// halaman pertama yang sudah ke-load (isinya sama di semua halaman).
+type CombinedResponse = {
+  mine: MyFloristAssignment[];
+  available: { items: AvailableFloristItem[]; total: number };
+  page: number;
+  pageSize: number;
+};
 
 export default function FloristPage() {
   return (
@@ -67,58 +76,36 @@ function usePollingProgress(intervalMs: number) {
 }
 
 function FloristContent() {
-  const { name } = useTelegramAuth();
   const { message } = App.useApp();
   const { progress, reset } = usePollingProgress(POLL_INTERVAL);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [qtyInput, setQtyInput] = useState<Record<string, number>>({});
 
   const {
-    data: availPages,
-    size: availSize,
-    setSize: setAvailSize,
-    isLoading: availLoading,
-    isValidating: availValidating,
-    mutate: mutateAvail,
-  } = useSWRInfinite<AvailableResponse>(
+    data: pages,
+    size,
+    setSize,
+    isLoading,
+    isValidating,
+    mutate,
+  } = useSWRInfinite<CombinedResponse>(
     (pageIndex, previousPageData) => {
-      if (previousPageData && pageIndex * PAGE_SIZE >= previousPageData.total) return null;
-      return `/api/florist-assignments/available?page=${pageIndex + 1}&pageSize=${PAGE_SIZE}`;
-    },
-    fetcher,
-    {
-      refreshInterval: POLL_INTERVAL,
-      onSuccess: reset, // progress balik ke 0 tiap kali fetch sukses
-      revalidateFirstPage: false, // biar polling gak lompat balik ke halaman 1 doang
-    }
-  );
-
-  const {
-    data: minePages,
-    size: mineSize,
-    setSize: setMineSize,
-    isLoading: mineLoading,
-    isValidating: mineValidating,
-    mutate: mutateMine,
-  } = useSWRInfinite<MineResponse>(
-    (pageIndex, previousPageData) => {
-      if (previousPageData && pageIndex * PAGE_SIZE >= previousPageData.total) return null;
+      if (previousPageData && pageIndex * PAGE_SIZE >= previousPageData.available.total) return null;
       return `/api/florist-assignments?page=${pageIndex + 1}&pageSize=${PAGE_SIZE}`;
     },
     fetcher,
     {
       refreshInterval: POLL_INTERVAL,
-      revalidateFirstPage: false,
+      onSuccess: reset, // progress balik ke 0 tiap kali fetch sukses
+      revalidateFirstPage: true,
     }
   );
 
-  const available = availPages?.flatMap((p) => p.items) ?? [];
-  const availTotal = availPages?.[0]?.total ?? 0;
-  const hasMoreAvail = available.length < availTotal;
+  const mine = pages?.[0]?.mine ?? [];
 
-  const mine = minePages?.flatMap((p) => p.assignments) ?? [];
-  const mineTotal = minePages?.[0]?.total ?? 0;
-  const hasMoreMine = mine.length < mineTotal;
+  const available = pages?.flatMap((p) => p.available.items) ?? [];
+  const availTotal = pages?.[0]?.available.total ?? 0;
+  const hasMoreAvail = available.length < availTotal;
 
   async function claimItem(item: AvailableFloristItem) {
     const qty = qtyInput[item.ORDER_ITEM_ID] ?? item.remainingQty;
@@ -130,8 +117,7 @@ function FloristContent() {
         quantity: qty,
       });
       message.success(`Berhasil ambil ${qty} dari "${item.ITEM_NAME}"`);
-      await mutateAvail();  // <-- refresh instan, jangan tunggu polling
-      await mutateMine();
+      await mutate(); // <-- refresh instan, jangan tunggu polling
     } catch (err) {
       message.error((err as Error).message);
     } finally {
@@ -144,8 +130,7 @@ function FloristContent() {
     try {
       await apiClient.patch(`/api/florist-assignments/${assignment.ASSIGNMENT_ID}/complete`, {});
       message.success('Pekerjaan ditandai selesai');
-      await mutateAvail();  // <-- refresh instan, jangan tunggu polling
-      await mutateMine();
+      await mutate(); // <-- refresh instan, jangan tunggu polling
     } catch (err) {
       message.error((err as Error).message);
     } finally {
@@ -158,8 +143,7 @@ function FloristContent() {
     try {
       await apiClient.patch(`/api/florist-assignments/${assignment.ASSIGNMENT_ID}/release`, {});
       message.success('Item dilepas, bisa diambil florist lain');
-      await mutateAvail();  // <-- refresh instan, jangan tunggu polling
-      await mutateMine();
+      await mutate(); // <-- refresh instan, jangan tunggu polling
     } catch (err) {
       message.error((err as Error).message);
     } finally {
@@ -185,12 +169,12 @@ function FloristContent() {
       </Paragraph>
 
       {/* ================= PEKERJAAN SAYA ================= */}
-      <Title level={4}>Pekerjaan Saya ({mineTotal})</Title>
+      <Title level={4}>Pekerjaan Saya ({mine.length})</Title>
       <Space orientation="vertical" size={16} style={{ width: '100%', marginBottom: 24 }}>
         {mine.map((a) => (
           <Card
             key={a.ASSIGNMENT_ID}
-            loading={mineLoading}
+            loading={isLoading}
             title={`${a.ORDER_ID} · ${a.item?.CUSTOMER_NAME}`}
           >
             <Space orientation="vertical" size={4} style={{ width: '100%' }}>
@@ -216,16 +200,7 @@ function FloristContent() {
             </Space>
           </Card>
         ))}
-        {!mineLoading && mine.length === 0 && <Empty description="Kamu belum mengambil pekerjaan apapun." />}
-        {hasMoreMine && (
-          <Button
-            block
-            loading={mineValidating}
-            onClick={() => setMineSize(mineSize + 1)}
-          >
-            Muat Lebih Banyak (sisa {mineTotal - mine.length})
-          </Button>
-        )}
+        {!isLoading && mine.length === 0 && <Empty description="Kamu belum mengambil pekerjaan apapun." />}
       </Space>
 
       <Divider />
@@ -236,7 +211,7 @@ function FloristContent() {
         {available.map((item) => (
           <Card
             key={item.ORDER_ITEM_ID}
-            loading={availLoading}
+            loading={isLoading}
             title={`${item.ORDER_ID} · ${item.CUSTOMER_NAME}`}
           >
             <Space orientation="vertical" size={4} style={{ width: '100%' }}>
@@ -265,12 +240,12 @@ function FloristContent() {
             </Space>
           </Card>
         ))}
-        {!availLoading && available.length === 0 && <Empty description="Tidak ada order tersedia saat ini." />}
+        {!isLoading && available.length === 0 && <Empty description="Tidak ada order tersedia saat ini." />}
         {hasMoreAvail && (
           <Button
             block
-            loading={availValidating}
-            onClick={() => setAvailSize(availSize + 1)}
+            loading={isValidating}
+            onClick={() => setSize(size + 1)}
           >
             Muat Lebih Banyak (sisa {availTotal - available.length})
           </Button>

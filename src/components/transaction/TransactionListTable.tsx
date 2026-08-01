@@ -11,7 +11,9 @@ const { Text } = Typography;
 
 const STATUS_COLORS: Record<string, GetProp<typeof Tag, "color">> = {
   "NEW ORDER": 'default',
-  "ON PROGRESS": 'processing',
+  "WORK IN PROGRESS": 'processing',
+  "READY TO PICKUP": 'blue',
+  "ON DELIVERY": 'gold',
   DONE: 'success',
   CANCELLED: "red",
   PENDING: "cyan",
@@ -35,7 +37,6 @@ const DELIVERY_STATUS_COLORS: Record<string, GetProp<typeof Tag, "color">> = {
   "ON DELIVERY": 'gold',
   RETURNED: 'red',
   DELIVERED: 'green',
-  RECEIVED: 'green',
 };
 
 // Warna segmen progress bar (bukan warna preset Tag) -- hijau = selesai,
@@ -160,7 +161,6 @@ export default function TransactionListTable({
                   percent={touchedPercent}
                   success={{ percent: donePercent, strokeColor: PROGRESS_DONE_COLOR }}
                   strokeColor={PROGRESS_ON_PROGRESS_COLOR}
-                  size="small"
                   format={() => `${done}/${total} selesai`}
                 />
               </Tooltip>
@@ -181,13 +181,12 @@ export default function TransactionListTable({
               <Space orientation="vertical" size={4} style={{ width: '100%' }}>
                 <Progress
                   percent={Math.round((done / total) * 100)}
-                  size="small"
                   format={() => `${done}/${total} selesai`}
                 />
                 <Space size={4} wrap>
                   {done > 0 && <Tag color={STATUS_COLORS.DONE}>Selesai: {done}</Tag>}
                   {onProgress > 0 && (
-                    <Tag color={STATUS_COLORS['ON PROGRESS']}>Proses: {onProgress}</Tag>
+                    <Tag color={STATUS_COLORS['WORK IN PROGRESS']}>Proses: {onProgress}</Tag>
                   )}
                   {standby > 0 && (
                     <Tag color={STATUS_COLORS['NEW ORDER']}>Standby: {standby}</Tag>
@@ -215,13 +214,11 @@ export default function TransactionListTable({
                 render: (_: unknown, record: TransactionWithDetails) => (
                   <Space size={4}>
                     <Button
-                      size="small"
                       onClick={() => router.push(`/admin/transaction/${record.ORDER_ID}`)}
                     >
                       Detail
                     </Button>
                     <Button
-                      size="small"
                       onClick={() => router.push(`/admin/transaction/${record.ORDER_ID}/edit`)}
                     >
                       Ubah
@@ -238,7 +235,6 @@ export default function TransactionListTable({
             rowKey="ORDER_ITEM_ID"
             dataSource={record.details}
             pagination={false}
-            size="small"
             columns={[
               { title: 'Item', dataIndex: 'ITEM_NAME' },
               { title: 'Qty', dataIndex: 'QUANTITY' },

@@ -9,12 +9,14 @@ import {
 } from '@/lib/imageUploadConstraints';
 
 /**
- * Upload gambar item pesanan (buket dsb) ke Vercel Blob.
- * Dipakai dari form transaksi (create/edit) untuk field IMAGE_URLS
- * di setiap baris TransactionDetail.
+ * Upload gambar. Dipakai dari 2 tempat: form transaksi admin (create/edit)
+ * untuk field IMAGE_URLS di setiap baris TransactionDetail, dan halaman
+ * kurir untuk foto bukti setiap perubahan status delivery (lihat
+ * advanceWithPhoto di app/kurir/page.tsx) -- makanya KURIR juga perlu
+ * diizinkan, bukan cuma ADMIN.
  */
 export async function POST(req: NextRequest) {
-  const auth = await requireAuth(req, ['ADMIN']);
+  const auth = await requireAuth(req, ['ADMIN', 'KURIR']);
   if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const formData = await req.formData();

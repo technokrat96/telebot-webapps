@@ -23,21 +23,21 @@ import useSWRInfinite from 'swr/infinite';
 
 const { Title, Text, Paragraph } = Typography;
 
-// Next available action for an assignment currently at a given delivery status.
+// Next available action for an assignment currently at a given delivery
+// status. DELIVERED dan RETURNED keduanya terminal -- tidak ada aksi
+// lanjutan (proses reschedule untuk RETURNED menyusul nanti).
 const NEXT_ACTION: Record<string, { label: string; next: string }[]> = {
   PICKUP: [{ label: 'Mulai Antar (On Delivery)', next: 'ON DELIVERY' }],
   "ON DELIVERY": [
     { label: 'Sudah Terkirim (Delivered)', next: 'DELIVERED' },
     { label: 'Dikembalikan (Returned)', next: 'RETURNED' },
   ],
-  DELIVERED: [{ label: 'Diterima Pelanggan (Received)', next: 'RECEIVED' }],
 };
 
 const STATUS_COLORS: Record<string, string> = {
   PICKUP: 'gold',
   "ON DELIVERY": 'blue',
-  DELIVERED: 'cyan',
-  RECEIVED: 'green',
+  DELIVERED: 'green',
   RETURNED: 'red',
 };
 
@@ -45,8 +45,16 @@ const fetcher = <T,>(url: string) => apiClient.get<T>(url);
 const POLL_INTERVAL = 1000 * 60;
 const PAGE_SIZE = 5;
 
-type AvailableResponse = { items: AvailableDeliveryItem[]; total: number };
-type MineResponse = { assignments: MyDeliveryAssignment[]; total: number };
+// GET /api/delivery-assignments sekarang gabungan: "punya saya" (mine,
+// tidak dipaginasi) + "tersedia" (available, dipaginasi lewat
+// page/pageSize) dalam satu response -- lihat florist/page.tsx untuk pola
+// yang sama.
+type CombinedResponse = {
+  mine: MyDeliveryAssignment[];
+  available: { items: AvailableDeliveryItem[]; total: number };
+  page: number;
+  pageSize: number;
+};
 
 export default function KurirPage() {
   return (
@@ -86,51 +94,30 @@ function KurirContent() {
   const [qtyInput, setQtyInput] = useState<Record<string, number>>({});
 
   const {
-    data: availPages,
-    size: availSize,
-    setSize: setAvailSize,
-    isLoading: availLoading,
-    isValidating: availValidating,
-    mutate: mutateAvail,
-  } = useSWRInfinite<AvailableResponse>(
+    data: pages,
+    size,
+    setSize,
+    isLoading,
+    isValidating,
+    mutate,
+  } = useSWRInfinite<CombinedResponse>(
     (pageIndex, previousPageData) => {
-      if (previousPageData && pageIndex * PAGE_SIZE >= previousPageData.total) return null;
-      return `/api/delivery-assignments/available?page=${pageIndex + 1}&pageSize=${PAGE_SIZE}`;
-    },
-    fetcher,
-    {
-      refreshInterval: POLL_INTERVAL,
-      onSuccess: reset,
-      revalidateFirstPage: false,
-    }
-  );
-
-  const {
-    data: minePages,
-    size: mineSize,
-    setSize: setMineSize,
-    isLoading: mineLoading,
-    isValidating: mineValidating,
-    mutate: mutateMine,
-  } = useSWRInfinite<MineResponse>(
-    (pageIndex, previousPageData) => {
-      if (previousPageData && pageIndex * PAGE_SIZE >= previousPageData.total) return null;
+      if (previousPageData && pageIndex * PAGE_SIZE >= previousPageData.available.total) return null;
       return `/api/delivery-assignments?page=${pageIndex + 1}&pageSize=${PAGE_SIZE}`;
     },
     fetcher,
     {
       refreshInterval: POLL_INTERVAL,
-      revalidateFirstPage: false,
+      onSuccess: reset,
+      revalidateFirstPage: true,
     }
   );
 
-  const available = availPages?.flatMap((p) => p.items) ?? [];
-  const availTotal = availPages?.[0]?.total ?? 0;
-  const hasMoreAvail = available.length < availTotal;
+  const mine = pages?.[0]?.mine ?? [];
 
-  const mine = minePages?.flatMap((p) => p.assignments) ?? [];
-  const mineTotal = minePages?.[0]?.total ?? 0;
-  const hasMoreMine = mine.length < mineTotal;
+  const available = pages?.flatMap((p) => p.available.items) ?? [];
+  const availTotal = pages?.[0]?.available.total ?? 0;
+  const hasMoreAvail = available.length < availTotal;
 
   async function claimItem(item: AvailableDeliveryItem) {
     const qty = qtyInput[item.ORDER_ITEM_ID] ?? item.remainingQty;
@@ -142,8 +129,7 @@ function KurirContent() {
         quantity: qty,
       });
       message.success(`Berhasil ambil ${qty} dari "${item.ITEM_NAME}"`);
-      await mutateAvail();
-      await mutateMine();
+      await mutate();
     } catch (err) {
       message.error((err as Error).message);
     } finally {
@@ -156,12 +142,36 @@ function KurirContent() {
   // sekaligus dengan foto barunya. Tidak ada jalan untuk ganti status tanpa
   // foto (juga dijaga di server, lihat advanceAssignmentDeliveryStatus di
   // deliveryDriverAssignment.ts).
+  //
+  // Elemen <input> WAJIB di-attach ke document dulu sebelum .click() --
+  // kalau dibiarkan lepas (detached), banyak WebView (termasuk Telegram
+  // in-app browser) tidak mau fire event "change" sama sekali setelah user
+  // pilih file, jadi kelihatannya "gak kejadian apa-apa" padahal file picker
+  // sempat kebuka. Dibersihkan lagi dari DOM setelah dipakai.
   function advanceWithPhoto(assignment: MyDeliveryAssignment, deliveryStatus: string) {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
     input.multiple = false;
-    input.onchange = () => doAdvance(assignment, deliveryStatus, input.files);
+    input.style.position = 'fixed';
+    input.style.top = '-1000px';
+    input.style.left = '-1000px';
+    document.body.appendChild(input);
+
+    const cleanup = () => {
+      input.remove();
+    };
+
+    input.addEventListener('change', () => {
+      doAdvance(assignment, deliveryStatus, input.files);
+      cleanup();
+    });
+    // Kalau user batal (tidak pilih file), sebagian besar browser tidak
+    // fire "change" -- fallback ke "cancel" event (didukung Chrome/Safari
+    // modern) supaya elemen tetap dibersihkan. Kalau tidak didukung, cleanup
+    // di atas tetap jalan begitu user benar-benar pilih file.
+    input.addEventListener('cancel', cleanup);
+
     input.click();
   }
 
@@ -179,7 +189,7 @@ function KurirContent() {
         imageUrls: [url],
       });
       message.success(`Status diubah ke ${deliveryStatus}`);
-      await mutateMine();
+      await mutate();
     } catch (err) {
       message.error((err as Error).message);
     } finally {
@@ -192,8 +202,7 @@ function KurirContent() {
     try {
       await apiClient.patch(`/api/delivery-assignments/${assignment.ASSIGNMENT_ID}/release`, {});
       message.success('Item dilepas, bisa diambil kurir lain');
-      await mutateAvail();
-      await mutateMine();
+      await mutate();
     } catch (err) {
       message.error((err as Error).message);
     } finally {
@@ -215,14 +224,14 @@ function KurirContent() {
       </Paragraph>
 
       {/* ================= ORDER SAYA ================= */}
-      <Title level={4}>Order Saya ({mineTotal})</Title>
+      <Title level={4}>Order Saya ({mine.length})</Title>
       <Space orientation="vertical" size={16} style={{ width: '100%', marginBottom: 24 }}>
         {mine.map((a) => {
           const actions = NEXT_ACTION[a.DELIVERY_STATUS] ?? [];
           return (
             <Card
               key={a.ASSIGNMENT_ID}
-              loading={mineLoading}
+              loading={isLoading}
               title={`${a.ORDER_ID} · ${a.item?.CUSTOMER_NAME}`}
             >
               <Space orientation="vertical" size={4} style={{ width: '100%' }}>
@@ -246,25 +255,24 @@ function KurirContent() {
                       {action.label} (upload foto)
                     </Button>
                   ))}
-                  <Popconfirm
-                    title="Lepas item ini supaya bisa diambil kurir lain?"
-                    onConfirm={() => releaseAssignment(a)}
-                  >
-                    <Button danger loading={busyKey === a.ASSIGNMENT_ID}>
-                      Lepas
-                    </Button>
-                  </Popconfirm>
+                  {/* Begitu udah mulai antar (lewat PICKUP), gak boleh
+                      dilepas lagi -- kurir udah bawa barangnya. */}
+                  {a.DELIVERY_STATUS === 'PICKUP' && (
+                    <Popconfirm
+                      title="Lepas item ini supaya bisa diambil kurir lain?"
+                      onConfirm={() => releaseAssignment(a)}
+                    >
+                      <Button danger loading={busyKey === a.ASSIGNMENT_ID}>
+                        Lepas
+                      </Button>
+                    </Popconfirm>
+                  )}
                 </Space>
               </Space>
             </Card>
           );
         })}
-        {!mineLoading && mine.length === 0 && <Empty description="Kamu belum mengambil order pengiriman apapun." />}
-        {hasMoreMine && (
-          <Button block loading={mineValidating} onClick={() => setMineSize(mineSize + 1)}>
-            Muat Lebih Banyak (sisa {mineTotal - mine.length})
-          </Button>
-        )}
+        {!isLoading && mine.length === 0 && <Empty description="Kamu belum mengambil order pengiriman apapun." />}
       </Space>
 
       <Divider />
@@ -275,7 +283,7 @@ function KurirContent() {
         {available.map((item) => (
           <Card
             key={item.ORDER_ITEM_ID}
-            loading={availLoading}
+            loading={isLoading}
             title={`${item.ORDER_ID} · ${item.CUSTOMER_NAME}`}
           >
             <Space orientation="vertical" size={4} style={{ width: '100%' }}>
@@ -304,9 +312,9 @@ function KurirContent() {
             </Space>
           </Card>
         ))}
-        {!availLoading && available.length === 0 && <Empty description="Tidak ada order tersedia saat ini." />}
+        {!isLoading && available.length === 0 && <Empty description="Tidak ada order tersedia saat ini." />}
         {hasMoreAvail && (
-          <Button block loading={availValidating} onClick={() => setAvailSize(availSize + 1)}>
+          <Button block loading={isValidating} onClick={() => setSize(size + 1)}>
             Muat Lebih Banyak (sisa {availTotal - available.length})
           </Button>
         )}

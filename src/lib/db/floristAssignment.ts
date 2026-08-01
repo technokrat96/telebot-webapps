@@ -129,7 +129,7 @@ export async function claimItem(
     if (item.itemStatus === 'NEW ORDER') {
       await tx.transactionDetail.update({
         where: { orderItemId },
-        data: { itemStatus: 'ON PROGRESS' },
+        data: { itemStatus: 'WORK IN PROGRESS' },
       });
     }
 
@@ -172,7 +172,7 @@ export async function releaseAssignment(assignmentId: string): Promise<boolean> 
 /**
  * Tandai satu assignment selesai. Kalau setelah ini total qty yang
  * COMPLETED sudah menyamai qty total item, ITEM_STATUS di Transaction
- * Detail otomatis diubah ke DONE.
+ * Detail otomatis diubah ke READY TO PICKUP.
  */
 export async function completeAssignment(assignmentId: string): Promise<void> {
   await prisma.$transaction(async (tx) => {
@@ -191,13 +191,13 @@ export async function completeAssignment(assignmentId: string): Promise<void> {
 
     const { totalQty, completedQty } = await lockAndSummarizeItem(tx, target.orderItemId);
     if (completedQty >= totalQty) {
-      // itemStatus: 'DONE' menandai item siap diambil kurir -- lihat
-      // listAvailableItemsPaged di deliveryDriverAssignment.ts, yang
+      // itemStatus: 'READY TO PICKUP' menandai item siap diambil kurir --
+      // lihat listAvailableItemsPaged di deliveryDriverAssignment.ts, yang
       // menggantikan deliveryStatus: 'PICKUP' versi lama (field itu sekarang
       // milik DeliveryDriverAssignment, bukan TransactionDetail).
       await tx.transactionDetail.update({
         where: { orderItemId: target.orderItemId },
-        data: { itemStatus: 'DONE' },
+        data: { itemStatus: 'READY TO PICKUP' },
       });
     }
   });
@@ -215,12 +215,14 @@ export async function listAssignmentsByFlorist(
 /**
  * Semua item yang qty-nya belum habis diklaim (bisa diambil florist), buat
  * "load more" -- jadi tidak lagi nge-load SEMUA transaksi dari awal waktu
- * (yang isinya mayoritas sudah DONE) kayak versi lama.
+ * (yang isinya mayoritas sudah lewat tahap florist) kayak versi lama.
  *
  * Query langsung ke TransactionDetail (bukan lewat listTransactionsWithDetails())
- * dan filter ITEM_STATUS != DONE di level DB dulu. remainingQty tetap dihitung
- * di memori dari assignment aktif per item, karena itu bukan kolom biasa --
- * tapi himpunan kandidatnya jauh lebih kecil daripada "semua transaksi".
+ * dan filter ITEM_STATUS ke tahap florist saja (NEW ORDER / WORK IN PROGRESS)
+ * di level DB dulu -- begitu READY TO PICKUP/ON DELIVERY/DONE, item itu sudah
+ * lewat tahap florist. remainingQty tetap dihitung di memori dari assignment
+ * aktif per item, karena itu bukan kolom biasa -- tapi himpunan kandidatnya
+ * jauh lebih kecil daripada "semua transaksi".
  */
 export async function listAvailableItemsPaged(
   options: { page?: number; pageSize?: number } = {}
@@ -229,7 +231,7 @@ export async function listAvailableItemsPaged(
   const pageSize = Math.min(50, Math.max(1, options.pageSize ?? 10));
 
   const rows = await prisma.transactionDetail.findMany({
-    where: { itemStatus: { not: 'DONE' } },
+    where: { itemStatus: { in: ['NEW ORDER', 'WORK IN PROGRESS'] } },
     orderBy: [{ transaction: { createdAt: 'desc' } }, { orderItemId: 'asc' }],
     include: {
       transaction: true,
@@ -264,29 +266,21 @@ export async function listAvailableItemsPaged(
 }
 
 /**
- * Assignment aktif milik satu florist, di-join dengan detail item + nama
- * pelanggan. Query utamanya (FloristAssignment where florist+ASSIGNED) sudah
- * bisa di-`skip`/`take` langsung di DB -- cuma join detail item yang
- * dilakukan per halaman (bukan semua transaksi kayak sebelumnya).
+ * Semua assignment aktif milik satu florist, di-join dengan detail item +
+ * nama pelanggan. Tidak dipaginasi -- daftar "punya saya" biasanya kecil
+ * (yang lagi dikerjakan florist itu sendiri), jadi dikirim sekaligus.
+ * Paginasi cuma dipakai di listAvailableItemsPaged (daftar "tersedia" yang
+ * bisa jauh lebih besar).
  */
-export async function listMyAssignmentsWithDetailPaged(
-  username: string,
-  options: { page?: number; pageSize?: number } = {}
-): Promise<{ assignments: MyFloristAssignment[]; total: number }> {
-  const page = Math.max(1, options.page ?? 1);
-  const pageSize = Math.min(50, Math.max(1, options.pageSize ?? 10));
-
+export async function listMyAssignmentsWithDetail(
+  username: string
+): Promise<MyFloristAssignment[]> {
   const where = { floristUsername: username, status: 'ASSIGNED' };
 
-  const [rows, total] = await Promise.all([
-    prisma.floristAssignment.findMany({
-      where,
-      orderBy: { assignedAt: 'desc' },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    }),
-    prisma.floristAssignment.count({ where }),
-  ]);
+  const rows = await prisma.floristAssignment.findMany({
+    where,
+    orderBy: { assignedAt: 'desc' },
+  });
 
   const orderItemIds = rows.map((r) => r.orderItemId);
   const details = orderItemIds.length
@@ -299,9 +293,7 @@ export async function listMyAssignmentsWithDetailPaged(
     details.map((d) => [d.orderItemId, { ...toTransactionDetail(d), CUSTOMER_NAME: d.transaction.customerName }])
   );
 
-  const assignments: MyFloristAssignment[] = rows
+  return rows
     .map((r) => ({ ...toAssignment(r), item: itemById.get(r.orderItemId) }))
     .filter((a) => !!a.item);
-
-  return { assignments, total };
 }
