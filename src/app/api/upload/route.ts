@@ -86,7 +86,10 @@ export async function GET(req: NextRequest) {
   }
 
   if (isShopifyImageHost(parsedUrl.hostname)) {
+    const startedAt = Date.now();
+    console.log(`[shopify] -> GET ${rawUrl}`);
     const shopifyRes = await fetch(rawUrl, { cache: 'no-store' });
+    console.log(`[shopify] <- GET ${rawUrl} ${shopifyRes.status} ${shopifyRes.statusText} (${Date.now() - startedAt}ms)`);
     if (!shopifyRes.ok || !shopifyRes.body) {
       return NextResponse.json({ error: 'Gambar tidak ditemukan' }, { status: 404 });
     }

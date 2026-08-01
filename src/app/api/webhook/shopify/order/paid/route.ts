@@ -14,6 +14,9 @@ import { createTransaction, findTransactionByShopifyOrderId } from '@/lib/db/tra
  * approval manual, admin akan langsung melihatnya di /admin/transaction.
  */
 export async function POST(req: NextRequest) {
+  const startedAt = Date.now();
+  console.log('[shopify] <- webhook orders/paid diterima');
+
   // Baca raw body dulu (bukan req.json()) karena signature HMAC dihitung
   // dari bytes mentahnya, sebelum di-parse.
   const rawBody = await req.text();
@@ -52,5 +55,6 @@ export async function POST(req: NextRequest) {
   const { transaction, details } = await mapShopifyOrderToTransaction(order);
   const orderId = await createTransaction(transaction, details);
 
+  console.log(`[shopify] -> webhook orders/paid selesai, orderId=${orderId} (${Date.now() - startedAt}ms)`);
   return NextResponse.json({ ok: true, orderId });
 }

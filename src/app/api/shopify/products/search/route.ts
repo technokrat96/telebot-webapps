@@ -15,8 +15,10 @@ export async function GET(req: NextRequest) {
   if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const q = req.nextUrl.searchParams.get('q') ?? '';
+  console.log(`[shopify] <- GET /api/shopify/products/search?q="${q}"`);
   if (!q.trim()) return NextResponse.json({ results: [] });
 
+  const startedAt = Date.now();
   try {
     const products = await searchShopifyProducts(q);
     const results: ProductSearchResult[] = products.map((p) => ({
@@ -25,8 +27,15 @@ export async function GET(req: NextRequest) {
       PRICE: p.price,
       CURRENCY: p.currency,
     }));
+    console.log(
+      `[shopify] -> GET /api/shopify/products/search?q="${q}" ok, ${results.length} hasil (${Date.now() - startedAt}ms)`
+    );
     return NextResponse.json({ results });
   } catch (err) {
+    console.error(
+      `[shopify] -> GET /api/shopify/products/search?q="${q}" gagal setelah ${Date.now() - startedAt}ms:`,
+      (err as Error).message
+    );
     return NextResponse.json({ error: (err as Error).message }, { status: 502 });
   }
 }

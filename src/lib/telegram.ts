@@ -12,8 +12,6 @@ export function validateTelegramInitData(
   if (!botToken) throw new Error('Missing TELEGRAM_BOT_TOKEN env var');
 
   try {
-    console.log('Telegram initData:', initDataRaw);
-    console.log('botToken:', botToken);
     validate(initDataRaw, botToken, { expiresIn: 3600 });
   } catch (e) {
     console.error(e);
@@ -22,8 +20,6 @@ export function validateTelegramInitData(
 
   const parsed = parse(initDataRaw);
   if (!parsed.user) return null;
-
-  console.log("parse validate init data", parsed)
 
   return {
     id: parsed.user.id,

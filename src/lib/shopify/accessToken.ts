@@ -23,20 +23,36 @@ export async function getShopifyAccessToken(): Promise<string> {
   }
 
   const { storeDomain, clientId, clientSecret } = getShopifyAdminConfig();
+  const url = `https://${storeDomain}/admin/oauth/access_token`;
 
-  const res = await fetch(`https://${storeDomain}/admin/oauth/access_token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'client_credentials',
-      client_id: clientId,
-      client_secret: clientSecret,
-    }),
-    cache: 'no-store',
-  });
+  // Log sebelum & sesudah fetch (tanpa nge-log client_secret) -- bantu
+  // lacak apakah 502/error yang muncul asalnya dari sini (mis. shop_not_
+  // permitted, client_id/secret salah, atau request-nya kelamaan/timeout).
+  const startedAt = Date.now();
+  console.log(`[shopify] -> POST ${url} (client_id=${clientId})`);
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: clientId,
+        client_secret: clientSecret,
+      }),
+      cache: 'no-store',
+    });
+  } catch (err) {
+    console.error(`[shopify] <- POST ${url} FAILED after ${Date.now() - startedAt}ms:`, (err as Error).message);
+    throw err;
+  }
+
+  console.log(`[shopify] <- POST ${url} ${res.status} ${res.statusText} (${Date.now() - startedAt}ms)`);
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
+    console.error(`[shopify] access_token error body:`, text);
     throw new Error(`Gagal ambil Shopify access token (${res.status}): ${text || res.statusText}`);
   }
 
