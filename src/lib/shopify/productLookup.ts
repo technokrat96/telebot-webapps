@@ -60,7 +60,7 @@ export async function getProductInfoByIds(
   for (const node of data.nodes) {
     if (!node) continue;
     const numericId = node.id.split('/').pop() ?? node.id;
-    const productUrl = node.onlineStoreUrl || `https://${storeDomain}/admin/products/${numericId}`;
+    const productUrl = node.onlineStoreUrl || `${storeDomain}/admin/products/${numericId}`;
     result.set(numericId, {
       imageUrl: node.featuredImage?.url ?? null,
       productUrl,

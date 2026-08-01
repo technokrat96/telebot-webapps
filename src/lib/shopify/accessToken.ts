@@ -23,7 +23,7 @@ export async function getShopifyAccessToken(): Promise<string> {
   }
 
   const { storeDomain, clientId, clientSecret } = getShopifyAdminConfig();
-  const url = `https://${storeDomain}/admin/oauth/access_token`;
+  const url = `${storeDomain}/admin/oauth/access_token`;
 
   // Log sebelum & sesudah fetch (tanpa nge-log client_secret) -- bantu
   // lacak apakah 502/error yang muncul asalnya dari sini (mis. shop_not_
