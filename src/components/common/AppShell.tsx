@@ -79,7 +79,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div style={{ padding: "12px" }}>
           <Flex align={"center"} justify={"space-between"}>
             <Button type={"text"} onClick={() => {
-              router.push("/whoami")
+              router.push("/account")
               setCollapsed(!collapsed)
             }}>
               <Avatar icon={<UserOutlined/>} shape={"circle"} />
@@ -147,7 +147,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   style={{flex: 1, minWidth: 0}}
                 />) : <div style={{flex: 1, minWidth: 0}}/>}
                 {roles.length > 0 && (
-                  <Button type={"text"} onClick={() => router.push("/whoami")}>
+                  <Button type={"text"} onClick={() => router.push("/account")}>
                     <Avatar icon={<UserOutlined/>} shape={"circle"} />
                     <Text style={{ color: '#fff', whiteSpace: 'nowrap' }}>
                       {name}{' '}
@@ -180,7 +180,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           }
         </Header>
         <Content style={{ padding: '16px', minHeight: 'auto' }}>
-          <div style={{ maxWidth: 1100, margin: '0 auto' }}>{children}</div>
+          <div style={{ maxWidth: breakpoint.xl ? '80%' : '100%', margin: '0 auto' }}>{children}</div>
         </Content>
       </Layout>
     </Layout>

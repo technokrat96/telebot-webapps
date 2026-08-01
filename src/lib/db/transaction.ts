@@ -218,13 +218,25 @@ export async function listTransactionsWithDetails(): Promise<
 
 export async function getTransactionById(
   orderId: string
-): Promise<TransactionWithDetails | null> {
+): Promise<TransactionWithDetailsAndAssignments | null> {
   const t = await prisma.transaction.findUnique({
     where: { orderId },
-    include: { details: true },
+    include: {
+      details: {
+        include: { floristAssignments: true, deliveryDriverAssignments: true },
+      },
+    },
   });
   if (!t) return null;
-  return { ...toTransaction(t), details: t.details.map(toTransactionDetail) };
+
+  return {
+    ...toTransaction(t),
+    details: t.details.map((d) => ({
+      ...toTransactionDetail(d),
+      assignments: d.floristAssignments.map(toAssignmentLocal),
+      deliveryAssignments: d.deliveryDriverAssignments.map(toDeliveryAssignmentLocal),
+    })),
+  };
 }
 
 export async function createTransaction(

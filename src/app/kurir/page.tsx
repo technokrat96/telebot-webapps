@@ -42,7 +42,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const fetcher = <T,>(url: string) => apiClient.get<T>(url);
-const POLL_INTERVAL = 1000 * 5;
+const POLL_INTERVAL = 1000 * 60;
 const PAGE_SIZE = 5;
 
 type AvailableResponse = { items: AvailableDeliveryItem[]; total: number };
@@ -231,6 +231,7 @@ function KurirContent() {
                   <Tag color="blue">Qty diambil: {a.QUANTITY_ASSIGNED}</Tag>
                   <Tag color={STATUS_COLORS[a.DELIVERY_STATUS] ?? 'default'}>{a.DELIVERY_STATUS}</Tag>
                 </Space>
+                <Text>Penerima: {a.item?.RECEIVER_NAME}</Text>
                 <Text>Alamat: {a.item?.RECEIVER_ADDRESS}</Text>
                 <Text>Telepon: {a.item?.RECEIVER_PHONE}</Text>
                 <ItemImageGallery urls={a.IMAGE_URLS} />

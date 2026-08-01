@@ -25,7 +25,7 @@ import useSWRInfinite from 'swr/infinite';
 const { Title, Text, Paragraph } = Typography;
 
 const fetcher = <T,>(url: string) => apiClient.get<T>(url);
-const POLL_INTERVAL = 1000 * 5;
+const POLL_INTERVAL = 1000 * 60;
 const PAGE_SIZE = 5;
 
 type AvailableResponse = { items: AvailableFloristItem[]; total: number };

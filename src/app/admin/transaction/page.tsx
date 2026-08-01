@@ -1,13 +1,13 @@
 'use client';
 
 import {useEffect, useRef, useState} from 'react';
-import {Button, Typography, App, Tooltip, Progress, Spin} from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
-import { useRouter } from 'next/navigation';
+import {App, Button, Progress, Tooltip, Typography} from 'antd';
+import {PlusOutlined} from '@ant-design/icons';
+import {useRouter} from 'next/navigation';
 import RoleGuard from '@/components/common/RoleGuard';
 import TransactionListTable from '@/components/transaction/TransactionListTable';
-import { apiClient } from '@/lib/apiClient';
-import {TransactionWithDetails, TransactionWithDetailsAndAssignments} from '@/types';
+import {apiClient} from '@/lib/apiClient';
+import {TransactionWithDetailsAndAssignments} from '@/types';
 import useSWR from "swr";
 
 const { Title } = Typography;
@@ -18,7 +18,7 @@ type TransactionListResponse = {
 };
 
 const fetcher = (url: string) => apiClient.get<TransactionListResponse>(url);
-const POLL_INTERVAL = 1000 * 5;
+const POLL_INTERVAL = 1000 * 60;
 
 export default function AdminTransactionPage() {
   return (

@@ -5,7 +5,7 @@ import { useTelegramAuth } from '@/components/common/TelegramProvider';
 
 const { Title } = Typography;
 
-export default function WhoAmIPage() {
+export default function AccountPage() {
   const { name, roles, username } = useTelegramAuth();
 
   return (

@@ -135,3 +135,17 @@ export async function listUsersWithTelegramId(): Promise<{ username: string; nam
   });
   return rows;
 }
+
+/** Untuk dropdown "assign ke florist/kurir" di halaman detail transaksi admin. */
+export async function listUsersByRole(role: string): Promise<{ username: string; name: string }[]> {
+  const rows = await prisma.appUser.findMany({
+    where: {
+      roles: {
+        some: { role },
+      },
+    },
+    orderBy: { name: 'asc' },
+    select: { username: true, name: true },
+  });
+  return rows;
+}
