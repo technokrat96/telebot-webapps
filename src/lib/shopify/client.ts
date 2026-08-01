@@ -18,7 +18,7 @@ export async function shopifyAdminGraphQL<T>(
 ): Promise<T> {
   const { storeDomain, apiVersion } = getShopifyAdminConfig();
   const accessToken = await getShopifyAccessToken();
-  const url = `https://${storeDomain}/admin/api/${apiVersion}/graphql.json`;
+  const url = `${storeDomain}/admin/api/${apiVersion}/graphql.json`;
 
   // Log sebelum & sesudah fetch -- bantu lacak 502/error: apakah request-nya
   // sama sekali gagal terkirim (network/timeout), atau terkirim tapi

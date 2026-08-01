@@ -20,19 +20,30 @@ export interface ShopifyAdminConfig {
   apiVersion: string;
 }
 
+/**
+ * SHOPIFY_STORE_DOMAIN seharusnya cuma `toko-kamu.myshopify.com` (tanpa
+ * skema/protokol) -- kode lain di sini yang nambahin `https://` sendiri
+ * waktu bikin URL. Kalau kepasang `https://`/`http://` di depan (kesalahan
+ * ngisi .env yang gampang kejadian) atau ada trailing slash, dibersihkan
+ * di sini supaya tidak jadi "https://https://..." dan gagal fetch total.
+ */
+function normalizeStoreDomain(raw: string): string {
+  return raw.trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+}
+
 export function getShopifyAdminConfig(): ShopifyAdminConfig {
-  const storeDomain = process.env.SHOPIFY_STORE_DOMAIN;
+  const rawStoreDomain = process.env.SHOPIFY_STORE_DOMAIN;
   const clientId = process.env.SHOPIFY_CLIENT_ID;
   const clientSecret = process.env.SHOPIFY_CLIENT_SECRET;
   const apiVersion = process.env.SHOPIFY_API_VERSION || '2026-07';
 
-  if (!storeDomain || !clientId || !clientSecret) {
+  if (!rawStoreDomain || !clientId || !clientSecret) {
     throw new Error(
       'SHOPIFY_STORE_DOMAIN / SHOPIFY_CLIENT_ID / SHOPIFY_CLIENT_SECRET belum diatur di .env — lihat README bagian Setup Shopify.'
     );
   }
 
-  return { storeDomain, clientId, clientSecret, apiVersion };
+  return { storeDomain: normalizeStoreDomain(rawStoreDomain), clientId, clientSecret, apiVersion };
 }
 
 export function getShopifyWebhookSecret(): string {
