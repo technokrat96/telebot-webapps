@@ -10,10 +10,12 @@ import type { TransactionFormValues } from './types';
 /**
  * Field "Nama Item": cari produk Shopify sambil ngetik (title/SKU). Kalau
  * dipilih, nama item otomatis jadi "[kode produk]-[nama]" (LABEL dari
- * /api/shopify/products/search) dan Harga Satuan ikut terisi. Kalau
- * produknya tidak ketemu (atau Shopify belum dikonfigurasi), user tetap
- * bebas ketik nama item manual -- AutoComplete tidak memaksa pilih dari
- * daftar.
+ * /api/shopify/products/search), Harga Satuan ikut terisi, dan kalau
+ * produknya punya gambar utama di Shopify, gambar itu otomatis ditambahkan
+ * ke Foto Item (IMAGE_URLS) -- ditambahkan (bukan menimpa), jadi foto yang
+ * sudah diupload manual sebelumnya tetap ada. Kalau produknya tidak ketemu
+ * (atau Shopify belum dikonfigurasi), user tetap bebas ketik nama item
+ * manual -- AutoComplete tidak memaksa pilih dari daftar.
  */
 export default function ProductNameField({
                                             field,
@@ -55,7 +57,16 @@ export default function ProductNameField({
 
     const currentDetails = form.getFieldValue('details') ?? [];
     const next = [...currentDetails];
-    next[field.name] = { ...next[field.name], UNIT_PRICE: found.PRICE };
+    const currentRow = next[field.name] ?? {};
+
+    // Tambahkan gambar produk Shopify ke Foto Item -- append (bukan
+    // menimpa) & hindari duplikat kalau user pilih ulang produk yang sama.
+    const currentImageUrls: string[] = currentRow.IMAGE_URLS ?? [];
+    const imageUrls = found.IMAGE_URL && !currentImageUrls.includes(found.IMAGE_URL)
+      ? [...currentImageUrls, found.IMAGE_URL]
+      : currentImageUrls;
+
+    next[field.name] = { ...currentRow, UNIT_PRICE: found.PRICE, IMAGE_URLS: imageUrls };
     form.setFieldsValue({ details: next });
   }
 

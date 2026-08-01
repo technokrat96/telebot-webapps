@@ -26,6 +26,7 @@ export async function GET(req: NextRequest) {
       LABEL: p.label,
       PRICE: p.price,
       CURRENCY: p.currency,
+      IMAGE_URL: p.imageUrl,
     }));
     console.log(
       `[shopify] -> GET /api/shopify/products/search?q="${q}" ok, ${results.length} hasil (${Date.now() - startedAt}ms)`

@@ -7,12 +7,16 @@ export interface ShopifyProductInfo {
   productUrl: string | null;
 }
 
+/** Bentuk data yang balik dari NODES_QUERY -- cocokkan urutan field-nya. */
 interface NodesQueryResult {
+  // `nodes()` balikin array SEJAJAR dengan array ID yang diminta -- kalau
+  // salah satu produknya sudah dihapus/tidak ketemu, elemennya `null`
+  // (bukan di-skip), makanya union-nya termasuk `null`.
   nodes: (
     | {
-        id: string;
-        handle: string;
-        onlineStoreUrl: string | null;
+        id: string; // GID, mis. "gid://shopify/Product/123" -> di-extract jadi "123"
+        handle: string; // slug URL produk, mis. "buket-mawar-merah"
+        onlineStoreUrl: string | null; // null kalau produk tidak dipublish ke channel Online Store
         featuredImage: { url: string } | null;
       }
     | null
@@ -20,8 +24,14 @@ interface NodesQueryResult {
 }
 
 const NODES_QUERY = `
+  # nodes() = ambil banyak resource sekaligus by ID dalam 1 request --
+  # dipakai di sini biar lookup gambar/link buat semua produk di 1 order
+  # tidak jadi banyak request terpisah (1 per produk).
   query GetProductsByIds($ids: [ID!]!) {
     nodes(ids: $ids) {
+      # Perlu "... on Product" karena nodes() bisa balikin tipe resource
+      # apa saja (Product, Order, dll) tergantung ID-nya -- field di bawah
+      # cuma valid kalau resource-nya memang Product.
       ... on Product {
         id
         handle
@@ -58,9 +68,10 @@ export async function getProductInfoByIds(
   const data = await shopifyAdminGraphQL<NodesQueryResult>(NODES_QUERY, { ids: gids });
 
   for (const node of data.nodes) {
-    if (!node) continue;
+    if (!node) continue; // produk sudah dihapus / tidak ketemu -- skip, biarkan detail item tanpa gambar/link
+
     const numericId = node.id.split('/').pop() ?? node.id;
-    const productUrl = node.onlineStoreUrl || `${storeDomain}/admin/products/${numericId}`;
+    const productUrl = node.onlineStoreUrl || `https://${storeDomain}/admin/products/${numericId}`;
     result.set(numericId, {
       imageUrl: node.featuredImage?.url ?? null,
       productUrl,

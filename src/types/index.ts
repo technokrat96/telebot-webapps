@@ -112,6 +112,7 @@ export type ProductSearchResult = {
   LABEL: string;
   PRICE: number;
   CURRENCY: string;
+  IMAGE_URL: string | null;
 };
 
 export type MasterData = {
