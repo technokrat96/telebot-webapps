@@ -8,6 +8,16 @@ import {
   MAX_IMAGE_SIZE_LABEL,
 } from '@/lib/imageUploadConstraints';
 
+// Host gambar produk Shopify (lihat src/lib/shopify/mapOrder.ts -- IMAGE_URLS
+// item dari webhook order Shopify bisa berisi URL CDN Shopify, bukan cuma
+// Vercel Blob kita sendiri). Dibatasi ke allowlist ini (bukan proxy bebas ke
+// URL manapun) supaya endpoint ini tidak jadi celah SSRF.
+const SHOPIFY_IMAGE_HOST_PATTERNS = [/(^|\.)cdn\.shopify\.com$/, /\.myshopify\.com$/];
+
+function isShopifyImageHost(hostname: string): boolean {
+  return SHOPIFY_IMAGE_HOST_PATTERNS.some((re) => re.test(hostname));
+}
+
 /**
  * Upload gambar. Dipakai dari 2 tempat: form transaksi admin (create/edit)
  * untuk field IMAGE_URLS di setiap baris TransactionDetail, dan halaman
@@ -48,11 +58,16 @@ export async function POST(req: NextRequest) {
 }
 
 /**
- * Proxy untuk menampilkan gambar dari private Blob store. Karena store-nya
- * private, URL blob (https://<store>.private.blob.vercel-storage.com/...)
- * tidak bisa diakses langsung dari <img src>, harus lewat get() yang
- * ter-otentikasi di server. Client fetch route ini (dengan header auth),
- * lalu ubah response-nya jadi object URL untuk ditampilkan.
+ * Proxy untuk menampilkan gambar item pesanan. Dua sumber:
+ * 1. Private Vercel Blob store kita sendiri (foto yang diupload admin/kurir
+ *    lewat POST di atas) -- URL-nya tidak bisa diakses langsung dari
+ *    <img src>, harus lewat get() yang ter-otentikasi di server.
+ * 2. Gambar produk Shopify (IMAGE_URLS dari webhook order, lihat
+ *    src/lib/shopify/mapOrder.ts) -- ini sudah URL publik di CDN Shopify,
+ *    jadi cukup di-proxy langsung (masih di belakang requireAuth di bawah,
+ *    dan dibatasi allowlist host Shopify -- bukan proxy ke URL sembarang).
+ * Client selalu fetch route ini (dengan header auth) untuk kedua kasus,
+ * lalu ubah response-nya jadi data: URL untuk ditampilkan.
  */
 export async function GET(req: NextRequest) {
   // Cuma lihat (bukan upload/hapus), jadi FLORIST & KURIR juga boleh —
@@ -63,13 +78,28 @@ export async function GET(req: NextRequest) {
   const rawUrl = req.nextUrl.searchParams.get('url');
   if (!rawUrl) return NextResponse.json({ error: 'URL wajib diisi' }, { status: 400 });
 
-  let pathname: string;
+  let parsedUrl: URL;
   try {
-    pathname = new URL(rawUrl).pathname.replace(/^\//, '');
+    parsedUrl = new URL(rawUrl);
   } catch {
     return NextResponse.json({ error: 'URL tidak valid' }, { status: 400 });
   }
 
+  if (isShopifyImageHost(parsedUrl.hostname)) {
+    const shopifyRes = await fetch(rawUrl, { cache: 'no-store' });
+    if (!shopifyRes.ok || !shopifyRes.body) {
+      return NextResponse.json({ error: 'Gambar tidak ditemukan' }, { status: 404 });
+    }
+    return new NextResponse(shopifyRes.body, {
+      headers: {
+        'Content-Type': shopifyRes.headers.get('content-type') || 'application/octet-stream',
+        'X-Content-Type-Options': 'nosniff',
+        'Cache-Control': 'private, no-cache',
+      },
+    });
+  }
+
+  const pathname = parsedUrl.pathname.replace(/^\//, '');
   const result = await get(pathname, { access: 'private' });
   if (!result || result.statusCode !== 200 || !result.stream) {
     return NextResponse.json({ error: 'Gambar tidak ditemukan' }, { status: 404 });

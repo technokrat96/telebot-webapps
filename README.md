@@ -182,3 +182,87 @@ src/
     apiClient.ts             # fetch wrapper (attach initData) untuk client
   types/                    # TypeScript types sesuai skema sheet
 ```
+
+## 9. Setup Shopify
+
+Ada 2 fitur yang terhubung ke Shopify:
+
+1. **Cari produk** di field "Nama Item" pada form Buat Transaksi (ketik
+   sebagian judul/SKU → muncul saran dari Shopify → pilih untuk isi
+   otomatis nama item dengan format `[kode produk]-[nama]` dan Harga
+   Satuan). Kalau produknya tidak ketemu (atau Shopify belum
+   dikonfigurasi), field ini tetap bisa diisi manual seperti biasa.
+2. **Webhook order**: tiap ada order baru masuk di Shopify, otomatis
+   tersimpan sebagai Transaction baru (Sumber Order = `SHOPIFY`), langsung
+   kelihatan di `/admin/transaction` — tidak ada tahap approval manual.
+
+### 9.1 Custom app (buat akses cari produk)
+
+Sejak Januari 2026 Shopify pindah ke **Dev Dashboard** untuk custom app —
+tidak ada lagi token statis yang tinggal di-copy dari halaman admin. Yang
+kamu dapat cuma **Client ID** + **Client Secret**, lalu app-nya sendiri
+yang wajib menukar keduanya jadi access token tiap kali butuh (kode di
+`src/lib/shopify/accessToken.ts` sudah handle ini — token di-cache 24 jam
+lalu di-refresh otomatis, tidak perlu kamu urus manual).
+
+1. Buka [Dev Dashboard](https://dev.shopify.com/dashboard/) → buat/pilih
+   app kamu → pastikan scope minimal **`read_products`** aktif (untuk
+   fitur cari produk; scope tambahan seperti `read_orders`/
+   `read_customers` tidak masalah kalau kamu nanti mau pakai, cuma belum
+   dipakai kode yang ada sekarang).
+2. **Install app itu ke toko kamu** (harus dari Dev Dashboard, bukan lewat
+   link instalasi biasa) — client credentials grant cuma jalan kalau app
+   & toko ada di **organization** Dev Dashboard yang sama. Kalau nanti
+   dapat error `shop_not_permitted`, ini penyebabnya paling sering.
+3. Tab **Settings** di app tersebut → copy **Client ID** dan **Client
+   secret**.
+4. **Store domain**: domain `*.myshopify.com` toko kamu (bukan custom
+   domain kalau ada) — lihat Shopify Admin → **Settings → Domains**, atau
+   dari URL waktu login ke `admin.shopify.com/store/<nama-toko>` →
+   domainnya `<nama-toko>.myshopify.com`.
+5. Isi ke `.env`:
+   ```
+   SHOPIFY_STORE_DOMAIN=nama-toko-kamu.myshopify.com
+   SHOPIFY_CLIENT_ID=xxxxxxxxxxxxxxxx
+   SHOPIFY_CLIENT_SECRET=xxxxxxxxxxxxxxxx
+   SHOPIFY_API_VERSION=2026-07
+   ```
+
+### 9.2 Webhook order baru
+
+Dipakai event **Order payment** (`orders/paid`), bukan **Order creation**
+(`orders/create`) — jadi Transaction baru cuma dibuat setelah order-nya
+lunas (`financial_status = paid`), order dengan pembayaran manual/COD yang
+belum dikonfirmasi tidak akan langsung masuk.
+
+1. Di Shopify Admin: **Settings → Notifications**, scroll ke bagian
+   **Webhooks** di bawah.
+2. **Create webhook** → Event: **Order payment**, Format: **JSON**, URL:
+   `https://<domain-app-kamu>/api/webhook/shopify/order/paid` (harus HTTPS
+   — sama seperti `NEXT_PUBLIC_APP_URL`, kalau masih localhost butuh
+   tunnel HTTPS mis. `ngrok` untuk testing).
+3. Simpan. Masih di halaman **Webhooks**, ada bagian **Signing secret** —
+   klik untuk lihat/copy nilainya, isi ke `.env`:
+   ```
+   SHOPIFY_WEBHOOK_SECRET=xxxxxxxxxxxxxxxx
+   ```
+
+Tiap item pesanan yang terbentuk dari order ini otomatis diisi **gambar
+utama produknya** (IMAGE_URLS) dan **link ke halaman produknya**
+(CUSTOM_NOTES, format `Produk Shopify: <url>`) — dua-duanya di-ambil
+terpisah lewat Admin API karena payload webhook order sendiri tidak
+menyertakan gambar/link produk (lihat `src/lib/shopify/mapOrder.ts` &
+`productLookup.ts`).
+
+### 9.3 Terapkan perubahan skema DB
+
+Integrasi ini menambah 1 kolom baru (`shopify_order_id`) ke tabel
+`transaction`, dipakai supaya kalau Shopify mengirim ulang webhook yang
+sama (retry), tidak kebentuk Transaction dobel. Setelah `.env` di atas
+terisi, jalankan:
+
+```bash
+npm run db:push
+```
+
+lalu restart `npm run dev` (atau redeploy kalau di production).

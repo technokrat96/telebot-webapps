@@ -48,6 +48,10 @@ model UserRole {
 model Transaction {
   orderId                   String                     @id @map("order_id") @db.VarChar(30)
   orderSource               String?                    @map("order_source") @db.VarChar(40)
+  // ID order Shopify asal (numeric order.id dari webhook), dipakai supaya
+  // retry webhook dari Shopify tidak bikin Transaction dobel. Null untuk
+  // transaksi yang dibuat manual (bukan dari Shopify).
+  shopifyOrderId             String?                    @unique @map("shopify_order_id") @db.VarChar(40)
   salesName                 String?                    @map("sales_name") @db.VarChar(32)
   customerName              String                     @map("customer_name") @db.VarChar(150)
   customerAddress           String?                    @map("customer_address") @db.VarChar(500)

@@ -18,6 +18,9 @@ export type Transaction = {
   DOWN_PAYMENT: number;
   REMAINING_BALANCE: number;
   PAYMENT_METHOD: string;
+  // ID order Shopify asal (dari webhook /api/webhook/shopify). Kosong untuk
+  // transaksi yang dibuat manual lewat form admin.
+  SHOPIFY_ORDER_ID?: string;
 }
 
 export type TransactionDetail = {
@@ -100,6 +103,15 @@ export type Attendance = {
   DATE: string;
   CHECK_IN_AT: string | null;
   CHECK_OUT_AT: string | null;
+};
+
+// Hasil pencarian produk Shopify (respons /api/shopify/products/search),
+// dipakai field "Nama Item" di form transaksi.
+export type ProductSearchResult = {
+  SKU: string;
+  LABEL: string;
+  PRICE: number;
+  CURRENCY: string;
 };
 
 export type MasterData = {

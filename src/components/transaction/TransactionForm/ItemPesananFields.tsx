@@ -6,6 +6,7 @@ import {useMasterData} from '@/components/common/MasterDataProvider';
 import MoneyInput from '@/components/MoneyInput';
 import NumberInput from '@/components/NumberInput';
 import ItemImagesField from './ItemImagesField';
+import ProductNameField from './ProductNameField';
 import type {TransactionFormValues} from './types';
 
 /** Field-field untuk satu baris Item Pesanan (di dalam satu panel Collapse). */
@@ -51,15 +52,7 @@ export default function ItemPesananFields({
       <Form.Item {...field} name={[field.name, 'ORDER_ITEM_ID']} key={[field.name, 'ORDER_ITEM_ID'].join("-")} hidden>
         <Input/>
       </Form.Item>
-      <Form.Item
-        {...field}
-        label="Nama Item"
-        key={[field.name, 'ITEM_NAME'].join("-")}
-        name={[field.name, 'ITEM_NAME']}
-        rules={[{required: true, message: 'Wajib diisi'}]}
-      >
-        <Input placeholder="Buket Mawar Merah"/>
-      </Form.Item>
+      <ProductNameField field={field} form={form}/>
       <Form.Item
         {...field}
         label="Qty"

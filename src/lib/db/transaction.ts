@@ -29,6 +29,7 @@ export function toTransaction(row: TransactionModel): Transaction {
     DOWN_PAYMENT: row.downPayment.toNumber(),
     REMAINING_BALANCE: row.remainingBalance.toNumber(),
     PAYMENT_METHOD: row.paymentMethod ?? "",
+    SHOPIFY_ORDER_ID: row.shopifyOrderId ?? "",
   };
 }
 
@@ -103,6 +104,7 @@ function fromTransaction(t: Omit<Transaction, 'ORDER_ID'>): Omit<TransactionMode
     downPayment: new Decimal(t.DOWN_PAYMENT),
     remainingBalance: new Decimal(t.REMAINING_BALANCE),
     paymentMethod: t.PAYMENT_METHOD,
+    shopifyOrderId: t.SHOPIFY_ORDER_ID || null,
   };
 }
 
@@ -242,7 +244,7 @@ export async function getTransactionById(
 export async function createTransaction(
   transaction: Omit<Transaction, 'ORDER_ID'>,
   details: Omit<TransactionDetail, 'ORDER_ID' | 'ORDER_ITEM_ID'>[]
-): Promise<void> {
+): Promise<string> {
   const orderId = generateOrderId();
   await prisma.transaction.create({
     data: {
@@ -256,6 +258,23 @@ export async function createTransaction(
       },
     },
   });
+  return orderId;
+}
+
+/**
+ * Dipakai webhook Shopify (src/app/api/webhook/shopify/route.ts) untuk
+ * cek apakah satu order Shopify sudah pernah dikonversi jadi Transaction
+ * sebelumnya -- supaya retry webhook dari Shopify tidak bikin Transaction
+ * dobel.
+ */
+export async function findTransactionByShopifyOrderId(
+  shopifyOrderId: string
+): Promise<{ ORDER_ID: string } | null> {
+  const row = await prisma.transaction.findUnique({
+    where: { shopifyOrderId },
+    select: { orderId: true },
+  });
+  return row ? { ORDER_ID: row.orderId } : null;
 }
 
 export async function updateTransaction(
