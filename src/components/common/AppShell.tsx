@@ -49,7 +49,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(true);
   const { checkedIn, checkedOut} = useAttendanceGate();
-  console.log(toArrayPathname(pathname));
 
   const items = [
     { key: '/', icon: <DashboardOutlined />, label: 'Home' },

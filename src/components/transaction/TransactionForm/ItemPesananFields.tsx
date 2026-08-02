@@ -1,14 +1,16 @@
 'use client';
 
 import {Form, FormListFieldData, Input, Select, Space, Typography} from 'antd';
-import {useEffect, useMemo} from 'react';
+import {useEffect, useMemo, useRef} from 'react';
 import {useMasterData} from '@/components/common/MasterDataProvider';
 import MoneyInput from '@/components/MoneyInput';
 import NumberInput from '@/components/NumberInput';
 import ItemImagesField from './ItemImagesField';
 import ProductNameField from './ProductNameField';
 import type {TransactionFormValues} from './types';
-
+function SilentFieldRegistrar() {
+  return null;
+}
 /** Field-field untuk satu baris Item Pesanan (di dalam satu panel Collapse). */
 export default function ItemPesananFields({
                              field,
@@ -26,31 +28,53 @@ export default function ItemPesananFields({
     return CURRENCY.find(e => e.value == currency);
   }, [CURRENCY, currency]);
 
+  // Simpan rate currency sebelumnya per baris ini, dipakai efek di bawah
+  // buat konversi otomatis UNIT_PRICE saat CURRENCY diganti.
+  const prevRateRef = useRef<number>(Number(currencyData?.rate ?? 1));
+
+  // Kalau user ganti CURRENCY, konversi UNIT_PRICE supaya nilai realnya
+  // tetap setara -- pivot lewat IDR: idrValue = harga lama x rate lama,
+  // harga baru = idrValue / rate baru. Jadi ganti currency langsung 2x
+  // (mis. USD -> SGD) pun otomatis benar karena tetap lewat IDR.
   useEffect(() => {
-    const subtotal = Number(quantity || 0) * (Number(unitPrice || 0) * (currencyData?.rate ?? 1));
+    const newRate = Number(currencyData?.rate ?? 1);
+    const oldRate = prevRateRef.current;
+    if (oldRate !== newRate) {
+      const currentDetails = form.getFieldValue('details') ?? [];
+      const oldUnitPrice = Number(currentDetails[field.name]?.UNIT_PRICE ?? 0);
+      if (oldUnitPrice > 0) {
+        const idrValue = oldUnitPrice * oldRate;
+        const converted = idrValue / newRate;
+        // Semua currency (termasuk IDR) sekarang boleh 2 desimal.
+        const newUnitPrice = Math.round(converted * 100) / 100;
+        const next = [...currentDetails];
+        next[field.name] = {...next[field.name], UNIT_PRICE: newUnitPrice, CURRENCY_RATE: newRate};
+        form.setFieldsValue({details: next});
+      }
+    }
+    prevRateRef.current = newRate;
+  }, [currencyData, field.name, form]);
+
+  useEffect(() => {
+    // SUBTOTAL tetap dalam currency baris ini sendiri (sama seperti
+    // UNIT_PRICE) -- BUKAN dikonversi ke IDR di sini. Konversi ke IDR baru
+    // terjadi pas dijumlahkan jadi GRAND_TOTAL (lihat TransactionForm/index.tsx),
+    // pakai CURRENCY_RATE baris ini.
+    const newRate = Number(currencyData?.rate ?? 1);
+    const subtotal = Number(quantity || 0) * Number(unitPrice || 0);
     const currentDetails = form.getFieldValue('details') ?? [];
     // Hindari infinite loop: cuma set kalau nilainya memang berubah.
     if (currentDetails[field.name]?.SUBTOTAL !== subtotal) {
       const next = [...currentDetails];
-      next[field.name] = {...next[field.name], SUBTOTAL: subtotal};
+      next[field.name] = {...next[field.name], SUBTOTAL: subtotal, CURRENCY_RATE: newRate};
       form.setFieldsValue({details: next});
     }
   }, [currencyData, quantity, unitPrice, field.name, form]);
 
-  useEffect(() => {
-    const currentDetails = form.getFieldValue('details') ?? [];
-    // Hindari infinite loop: cuma set kalau nilainya memang berubah.
-    const next = [...currentDetails];
-    if (currentDetails[field.name]?.CURRENCY_RATE !== currencyData?.rate) {
-      next[field.name] = {...next[field.name], CURRENCY_RATE: currencyData?.rate};
-      form.setFieldsValue({details: next});
-    }
-  }, [currencyData, field.name, form]);
-
   return (
     <>
-      <Form.Item {...field} name={[field.name, 'ORDER_ITEM_ID']} key={[field.name, 'ORDER_ITEM_ID'].join("-")} hidden>
-        <Input/>
+      <Form.Item {...field} name={[field.name, 'ORDER_ITEM_ID']} key={[field.name, 'ORDER_ITEM_ID'].join("-")} noStyle>
+        <SilentFieldRegistrar/>
       </Form.Item>
       <ProductNameField field={field} form={form}/>
       <Form.Item
@@ -80,8 +104,8 @@ export default function ItemPesananFields({
               style={{ width: 80 }}
             />
           </Form.Item>
-          <Form.Item {...field} name={[field.name, 'CURRENCY_RATE']} key={[field.name, 'CURRENCY_RATE'].join("-")} hidden>
-            <Input/>
+          <Form.Item {...field} name={[field.name, 'CURRENCY_RATE']} key={[field.name, 'CURRENCY_RATE'].join("-")} noStyle>
+            <SilentFieldRegistrar/>
           </Form.Item>
           <Form.Item
             {...field}
@@ -96,7 +120,10 @@ export default function ItemPesananFields({
               },
             ]}
           >
-            <MoneyInput currency={currency} />
+            {/* showCurrencySymbol false: currency-nya sudah dipilih lewat
+                Select di sebelah kiri (Space.Compact yang sama), jadi tidak
+                perlu ditampilkan dobel di dalam MoneyInput ini. */}
+            <MoneyInput currency={currency} showCurrencySymbol={false} />
           </Form.Item>
         </Space.Compact>
         {currencyData?.value != "IDR" && (
@@ -104,6 +131,9 @@ export default function ItemPesananFields({
         )}
       </Form.Item>
       <Form.Item {...field} label="Subtotal" name={[field.name, 'SUBTOTAL']} key={[field.name, 'SUBTOTAL'].join("-")} initialValue={0}>
+        {/* SUBTOTAL = quantity x UNIT_PRICE, jadi masih dalam currency baris
+            ini (sama seperti UNIT_PRICE). Konversi ke IDR baru dilakukan pas
+            dijumlah jadi GRAND_TOTAL di summary. */}
         <MoneyInput currency={currency} disabled/>
       </Form.Item>
       <Form.Item {...field} label="Catatan Custom" name={[field.name, 'CUSTOM_NOTES']}

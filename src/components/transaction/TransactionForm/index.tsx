@@ -139,8 +139,11 @@ export default function TransactionForm({
   }
 
   useEffect(() => {
+    // SUBTOTAL tiap item masih dalam currency item itu sendiri (lihat
+    // ItemPesananFields.tsx) -- baru dikonversi ke IDR di sini, pakai
+    // CURRENCY_RATE baris masing-masing, sebelum dijumlah jadi GRAND_TOTAL.
     const grandTotal = (detailsWatch ?? []).reduce(
-      (sum, d) => sum + Number(d?.SUBTOTAL || '0'),
+      (sum, d) => sum + Number(d?.SUBTOTAL || '0') * Number(d?.CURRENCY_RATE || '1'),
       0
     );
     const remaining = (grandTotal + Number(shippingFeeWatch || 0)) - Number(downPaymentWatch || 0);
