@@ -27,12 +27,17 @@ function formatAddress(addr: ShopifyOrderWebhookPayload['shipping_address']): st
  *   diisi link ke halaman produknya -- keduanya di-lookup terpisah lewat
  *   Admin API (lihat ./productLookup.ts) karena payload webhook order
  *   sendiri tidak menyertakan gambar/link produk.
+ * - Semua nominal uang diambil dari `*_set.shop_money` (bukan field polos
+ *   seperti `price`/`currency`) -- itu yang selalu dalam currency TOKO
+ *   (mis. IDR), sudah dikonversi Shopify dari currency asli customer bayar
+ *   kalau multi-currency checkout aktif. Jadi CURRENCY_RATE aman di-set 1
+ *   terus, tidak perlu tabel kurs sendiri -- Shopify yang sudah convert.
  */
 export async function mapShopifyOrderToTransaction(order: ShopifyOrderWebhookPayload): Promise<{
   transaction: Omit<Transaction, 'ORDER_ID'>;
   details: Omit<TransactionDetail, 'ORDER_ID' | 'ORDER_ITEM_ID'>[];
 }> {
-  const currency = order.currency || 'IDR';
+  const currency = order.total_price_set?.shop_money?.currency_code || order.currency || 'IDR';
 
   const customerName =
     [order.customer?.first_name, order.customer?.last_name].filter(Boolean).join(' ').trim()
@@ -61,7 +66,7 @@ export async function mapShopifyOrderToTransaction(order: ShopifyOrderWebhookPay
 
   const details: Omit<TransactionDetail, 'ORDER_ID' | 'ORDER_ITEM_ID'>[] = order.line_items.map((item) => {
     const quantity = Number(item.quantity) || 0;
-    const unitPrice = Number(item.price) || 0;
+    const unitPrice = Number(item.price_set?.shop_money?.amount ?? item.price) || 0;
     // "[kode produk]-[nama]" -- format yang sama dipakai fitur cari produk
     // di form transaksi (lihat ProductNameField.tsx).
     const kodeProduk = item.sku?.trim() || String(item.variant_id ?? item.product_id ?? '');

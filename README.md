@@ -266,3 +266,29 @@ npm run db:push
 ```
 
 lalu restart `npm run dev` (atau redeploy kalau di production).
+
+## 10. Sync kurs mata uang harian
+
+Kolom `rate` di tabel `Currency` (dipakai buat convert Harga Satuan ke basis
+IDR waktu bikin transaksi dengan currency selain IDR, lihat
+`ItemPesananFields.tsx`) di-sync otomatis tiap hari dari
+[ExchangeRate-API](https://www.exchangerate-api.com/), lewat Vercel Cron.
+
+1. Daftar & ambil API key di [exchangerate-api.com](https://app.exchangerate-api.com/dashboard)
+   (paket Free cukup untuk sync 1x/hari), isi ke `.env`:
+   ```
+   EXCHANGE_RATE_API_KEY=xxxxxxxxxxxxxxxx
+   ```
+2. Jadwalnya sudah diatur di `vercel.json` (`0 17 * * *` = jam 17:00 UTC =
+   00:00 WIB tiap hari — **Vercel Cron selalu UTC**, kalau toko kamu bukan
+   di zona WIB, sesuaikan jamnya). Aktif otomatis begitu di-deploy ke
+   Vercel, tidak perlu setup tambahan di dashboard Vercel.
+3. `CRON_SECRET` **tidak perlu diisi manual** — Vercel yang provision &
+   kirim otomatis tiap manggil cron-nya. Endpoint-nya:
+   `GET /api/cron/sync-exchange-rates`.
+4. Paket **Hobby** Vercel: maksimal 2 cron job & minimal jeda 1x/hari
+   (pas buat kebutuhan ini), tapi jam eksekusinya cuma dijamin akurat
+   dalam rentang 1 jam (mis. dijadwalkan 17:00 UTC, bisa saja baru jalan
+   sampai 17:59 UTC).
+5. IDR sendiri di-skip (base currency kita, rate-nya selalu 1) — cuma
+   currency lain yang sudah ada di tabel `Currency` yang di-update.
