@@ -16,11 +16,11 @@ import {fileToDataUrl} from '@/lib/file.util';
 export default function ImageListItem({
                                          file,
                                          url,
-                                         onRemove,
+                                         onRemoveAction,
                                        }: {
   file?: File;
   url?: string;
-  onRemove: () => void;
+  onRemoveAction: () => void;
 }) {
   const [localSrc, setLocalSrc] = useState<string | null>(null);
   const [remoteSrc, setRemoteSrc] = useState<string | null>(null);
@@ -120,7 +120,7 @@ export default function ImageListItem({
       <Typography.Text style={{flex: 1, minWidth: 0}} ellipsis type={hasError ? 'danger' : undefined}>
         {file ? file.name : (hasError ? 'Gagal memuat gambar' : 'Foto tersimpan')}
       </Typography.Text>
-      <Button danger icon={<DeleteOutlined/>} onClick={onRemove}/>
+      <Button danger icon={<DeleteOutlined/>} onClick={onRemoveAction}/>
     </div>
   );
 }

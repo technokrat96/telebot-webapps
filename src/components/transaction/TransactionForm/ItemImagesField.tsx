@@ -111,10 +111,10 @@ export default function ItemImagesField({
         {hasImages && (
           <Space orientation="vertical" size={8} style={{width: '100%', marginBottom: 12}}>
             {imageUrls.map((url) => (
-              <ImageListItem key={url} url={url} onRemove={() => handleRemoveUrl(url)}/>
+              <ImageListItem key={url} url={url} onRemoveAction={() => handleRemoveUrl(url)}/>
             ))}
             {imageFiles.map(({clientId, file}) => (
-              <ImageListItem key={clientId} file={file} onRemove={() => handleRemoveFile(clientId)}/>
+              <ImageListItem key={clientId} file={file} onRemoveAction={() => handleRemoveFile(clientId)}/>
             ))}
           </Space>
         )}
