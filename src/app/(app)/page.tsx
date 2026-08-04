@@ -10,7 +10,7 @@ import {
   ShoppingOutlined,
 } from '@ant-design/icons';
 import {useRouter} from 'next/navigation';
-import {useTelegramAuth} from '@/components/common/TelegramProvider';
+import {useAuth} from '@/components/common/AuthProvider';
 import {useAttendanceGate} from "@/components/common/AttendanceGate";
 import clientDayJs from "@/lib/cleint.dayjs";
 
@@ -18,7 +18,7 @@ const { Title, Paragraph, Text } = Typography;
 
 
 export default function HomePage() {
-  const { name, roles } = useTelegramAuth();
+  const { name, roles } = useAuth();
   const { message } = App.useApp();
   const router = useRouter();
   const { checkedIn, checkedOut, handleCheckOut, handleCheckIn, attendanceData, loading, busy} = useAttendanceGate();

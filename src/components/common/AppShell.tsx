@@ -6,10 +6,10 @@ import {
   FileTextOutlined,
   ShoppingOutlined,
   CarOutlined,
-  UserOutlined, MenuUnfoldOutlined, MenuFoldOutlined, ScheduleOutlined, ClockCircleOutlined,
+  UserOutlined, MenuUnfoldOutlined, MenuFoldOutlined, ScheduleOutlined, ClockCircleOutlined, LogoutOutlined,
 } from '@ant-design/icons';
 import { usePathname, useRouter } from 'next/navigation';
-import { useTelegramAuth } from './TelegramProvider';
+import { useAuth } from './AuthProvider';
 import useBreakpoint from "antd/lib/grid/hooks/useBreakpoint";
 import Sider from "antd/lib/layout/Sider";
 import {useEffect, useState} from "react";
@@ -43,7 +43,7 @@ function toArrayPathname(pathname: string) {
 }
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  const { name, roles } = useTelegramAuth();
+  const { name, roles, logout } = useAuth();
   const breakpoint = useBreakpoint();
   const pathname = usePathname();
   const router = useRouter();
@@ -106,6 +106,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               onClick={() => setCollapsed(!collapsed)}
             />)}
           </Flex>
+          <Button
+            type="text"
+            icon={<LogoutOutlined style={{color: '#fff'}}/>}
+            onClick={logout}
+            style={{marginTop: 8}}
+          >
+            <Text style={{color: '#fff'}}>Logout</Text>
+          </Button>
         </div>
         <Divider style={{ borderColor: 'white' }} />
         {(checkedIn && !checkedOut) && (<Menu
@@ -158,6 +166,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     </Text>
                   </Button>
                 )}
+                <Button type="text" icon={<LogoutOutlined style={{ color: '#fff' }} />} onClick={logout} />
               </>
             ) : (
               <>

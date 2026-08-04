@@ -4,7 +4,7 @@ import {useState} from 'react';
 import {Empty, Table, Tag, Typography} from 'antd';
 import useSWR from 'swr';
 import {apiClient} from '@/lib/apiClient';
-import {useTelegramAuth} from '@/components/common/TelegramProvider';
+import {useAuth} from '@/components/common/AuthProvider';
 import {Attendance} from '@/types';
 import clientDayJs from "@/lib/cleint.dayjs";
 
@@ -19,7 +19,7 @@ type AttendanceHistoryResponse = {
 const fetcher = (url: string) => apiClient.get<AttendanceHistoryResponse>(url);
 
 export default function AbsensiPage() {
-  const { name } = useTelegramAuth();
+  const { name } = useAuth();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 

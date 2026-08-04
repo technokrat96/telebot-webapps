@@ -1,11 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { AntdRegistry } from '@ant-design/nextjs-registry';
 import {App, ConfigProvider} from 'antd';
-import TelegramProvider from '@/components/common/TelegramProvider';
-import AppShell from '@/components/common/AppShell';
 import './globals.css';
-import MasterDataProvider from "@/components/common/MasterDataProvider";
-import AttendanceGate from "@/components/common/AttendanceGate";
 
 export const metadata: Metadata = {
   title: 'Florist Telegram App',
@@ -36,15 +32,7 @@ export default function RootLayout({
             }}
             componentSize={"large"}
           >
-            <App>
-              <TelegramProvider>
-                <MasterDataProvider>
-                  <AttendanceGate>
-                    <AppShell>{children}</AppShell>
-                  </AttendanceGate>
-                </MasterDataProvider>
-              </TelegramProvider>
-            </App>
+            <App>{children}</App>
           </ConfigProvider>
         </AntdRegistry>
       </body>

@@ -42,6 +42,39 @@ export async function findUserByUsername(
   return user ? toUser(user) : null;
 }
 
+/**
+ * Dipakai khusus alur otentikasi: login username/password (perlu hash
+ * password) dan halaman /telegram-setup (perlu tahu apakah password sudah
+ * pernah di-set). Tidak lewat `toUser` supaya hash password tidak pernah
+ * ikut ter-expose ke response API lain secara tidak sengaja.
+ */
+export async function findUserAuthByUsername(username: string): Promise<
+  (AppUserModel & { roles: Omit<UserRoleModel, 'username'>[] }) | null
+> {
+  const normalized = normalizedUsername(username);
+  return prisma.appUser.findFirst({
+    where: {
+      username: {
+        equals: normalized,
+        mode: 'insensitive',
+      },
+    },
+    include: {
+      roles: {
+        select: { role: true },
+      },
+    },
+  });
+}
+
+export async function setUserPassword(username: string, passwordHash: string): Promise<void> {
+  const normalized = normalizedUsername(username);
+  await prisma.appUser.updateMany({
+    where: { username: { equals: normalized, mode: 'insensitive' } },
+    data: { password: passwordHash },
+  });
+}
+
 export async function findUsersAdminNotMeAndHasChatIdOrTelegramId(username: string): Promise<User[]> {
   const user = await prisma.appUser.findMany({
     take: 2,
@@ -92,7 +125,7 @@ export async function updateUserByUsername(username: string, {
   });
 }
 
-export async function insertUser({ username, name, chatId, telegramId }: AppUserModel): Promise<User> {
+export async function insertUser({ username, name, chatId, telegramId }: Pick<AppUserModel, 'username' | 'name' | 'chatId' | 'telegramId'>): Promise<User> {
   const user = await prisma.appUser.create({
     data: {
       username,

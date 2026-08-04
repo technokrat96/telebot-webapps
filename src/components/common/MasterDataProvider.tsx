@@ -60,7 +60,7 @@ export default function MasterDataProvider({
 
   useEffect(() => {
     load();
-  }, [load]);
+  }, []);
 
   return (
     <MasterDataContext.Provider value={{ data, loading, error, reload: load }}>

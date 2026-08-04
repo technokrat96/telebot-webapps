@@ -6,7 +6,7 @@ import {useRouter} from 'next/navigation';
 import RoleGuard from '@/components/common/RoleGuard';
 import TransactionForm, {TransactionFormValues,} from '@/components/transaction/TransactionForm';
 import {apiClient} from '@/lib/apiClient';
-import {useTelegramAuth} from "@/components/common/TelegramProvider";
+import {useAuth} from "@/components/common/AuthProvider";
 import {Transaction, TransactionDetail} from "@/types";
 import clientDayJs from "@/lib/cleint.dayjs";
 
@@ -24,7 +24,7 @@ function CreateTransactionContent() {
   const [submitting, setSubmitting] = useState(false);
   const { message } = App.useApp();
   const router = useRouter();
-  const { name, roles, username } = useTelegramAuth();
+  const { name, roles, username } = useAuth();
 
   async function handleSubmit(values: TransactionFormValues): Promise<boolean> {
     setSubmitting(true);

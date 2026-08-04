@@ -3,7 +3,7 @@
 import {createContext, useContext, useEffect, useState} from 'react';
 import {App, Typography} from 'antd';
 import {apiClient} from '@/lib/apiClient';
-import {useTelegramAuth} from './TelegramProvider';
+import {useAuth} from './AuthProvider';
 import {Attendance} from '@/types';
 import clientDayJs from "@/lib/cleint.dayjs";
 
@@ -30,7 +30,7 @@ export function useAttendanceGate() {
 }
 
 export default function AttendanceGate({ children }: { children: React.ReactNode }) {
-  const { name } = useTelegramAuth();
+  const { name } = useAuth();
   const { message } = App.useApp();
   const [loading, setLoading] = useState(true);
   const [attendanceData, setAttendanceData] = useState<Attendance | null>(null);

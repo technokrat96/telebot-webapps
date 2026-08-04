@@ -1,4 +1,4 @@
-import {parseDataTelegram, validateUser} from "@/lib/telegramBot/telegramBotUtil";
+import {parseDataTelegram, validateUser, telegramAppKeyboard} from "@/lib/telegramBot/telegramBotUtil";
 import {COMMAND_LIST} from "@/lib/telegramBot/telegramBotConst";
 import {CommandContext, Context} from "grammy";
 import {findUserByUsername, insertRoleUser, insertUser} from "@/lib/db/users";
@@ -28,6 +28,8 @@ const botCmdRegisterUser = async (ctx: CommandContext<Context>) => {
 ⚠️ <b>User Registered</b>
 An admin has been assign a role <b>${inputRole}</b> to you. Copy and send this command to check your role:
 <code>/${COMMAND_LIST.whoami}</code>
+
+Ketuk "Buka Aplikasi" di bawah untuk langsung masuk, tanpa perlu login.
 `;
       const targetChatId = inputUser.CHAT_ID ?? inputUser.TELEGRAM_ID ?? "";
       if (targetChatId) {
@@ -36,6 +38,7 @@ An admin has been assign a role <b>${inputRole}</b> to you. Copy and send this c
           messageNotif,
           {
             parse_mode: "HTML",
+            reply_markup: telegramAppKeyboard(),
           },
         );
       }

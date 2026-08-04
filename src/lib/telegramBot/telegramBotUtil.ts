@@ -7,6 +7,7 @@ import {
 } from "@/lib/db/users";
 import {getMasterData} from "@/lib/db/masterData";
 import {COMMAND_LIST} from "@/lib/telegramBot/telegramBotConst";
+import telegramBot from "@/lib/telegramBot";
 
 export async function parseDataTelegram(ctx: CommandContext<Context>) {
   const chatId = ctx.message?.chat?.id;
@@ -31,6 +32,62 @@ export async function parseDataTelegram(ctx: CommandContext<Context>) {
     userId: userId ? String(userId) : undefined,
     username,
     name,
+  }
+}
+
+/**
+ * Tombol-tombol Telegram Web App yang dikirim bareng /start & notifikasi
+ * registrasi:
+ * 1. "Buka Aplikasi" -> root webapp. Dibuka lewat sini, user langsung masuk
+ *    tanpa login sama sekali (initData Telegram dipakai diam-diam oleh
+ *    AuthProvider, lihat /api/auth/login-telegram) — chatId/telegramId ikut
+ *    ter-update tiap kali tombol ini dipakai.
+ * 2. "Set/Ganti Password" -> /telegram-setup, OPSIONAL, cuma perlu kalau
+ *    user mau login lewat browser biasa di luar Telegram.
+ */
+export function telegramAppKeyboard() {
+  const appUrl = process.env.APP_URL;
+  if (!appUrl) return undefined;
+  const base = appUrl.replace(/\/$/, '');
+  return {
+    inline_keyboard: [
+      [{ text: '🌸 Buka Aplikasi', web_app: { url: base } }],
+      [{ text: '🔑 Set / Ganti Password (opsional, buat akses browser)', web_app: { url: `${base}/telegram-setup` } }],
+    ],
+  };
+}
+
+/**
+ * Dipanggil dari /api/auth/login (bukan dari dalam bot command) waktu ada
+ * yang coba login browser tapi akun-nya belum punya password. Kalau
+ * chatId/telegramId user itu udah ke-capture sebelumnya, kirim chat lewat
+ * bot langsung berisi tombol "Set / Ganti Password" — jangan cuma
+ * ngandelin dia baca pesan error di layar login.
+ *
+ * Return true kalau chat-nya berhasil terkirim (dipakai buat nentuin pesan
+ * error mana yang ditampilkan di layar login).
+ */
+export async function notifyMissingPasswordViaTelegram(
+  username: string,
+  targetChatId: string | null | undefined
+): Promise<boolean> {
+  if (!targetChatId) return false;
+  try {
+    await telegramBot.api.sendMessage(
+      targetChatId,
+      '⚠️ <b>Percobaan login webapp terdeteksi</b>\n\n' +
+        `Username <b>@${username}</b> baru saja coba login lewat browser, tapi akun ini belum punya password. Ketuk tombol di bawah buat set password dulu.`,
+      {
+        parse_mode: 'HTML',
+        reply_markup: telegramAppKeyboard(),
+      }
+    );
+    return true;
+  } catch (err) {
+    // Bot mungkin diblokir user, atau chatId basi — jangan sampai gagal
+    // kirim notif bikin request login-nya ikut error.
+    console.error('Gagal kirim notif set-password ke Telegram:', err);
+    return false;
   }
 }
 

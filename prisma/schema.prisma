@@ -31,6 +31,9 @@ model AppUser {
   name       String     @db.VarChar(100)
   telegramId String?    @map("telegram_id") @db.VarChar(50)
   chatId     String?    @map("chat_id") @db.VarChar(50)
+  // Hash bcrypt untuk login username/password di luar Telegram Mini App.
+  // Null selama user belum pernah membuka /telegram-setup untuk set password.
+  password   String?    @db.VarChar(255)
   roles      UserRole[]
 
   @@map("app_user")

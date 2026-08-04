@@ -1,7 +1,7 @@
 'use client';
 
 import { Result } from 'antd';
-import { useTelegramAuth } from './TelegramProvider';
+import { useAuth } from './AuthProvider';
 
 export default function RoleGuard({
   allow,
@@ -10,7 +10,7 @@ export default function RoleGuard({
   allow: string[];
   children: React.ReactNode;
 }) {
-  const { roles, name } = useTelegramAuth();
+  const { roles, name } = useAuth();
   const authorized = roles.some((r) => allow.includes(r));
 
   if (!authorized) {

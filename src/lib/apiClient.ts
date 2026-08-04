@@ -1,20 +1,11 @@
 'use client';
 
-import {retrieveRawInitData} from "@tma.js/sdk-react";
+import {useAuthStore} from '@/store/authStore';
 import {fileToDataUrl} from "@/lib/file.util";
 
-export function getTelegramInitDataHeader(): Record<string, string> {
-  return { 'x-telegram-init-data': getInitData() };
-}
-
-function getInitData(): string {
-  try {
-    const retrieveRawInitDataResult = retrieveRawInitData();
-    return retrieveRawInitDataResult ?? "";
-  } catch {
-    // Not running inside Telegram (e.g. local dev in a plain browser).
-    return '';
-  }
+export function getAuthHeader(): Record<string, string> {
+  const token = useAuthStore.getState().token;
+  return token ? {Authorization: `Bearer ${token}`} : {};
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -22,10 +13,16 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      'x-telegram-init-data': getInitData(),
+      ...getAuthHeader(),
       ...(options.headers ?? {}),
     },
   });
+
+  // Token sudah tidak valid/expired — bersihkan supaya AuthProvider
+  // menampilkan layar login lagi, bukan spam error di halaman lama.
+  if (res.status === 401) {
+    useAuthStore.getState().clear();
+  }
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -55,9 +52,13 @@ export const apiClient = {
 
     const res = await fetch(path, {
       method: 'POST',
-      headers: {...getTelegramInitDataHeader()},
+      headers: {...getAuthHeader()},
       body: formData,
     });
+
+    if (res.status === 401) {
+      useAuthStore.getState().clear();
+    }
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -67,14 +68,14 @@ export const apiClient = {
   },
   /**
    * Ambil gambar dari private Blob store lewat proxy `/api/upload` (yang
-   * otentikasi via header init-data), lalu ubah jadi data: URL yang bisa
-   * langsung dipakai di <img src>. Pakai data: URL (bukan object URL) biar
-   * tidak perlu di-revoke dan tetap valid dipakai berkali-kali (mis. sama-sama
-   * dipakai thumbnail kecil dan modal zoom/preview-nya).
+   * otentikasi via header Authorization Bearer), lalu ubah jadi data: URL
+   * yang bisa langsung dipakai di <img src>. Pakai data: URL (bukan object
+   * URL) biar tidak perlu di-revoke dan tetap valid dipakai berkali-kali
+   * (mis. sama-sama dipakai thumbnail kecil dan modal zoom/preview-nya).
    */
   fetchPrivateImage: async (url: string): Promise<string> => {
     const res = await fetch(`/api/upload?url=${encodeURIComponent(url)}`, {
-      headers: {...getTelegramInitDataHeader()},
+      headers: {...getAuthHeader()},
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));

@@ -17,7 +17,7 @@ import {
 } from 'antd';
 import RoleGuard from '@/components/common/RoleGuard';
 import ItemImageGallery from '@/components/common/ItemImageGallery';
-import { useTelegramAuth } from '@/components/common/TelegramProvider';
+import { useAuth } from '@/components/common/AuthProvider';
 import { apiClient } from '@/lib/apiClient';
 import { AvailableFloristItem, MyFloristAssignment } from '@/types';
 import useSWRInfinite from 'swr/infinite';

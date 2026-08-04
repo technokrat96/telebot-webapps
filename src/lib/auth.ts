@@ -1,6 +1,6 @@
 import 'server-only';
 import {NextRequest} from 'next/server';
-import {validateTelegramInitData} from '@/lib/telegram';
+import {verifyAuthToken} from '@/lib/jwt';
 import {findUserByUsername} from '@/lib/db/users';
 import {hasAnyRole} from '@/lib/roles';
 import {User} from '@/types';
@@ -12,39 +12,51 @@ export interface AuthContext {
 }
 
 /**
- * Every API call from the client must include the raw Telegram
- * `initData` string in the `x-telegram-init-data` header (see
- * src/lib/apiClient.ts on the client side). We validate it against the
- * bot token, then look up the matching row in the "Users" sheet to get
- * the role(s). Returns null if invalid, unknown, or has none of the
- * allowed ROLES.
+ * Every API call from the client must include `Authorization: Bearer <jwt>`
+ * (see src/lib/apiClient.ts on the client side). The JWT is issued by
+ * POST /api/auth/login after a username/password check, and holds the
+ * username/name/roles at the time of login. We re-verify the signature
+ * here, then re-fetch the user from the DB so role changes made by an
+ * admin after login still take effect immediately (the JWT itself is only
+ * used to prove identity, not as the source of truth for ROLES).
+ *
+ * Returns null if the token is missing/invalid/expired, the user no
+ * longer exists, or has none of the allowed ROLES.
  */
 export async function requireAuth(
   req: NextRequest,
   allowedRoles?: string[]
 ): Promise<AuthContext | null> {
-  const initData = req.headers.get('x-telegram-init-data');
-
   if (process.env.NODE_ENV !== 'production') {
     const ROLES = ['ADMIN', 'FLORIST', 'KURIR'];
     const USER = {
       USERNAME: 'DEV',
       NAME: 'DEV',
       ROLES,
+      CHAT_ID: '1',
+      TELEGRAM_ID: '1',
     };
     return {TELEGRAM_ID: '1', TELEGRAM_USER: 'DEV', USER} as AuthContext;
   }
 
-  if (!initData) return null;
+  const authHeader = req.headers.get('authorization');
+  const token = authHeader?.toLowerCase().startsWith('bearer ')
+    ? authHeader.slice(7).trim()
+    : null;
+  if (!token) return null;
 
-  const telegramUser = validateTelegramInitData(initData);
-  if (!telegramUser?.username) return null;
+  const payload = verifyAuthToken(token);
+  if (!payload?.username) return null;
 
-  const user = await findUserByUsername(telegramUser.username);
+  const user = await findUserByUsername(payload.username);
   if (!user) return null;
 
   const { ROLES } = user;
   if (allowedRoles && !hasAnyRole(ROLES, allowedRoles)) return null;
 
-  return {TELEGRAM_ID: user.CHAT_ID ?? user.TELEGRAM_ID ?? String(telegramUser.id), TELEGRAM_USER: telegramUser.username, USER: user} as AuthContext;
+  return {
+    TELEGRAM_ID: user.CHAT_ID ?? user.TELEGRAM_ID ?? '',
+    TELEGRAM_USER: user.USERNAME,
+    USER: user,
+  } as AuthContext;
 }

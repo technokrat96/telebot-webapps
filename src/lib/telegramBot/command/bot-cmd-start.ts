@@ -1,4 +1,4 @@
-import {parseDataTelegram, validateUser} from "@/lib/telegramBot/telegramBotUtil";
+import {parseDataTelegram, validateUser, telegramAppKeyboard} from "@/lib/telegramBot/telegramBotUtil";
 import {
   ALLOWED_COMMAND_ALL_ROLE,
   ALLOWED_COMMAND_BY_ROLE,
@@ -43,9 +43,11 @@ const botCmdStart = async (ctx: CommandContext<Context>) => {
     // Memanggil fungsi help secara internal untuk menampilkan menu sesuai role USER
     const daftarMenu = `🤖 <b>Daftar Perintah Bot yang Tersedia untuk Anda</b>:\n\n${commandList}`;
     messageReply += `\n\n${daftarMenu}`;
+    messageReply += `\n\nKetuk "Buka Aplikasi" di bawah untuk langsung masuk tanpa login. Mau akses lewat browser biasa di luar Telegram? Set password dulu lewat tombol keduanya.`;
 
     await ctx.reply(messageReply, {
-      parse_mode: "HTML"
+      parse_mode: "HTML",
+      reply_markup: telegramAppKeyboard(),
     });
   } catch (e) {
     if (e instanceof Error) {
