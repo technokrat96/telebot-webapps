@@ -74,20 +74,6 @@ export default function LoginScreen({
             title={error}
             showIcon
             style={{ marginBottom: 16 }}
-            action={
-              needsTelegramSetup && BOT_USERNAME ? (
-                <Button
-                  size="small"
-                  type="primary"
-                  icon={<SendOutlined />}
-                  href={`https://t.me/${BOT_USERNAME}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Buka Bot
-                </Button>
-              ) : undefined
-            }
           />
         )}
         <Form layout="vertical" onFinish={handleSubmit} disabled={loading}>
