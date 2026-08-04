@@ -43,7 +43,7 @@ function toArrayPathname(pathname: string) {
 }
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  const { name, roles, logout } = useAuth();
+  const { name, roles, logout, isTelegramClient } = useAuth();
   const breakpoint = useBreakpoint();
   const pathname = usePathname();
   const router = useRouter();
@@ -106,14 +106,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               onClick={() => setCollapsed(!collapsed)}
             />)}
           </Flex>
-          <Button
-            type="text"
-            icon={<LogoutOutlined style={{color: '#fff'}}/>}
-            onClick={logout}
-            style={{marginTop: 8}}
-          >
-            <Text style={{color: '#fff'}}>Logout</Text>
-          </Button>
+          {!isTelegramClient && (
+            <Button
+              type="text"
+              icon={<LogoutOutlined style={{color: '#fff'}}/>}
+              onClick={logout}
+              style={{marginTop: 8}}
+            >
+              <Text style={{color: '#fff'}}>Logout</Text>
+            </Button>
+          )}
         </div>
         <Divider style={{ borderColor: 'white' }} />
         {(checkedIn && !checkedOut) && (<Menu
@@ -166,7 +168,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     </Text>
                   </Button>
                 )}
-                <Button type="text" icon={<LogoutOutlined style={{ color: '#fff' }} />} onClick={logout} />
+                {!isTelegramClient && (
+                  <Button type="text" icon={<LogoutOutlined style={{ color: '#fff' }} />} onClick={logout} />
+                )}
               </>
             ) : (
               <>

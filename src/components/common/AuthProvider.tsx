@@ -29,6 +29,13 @@ interface AuthState {
 interface AuthContextValue extends AuthState {
   logout: () => void;
   refresh: () => void;
+  // true kalau lagi diakses dari dalam Telegram Mini App (login-telegram
+  // yang jalan, bukan JWT username/password). Dipakai buat nyembunyiin UI
+  // yang nggak relevan di sana, mis. tombol Logout — soalnya di Telegram
+  // user bakal langsung ke-login otomatis lagi tiap buka app (lihat
+  // bootstrap() di atas), jadi Logout nggak ngapa-ngapain selain bikin
+  // bingung.
+  isTelegramClient: boolean;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -230,7 +237,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   }
 
   return (
-    <AuthContext.Provider value={{ ...state, logout, refresh: bootstrap }}>
+    <AuthContext.Provider
+      value={{ ...state, logout, refresh: bootstrap, isTelegramClient: !!state.telegramInitData }}
+    >
       {children}
     </AuthContext.Provider>
   );
