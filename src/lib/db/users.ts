@@ -15,6 +15,7 @@ function toUser(row: AppUserModel & { roles: Omit<UserRoleModel, "username">[] }
     USERNAME: row.username,
     NAME: row.name,
     ROLES: row.roles.map(e => e.role),
+    HAS_PASSWORD: Boolean(row.password),
   };
 }
 
@@ -170,6 +171,34 @@ export async function deleteUserByUsername(username: string): Promise<void> {
   await prisma.appUser.deleteMany({
     where: {username: {equals: normalized, mode: 'insensitive'}},
   });
+}
+
+/**
+ * Cari user berdasarkan username yang MENGANDUNG `query` (case-insensitive).
+ * Query kosong = daftar semua user. Dipakai flow "Check User" di bot
+ * Telegram: tampilkan beberapa username dulu, admin bisa ketik sebagian
+ * buat mempersempit hasil.
+ */
+export async function searchUsers(
+  query: string,
+  limit: number,
+): Promise<{items: {username: string; name: string}[]; total: number}> {
+  const trimmed = query.trim().replace(/^@/, '');
+  const where = trimmed
+    ? {username: {contains: trimmed, mode: 'insensitive' as const}}
+    : {};
+
+  const [items, total] = await Promise.all([
+    prisma.appUser.findMany({
+      where,
+      orderBy: {username: 'asc'},
+      take: limit,
+      select: {username: true, name: true},
+    }),
+    prisma.appUser.count({where}),
+  ]);
+
+  return {items, total};
 }
 
 export async function getTelegramIdByUsername(username: string) {

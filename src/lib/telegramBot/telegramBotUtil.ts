@@ -40,20 +40,23 @@ export async function parseDataTelegram(ctx: Context) {
   }
 }
 
-/**
- * Tombol-tombol Telegram Web App yang dikirim bareng /start & notifikasi
- * registrasi:
- * 1. "Buka Aplikasi" -> root webapp. Dibuka lewat sini, user langsung masuk
- *    tanpa login sama sekali (initData Telegram dipakai diam-diam oleh
- *    AuthProvider, lihat /api/auth/login-telegram) — chatId/telegramId ikut
- *    ter-update tiap kali tombol ini dipakai.
- * 2. "Set/Ganti Password" -> /telegram-setup, OPSIONAL, cuma perlu kalau
- *    user mau login lewat browser biasa di luar Telegram.
- */
-export function telegramAppKeyboard(): InlineKeyboard | undefined {
+/** Domain publik webapp (tanpa trailing slash), atau undefined kalau APP_URL belum diatur. */
+export function getAppBaseUrl(): string | undefined {
   const appUrl = process.env.APP_URL;
   if (!appUrl) return undefined;
-  const base = appUrl.replace(/\/$/, '');
+  return appUrl.replace(/\/$/, '');
+}
+
+/**
+ * Tombol-tombol Telegram Web App khusus notifikasi "percobaan login browser
+ * terdeteksi tapi belum punya password" (lihat notifyMissingPasswordViaTelegram
+ * di bawah):
+ * 1. "Buka Aplikasi" -> root webapp, login diam-diam pakai initData Telegram.
+ * 2. "Set/Ganti Password" -> /telegram-setup, buat akses lewat browser biasa.
+ */
+export function telegramAppKeyboard(): InlineKeyboard | undefined {
+  const base = getAppBaseUrl();
+  if (!base) return undefined;
   return new InlineKeyboard()
     .webApp('🌸 Buka Aplikasi', base)
     .row()

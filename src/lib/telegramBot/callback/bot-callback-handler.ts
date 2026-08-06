@@ -7,6 +7,7 @@ import {
   findUserByUsername,
   insertUser,
   replaceUserRoles,
+  searchUsers,
 } from "@/lib/db/users";
 import {ADMIN_ROLE} from "@/lib/telegramBot/telegramBotConst";
 import {
@@ -15,8 +16,11 @@ import {
   buildConfirmDeleteKeyboard,
   buildMainMenuKeyboard,
   buildRoleSelectKeyboard,
+  buildUsernameListKeyboard,
   CB,
+  CHECK_USER_LIST_SIZE,
   formatUserCard,
+  formatUsernameListMessage,
 } from "@/lib/telegramBot/menu";
 
 type ParsedInfo = Awaited<ReturnType<typeof parseDataTelegram>>;
@@ -105,7 +109,7 @@ async function handleMain(ctx: Context, info: ParsedInfo) {
   await safeEditMessageText(
     ctx,
     `Halo <b>${user.NAME || "Pengguna"}</b>! Silakan pilih menu di bawah ini:`,
-    {parse_mode: "HTML", reply_markup: buildMainMenuKeyboard(user.ROLES)},
+    {parse_mode: "HTML", reply_markup: buildMainMenuKeyboard(user)},
   );
 }
 
@@ -145,9 +149,19 @@ async function handleCheckStart(ctx: Context, info: ParsedInfo) {
   await ctx.answerCallbackQuery();
   await safeEditMessageText(
     ctx,
-    "🔍 <b>Check User</b>\n\nKetik username yang ingin dicek:",
+    "🔍 <b>Check User</b>\n\nKetik sebagian username untuk mencari, atau pilih dari daftar di bawah:",
     {parse_mode: "HTML", reply_markup: buildBackToMenuKeyboard()},
   );
+
+  const {items, total} = await searchUsers("", CHECK_USER_LIST_SIZE);
+  if (total === 0) {
+    await ctx.reply("Belum ada user yang terdaftar di sistem.", {parse_mode: "HTML"});
+    return;
+  }
+  await ctx.reply(formatUsernameListMessage(items, total), {
+    parse_mode: "HTML",
+    reply_markup: buildUsernameListKeyboard(items.map((u) => u.username)),
+  });
 }
 
 async function handleRoleToggle(ctx: Context, chatId: string, role: string) {
@@ -226,7 +240,7 @@ async function handleRoleCancel(ctx: Context, info: ParsedInfo) {
   await safeEditMessageText(
     ctx,
     `Halo <b>${user.NAME || "Pengguna"}</b>! Silakan pilih menu di bawah ini:`,
-    {parse_mode: "HTML", reply_markup: buildMainMenuKeyboard(user.ROLES)},
+    {parse_mode: "HTML", reply_markup: buildMainMenuKeyboard(user)},
   );
 }
 

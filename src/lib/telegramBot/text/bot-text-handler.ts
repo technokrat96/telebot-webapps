@@ -1,10 +1,18 @@
 import {Context} from "grammy";
 import {clearBotSession, getBotSession, setBotSession} from "@/lib/db/botSession";
-import {findUserByUsername} from "@/lib/db/users";
+import {findUserByUsername, searchUsers} from "@/lib/db/users";
 import {getMasterData} from "@/lib/db/masterData";
 import {parseDataTelegram, validateUser} from "@/lib/telegramBot/telegramBotUtil";
 import {ADMIN_ROLE} from "@/lib/telegramBot/telegramBotConst";
-import {buildBackToMenuKeyboard, buildCheckedUserKeyboard, buildRoleSelectKeyboard, formatUserCard} from "@/lib/telegramBot/menu";
+import {
+  buildBackToMenuKeyboard,
+  buildCheckedUserKeyboard,
+  buildRoleSelectKeyboard,
+  buildUsernameListKeyboard,
+  CHECK_USER_LIST_SIZE,
+  formatUserCard,
+  formatUsernameListMessage,
+} from "@/lib/telegramBot/menu";
 
 function cleanUsernameInput(raw: string): string {
   return raw.trim().replace(/^@/, "");
@@ -110,20 +118,36 @@ async function handleAwaitCheckUsername(ctx: Context, chatId: string, text: stri
     return;
   }
 
-  const target = cleanUsernameInput(text);
-  const foundUser = await findUserByUsername(target);
-  if (!foundUser) {
-    await clearBotSession(chatId);
-    await ctx.reply(`❌ Username @${target} tidak terdaftar di sistem.`, {
+  const query = cleanUsernameInput(text);
+  const {items, total} = await searchUsers(query, CHECK_USER_LIST_SIZE);
+
+  if (total === 0) {
+    await ctx.reply(`❌ Tidak ada username yang mengandung "${query}". Coba kata kunci lain:`, {
       parse_mode: "HTML",
-      reply_markup: buildBackToMenuKeyboard(),
+    });
+    // Tetap di state AWAIT_CHK_USERNAME supaya admin bisa langsung coba lagi.
+    return;
+  }
+
+  if (total === 1) {
+    const foundUser = await findUserByUsername(items[0].username);
+    if (!foundUser) {
+      await ctx.reply(`❌ Username @${items[0].username} tidak ditemukan lagi.`, {parse_mode: "HTML"});
+      return;
+    }
+    await setBotSession(chatId, "CHECKED_USER", {username: foundUser.USERNAME});
+    await ctx.reply(formatUserCard(foundUser), {
+      parse_mode: "HTML",
+      reply_markup: buildCheckedUserKeyboard(),
     });
     return;
   }
 
-  await setBotSession(chatId, "CHECKED_USER", {username: foundUser.USERNAME});
-  await ctx.reply(formatUserCard(foundUser), {
+  // Lebih dari satu hasil -- tampilkan daftar dulu, admin bisa tap salah
+  // satu (langsung terisi ke kotak input, tinggal kirim) atau ketik lebih
+  // spesifik lagi buat mempersempit.
+  await ctx.reply(formatUsernameListMessage(items, total), {
     parse_mode: "HTML",
-    reply_markup: buildCheckedUserKeyboard(),
+    reply_markup: buildUsernameListKeyboard(items.map((u) => u.username)),
   });
 }

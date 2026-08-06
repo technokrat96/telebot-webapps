@@ -22,7 +22,7 @@ const botCmdStart = async (ctx: CommandContext<Context>) => {
       await clearBotSession(chatId);
     }
 
-    const keyboard = buildMainMenuKeyboard(user.ROLES);
+    const keyboard = buildMainMenuKeyboard(user);
 
     const messageReply =
       `Halo <b>${user.NAME || "Pengguna"}</b>! Status bot dalam keadaan aktif.\n\n` +

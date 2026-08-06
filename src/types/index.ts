@@ -4,6 +4,9 @@ export interface User {
   USERNAME: string;
   NAME: string;
   ROLES: string[];
+  // Cuma status boolean, hash password-nya sendiri sengaja tidak pernah
+  // ikut di-map ke tipe ini (lihat toUser() di src/lib/db/users.ts).
+  HAS_PASSWORD: boolean;
 }
 
 export type Transaction = {
