@@ -147,6 +147,31 @@ export async function insertRoleUser(username: string, role: string): Promise<vo
   });
 }
 
+/**
+ * Ganti seluruh role user dengan set role baru (dipakai flow Register User
+ * & Edit User di bot Telegram, keduanya "replace", bukan "append"). Wajib
+ * pakai `username` PERSIS seperti tersimpan di kolom AppUser.username (bukan
+ * hasil lowercase/normalize), karena UserRole.username adalah foreign key
+ * yang case-sensitive ke AppUser.username.
+ */
+export async function replaceUserRoles(exactUsername: string, roles: string[]): Promise<void> {
+  await prisma.$transaction([
+    prisma.userRole.deleteMany({where: {username: exactUsername}}),
+    prisma.userRole.createMany({
+      data: roles.map((role) => ({username: exactUsername, role})),
+      skipDuplicates: true,
+    }),
+  ]);
+}
+
+/** Hapus user (cascade otomatis menghapus UserRole terkait, lihat schema.prisma). */
+export async function deleteUserByUsername(username: string): Promise<void> {
+  const normalized = normalizedUsername(username);
+  await prisma.appUser.deleteMany({
+    where: {username: {equals: normalized, mode: 'insensitive'}},
+  });
+}
+
 export async function getTelegramIdByUsername(username: string) {
   const normalized = normalizedUsername(username);
   const user = await prisma.appUser.findFirst({

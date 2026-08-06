@@ -1,23 +1,28 @@
-import {CommandContext, Context} from "grammy";
+import {Context, InlineKeyboard} from "grammy";
 import {
   findUserByUsername,
   findUsersAdminNotMeAndHasChatIdOrTelegramId,
   insertUser,
   updateUserByUsername
 } from "@/lib/db/users";
-import {getMasterData} from "@/lib/db/masterData";
-import {COMMAND_LIST} from "@/lib/telegramBot/telegramBotConst";
 import telegramBot from "@/lib/telegramBot";
 
-export async function parseDataTelegram(ctx: CommandContext<Context>) {
-  const chatId = ctx.message?.chat?.id;
-  const chatType = ctx.message?.chat?.type;
-  const messageId = ctx.message?.message_id;
-  const userId = ctx.message?.from?.id;
-  const username = ctx.message?.from?.username ?? ctx.message?.chat?.username;
+/**
+ * Ambil data pengirim dari Context grammy generik. Dipakai baik dari
+ * command handler (/start, `ctx.message`) maupun dari callback query
+ * handler (klik inline button, `ctx.callbackQuery`) -- `ctx.from`/`ctx.chat`
+ * bawaan grammy sudah otomatis fallback ke sumber yang sesuai untuk
+ * keduanya, jadi satu fungsi ini cukup untuk semua flow.
+ */
+export async function parseDataTelegram(ctx: Context) {
+  const chatId = ctx.chat?.id;
+  const chatType = ctx.chat?.type;
+  const messageId = ctx.msgId;
+  const userId = ctx.from?.id;
+  const username = ctx.from?.username;
 
-  const firstName = ctx.message?.from?.first_name ?? ctx.message?.chat?.first_name ?? '';
-  const lastName = ctx.message?.from?.last_name ?? ctx.message?.chat?.last_name ?? '';
+  const firstName = ctx.from?.first_name ?? '';
+  const lastName = ctx.from?.last_name ?? '';
 
   const name = `${firstName} ${lastName}`.trim();
 
@@ -45,16 +50,14 @@ export async function parseDataTelegram(ctx: CommandContext<Context>) {
  * 2. "Set/Ganti Password" -> /telegram-setup, OPSIONAL, cuma perlu kalau
  *    user mau login lewat browser biasa di luar Telegram.
  */
-export function telegramAppKeyboard() {
+export function telegramAppKeyboard(): InlineKeyboard | undefined {
   const appUrl = process.env.APP_URL;
   if (!appUrl) return undefined;
   const base = appUrl.replace(/\/$/, '');
-  return {
-    inline_keyboard: [
-      [{ text: '🌸 Buka Aplikasi', web_app: { url: base } }],
-      [{ text: '🔑 Set / Ganti Password (opsional, buat akses browser)', web_app: { url: `${base}/telegram-setup` } }],
-    ],
-  };
+  return new InlineKeyboard()
+    .webApp('🌸 Buka Aplikasi', base)
+    .row()
+    .webApp('🔑 Set / Ganti Password (opsional, buat akses browser)', `${base}/telegram-setup`);
 }
 
 /**
@@ -91,15 +94,13 @@ export async function notifyMissingPasswordViaTelegram(
   }
 }
 
-export async function validateUser(ctx: CommandContext<Context>, {username, name, chatId, userId}: {
+export async function validateUser(ctx: Context, {username, name, chatId, userId}: {
   username: string,
   name: string,
   chatId?: string,
   userId?: string,
 }) {
   const user = await findUserByUsername(username);
-
-  const {ROLES} = await getMasterData();
 
   if (!user) {
     await insertUser({
@@ -117,8 +118,7 @@ export async function validateUser(ctx: CommandContext<Context>, {username, name
         const htmlMessage = `
 ⚠️ <b>New User Registration Notif</b>
 
-An admin needs to assign a role to this user. Copy and send this command to the bot:
-${ROLES.map((role) => `<code>/${COMMAND_LIST.registeruser} ${username} ${role}</code>`).join('\n')}
+User baru <b>@${username}</b> butuh di-assign role. Buka bot, ketik /start, tap tombol "➕ Register User", lalu ketik username <code>${username}</code>.
 `;
         await ctx.api.sendMessage(
           user.CHAT_ID ?? user.TELEGRAM_ID ?? "",

@@ -1,10 +1,6 @@
-import {parseDataTelegram, validateUser, telegramAppKeyboard} from "@/lib/telegramBot/telegramBotUtil";
-import {
-  ALLOWED_COMMAND_ALL_ROLE,
-  ALLOWED_COMMAND_BY_ROLE,
-  COMMAND_DESC_LIST,
-  COMMAND_LIST
-} from "@/lib/telegramBot/telegramBotConst";
+import {parseDataTelegram, validateUser} from "@/lib/telegramBot/telegramBotUtil";
+import {clearBotSession} from "@/lib/db/botSession";
+import {buildMainMenuKeyboard} from "@/lib/telegramBot/menu";
 import {CommandContext, Context} from "grammy";
 
 const botCmdStartDesc = "Memulai dan cek status aktif bot";
@@ -19,35 +15,22 @@ const botCmdStart = async (ctx: CommandContext<Context>) => {
 
     const user = await validateUser(ctx, {username, name, chatId, userId});
 
-    const allowedKeys = new Set<keyof typeof COMMAND_LIST>([...ALLOWED_COMMAND_ALL_ROLE]);
-
-    if (user.ROLES && Array.isArray(user.ROLES)) {
-      user.ROLES.forEach((roleName) => {
-        const roleCmds = ALLOWED_COMMAND_BY_ROLE[roleName];
-        if (roleCmds) {
-          roleCmds.forEach((cmdKey) => allowedKeys.add(cmdKey));
-        }
-      });
+    // Selalu mulai dari kondisi bersih -- kalau sebelumnya user lagi di
+    // tengah flow (misal lagi diminta ketik username), /start membatalkan
+    // itu dan kembali ke menu utama.
+    if (chatId) {
+      await clearBotSession(chatId);
     }
 
-    const commandList = Object.entries(COMMAND_LIST)
-      .filter(([key]) => allowedKeys.has(key as keyof typeof COMMAND_LIST))
-      .map(
-        ([key, cmd]) =>
-          `/${cmd} - ${COMMAND_DESC_LIST[key as keyof typeof COMMAND_LIST] ?? "Tanpa deskripsi"}`,
-      )
-      .join("\n");
+    const keyboard = buildMainMenuKeyboard(user.ROLES);
 
-    let messageReply = `Halo <b>${user.NAME || "Pengguna"}</b>! Status bot dalam keadaan aktif.`;
-
-    // Memanggil fungsi help secara internal untuk menampilkan menu sesuai role USER
-    const daftarMenu = `🤖 <b>Daftar Perintah Bot yang Tersedia untuk Anda</b>:\n\n${commandList}`;
-    messageReply += `\n\n${daftarMenu}`;
-    messageReply += `\n\nKetuk "Buka Aplikasi" di bawah untuk langsung masuk tanpa login. Mau akses lewat browser biasa di luar Telegram? Set password dulu lewat tombol keduanya.`;
+    const messageReply =
+      `Halo <b>${user.NAME || "Pengguna"}</b>! Status bot dalam keadaan aktif.\n\n` +
+      `Silakan pilih menu di bawah ini:`;
 
     await ctx.reply(messageReply, {
       parse_mode: "HTML",
-      reply_markup: telegramAppKeyboard(),
+      reply_markup: keyboard,
     });
   } catch (e) {
     if (e instanceof Error) {

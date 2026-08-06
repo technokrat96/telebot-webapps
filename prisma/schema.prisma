@@ -48,6 +48,20 @@ model UserRole {
   @@map("user_role")
 }
 
+// Menyimpan state percakapan bot Telegram per chat (dipakai buat flow
+// inline keyboard multi-langkah seperti Register User / Edit User yang
+// butuh input teks di tengah flow). Perlu persist ke DB (bukan in-memory)
+// karena webhook Telegram jalan di serverless function -- tiap request bisa
+// kena instance yang berbeda.
+model BotSession {
+  chatId    String   @id @map("chat_id") @db.VarChar(50)
+  state     String   @db.VarChar(40)
+  data      Json     @default("{}")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("bot_session")
+}
+
 model Transaction {
   orderId                   String                     @id @map("order_id") @db.VarChar(30)
   orderSource               String?                    @map("order_source") @db.VarChar(40)
