@@ -1,18 +1,19 @@
-import 'server-only';
-import {prisma} from '@/lib/prismaClient';
+import "server-only";
+import { prisma } from "@/lib/prismaClient";
 import {
   Invoice,
   InvoiceDetail,
   InvoicePdfData,
   InvoiceWithDetails,
   OrderItemWithBilling,
-  TransactionWithBilling
-} from '@/types';
-import {InvoiceModel} from "@/generated/prisma/models/Invoice";
-import {InvoiceDetailModel} from "@/generated/prisma/models/InvoiceDetail";
-import {Decimal} from "@prisma/client-runtime-utils";
-import {generateInvoiceId, generateInvoiceItemId} from "@/lib/generateId";
-import {listTransactionsWithDetails} from '@/lib/db/transaction';
+  TransactionWithBilling,
+} from "@/types";
+import { InvoiceModel } from "@/generated/prisma/models/Invoice";
+import { InvoiceDetailModel } from "@/generated/prisma/models/InvoiceDetail";
+import { Decimal } from "@prisma/client-runtime-utils";
+import { generateInvoiceId, generateInvoiceItemId } from "@/lib/generateId";
+import { isPrismaError } from "@/lib/prismaErrorCode";
+import { listTransactionsWithDetails } from "@/lib/db/transaction";
 import serverDayJs from "@/lib/server.dayjs";
 
 // ---- Prisma (camelCase) <-> App types (SNAKE_CASE) mappers ----
@@ -21,7 +22,9 @@ function toInvoice(row: InvoiceModel): Invoice {
   return {
     INVOICE_ID: row.invoiceId,
     INVOICE_NUMBER: row.invoiceNumber ?? "",
-    INVOICE_DATE: row.invoiceDate ? serverDayJs(row.invoiceDate).format("YYYY-MM-DD HH:mm:ss") : "",
+    INVOICE_DATE: row.invoiceDate
+      ? serverDayJs(row.invoiceDate).format("YYYY-MM-DD HH:mm:ss")
+      : "",
     DUE_DATE: row.dueDate ? serverDayJs(row.dueDate).format("YYYY-MM-DD") : "",
     TOTAL_AMOUNT: row.totalAmount.toNumber(),
     AMOUNT_PAID: row.amountPaid.toNumber(),
@@ -42,7 +45,9 @@ function toInvoiceDetail(row: InvoiceDetailModel): InvoiceDetail {
   };
 }
 
-function fromInvoice(invoice: Omit<Invoice, "INVOICE_ID">): Omit<InvoiceModel, "invoiceId" | "createdAt"> {
+function fromInvoice(
+  invoice: Omit<Invoice, "INVOICE_ID">,
+): Omit<InvoiceModel, "invoiceId" | "createdAt"> {
   return {
     invoiceNumber: invoice.INVOICE_NUMBER,
     invoiceDate: serverDayJs(invoice.INVOICE_DATE).toDate(),
@@ -56,7 +61,9 @@ function fromInvoice(invoice: Omit<Invoice, "INVOICE_ID">): Omit<InvoiceModel, "
   };
 }
 
-function fromInvoiceDetail(detail: Omit<InvoiceDetail, 'INVOICE_ID' | "INVOICE_ITEM_ID">): Omit<InvoiceDetailModel, "invoiceId" | "invoiceItemId"> {
+function fromInvoiceDetail(
+  detail: Omit<InvoiceDetail, "INVOICE_ID" | "INVOICE_ITEM_ID">,
+): Omit<InvoiceDetailModel, "invoiceId" | "invoiceItemId"> {
   return {
     orderItemId: detail.ORDER_ITEM_ID,
     quantityBilled: new Decimal(detail.QUANTITY_BILLED),
@@ -66,20 +73,30 @@ function fromInvoiceDetail(detail: Omit<InvoiceDetail, 'INVOICE_ID' | "INVOICE_I
 
 function fromInvoiceUpdates(updates: Partial<Invoice>): Partial<InvoiceModel> {
   const data: Partial<InvoiceModel> = {};
-  if (updates.INVOICE_NUMBER !== undefined) data.invoiceNumber = updates.INVOICE_NUMBER;
-  if (updates.INVOICE_DATE !== undefined) data.invoiceDate = serverDayJs(updates.INVOICE_DATE).toDate();
-  if (updates.DUE_DATE !== undefined) data.dueDate = serverDayJs(updates.DUE_DATE).toDate();
-  if (updates.TOTAL_AMOUNT !== undefined) data.totalAmount = new Decimal(updates.TOTAL_AMOUNT);
-  if (updates.AMOUNT_PAID !== undefined) data.amountPaid = new Decimal(updates.AMOUNT_PAID);
-  if (updates.INVOICE_STATUS !== undefined) data.invoiceStatus = updates.INVOICE_STATUS;
+  if (updates.INVOICE_NUMBER !== undefined)
+    data.invoiceNumber = updates.INVOICE_NUMBER;
+  if (updates.INVOICE_DATE !== undefined)
+    data.invoiceDate = serverDayJs(updates.INVOICE_DATE).toDate();
+  if (updates.DUE_DATE !== undefined)
+    data.dueDate = serverDayJs(updates.DUE_DATE).toDate();
+  if (updates.TOTAL_AMOUNT !== undefined)
+    data.totalAmount = new Decimal(updates.TOTAL_AMOUNT);
+  if (updates.AMOUNT_PAID !== undefined)
+    data.amountPaid = new Decimal(updates.AMOUNT_PAID);
+  if (updates.INVOICE_STATUS !== undefined)
+    data.invoiceStatus = updates.INVOICE_STATUS;
   if (updates.BILLED_TO !== undefined) data.billedTo = updates.BILLED_TO;
-  if (updates.BILLED_ADDRESS !== undefined) data.billedAddress = updates.BILLED_ADDRESS;
-  if (updates.BILLED_PHONE !== undefined) data.billedPhone = updates.BILLED_PHONE;
+  if (updates.BILLED_ADDRESS !== undefined)
+    data.billedAddress = updates.BILLED_ADDRESS;
+  if (updates.BILLED_PHONE !== undefined)
+    data.billedPhone = updates.BILLED_PHONE;
   return data;
 }
 
 export async function listInvoices(): Promise<Invoice[]> {
-  const rows = await prisma.invoice.findMany({ orderBy: { createdAt: 'desc' } });
+  const rows = await prisma.invoice.findMany({
+    orderBy: { createdAt: "desc" },
+  });
   return rows.map(toInvoice);
 }
 
@@ -89,14 +106,14 @@ export async function listInvoiceDetails(): Promise<InvoiceDetail[]> {
 }
 
 export async function listInvoicesWithDetails(
-  options: { page?: number; pageSize?: number } = {}
+  options: { page?: number; pageSize?: number } = {},
 ): Promise<{ invoices: InvoiceWithDetails[]; total: number }> {
   const page = Math.max(1, options.page ?? 1);
   const pageSize = Math.min(100, Math.max(1, options.pageSize ?? 10)); // cap 100 biar gak disalahgunakan
 
   const [rows, total] = await Promise.all([
     prisma.invoice.findMany({
-      orderBy: { createdAt: 'desc' }, // newest first, dulu didapat dari .reverse()
+      orderBy: { createdAt: "desc" }, // newest first, dulu didapat dari .reverse()
       skip: (page - 1) * pageSize,
       take: pageSize,
       include: { details: true },
@@ -115,7 +132,7 @@ export async function listInvoicesWithDetails(
 /** Satu invoice by id, dipakai di /api/invoices/[id] (sebelumnya nge-fetch
  * semua invoice lalu .find() -- jadi ikut kepotong pagination di atas). */
 export async function getInvoiceWithDetailsById(
-  invoiceId: string
+  invoiceId: string,
 ): Promise<InvoiceWithDetails | null> {
   const inv = await prisma.invoice.findUnique({
     where: { invoiceId },
@@ -127,9 +144,10 @@ export async function getInvoiceWithDetailsById(
 
 export async function createInvoice(
   invoice: Omit<Invoice, "INVOICE_ID">,
-  details: Omit<InvoiceDetail, "INVOICE_ID" | "INVOICE_ITEM_ID">[]
+  details: Omit<InvoiceDetail, "INVOICE_ID" | "INVOICE_ITEM_ID">[],
 ): Promise<void> {
-  if (details.length === 0) throw new Error('Invoice harus punya minimal 1 item');
+  if (details.length === 0)
+    throw new Error("Invoice harus punya minimal 1 item");
 
   const invoiceId = generateInvoiceId();
   // Urutan konsisten (sorted) biar kalau ada 2 invoice yang overlap order
@@ -152,20 +170,25 @@ export async function createInvoice(
     });
     // Qty yang sudah ditagih invoice lain, dihitung ulang dari DB sekarang
     // (bukan dipercaya dari payload client yang render-nya bisa udah basi).
-    const runningBilled = billedRows.reduce((acc, r) => {
-      acc[r.orderItemId] = (acc[r.orderItemId] ?? 0) + r.quantityBilled.toNumber();
-      return acc;
-    }, {} as Record<string, number>);
+    const runningBilled = billedRows.reduce(
+      (acc, r) => {
+        acc[r.orderItemId] =
+          (acc[r.orderItemId] ?? 0) + r.quantityBilled.toNumber();
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     for (const d of details) {
       const item = itemById.get(d.ORDER_ITEM_ID);
-      if (!item) throw new Error(`Order item ${d.ORDER_ITEM_ID} tidak ditemukan`);
+      if (!item)
+        throw new Error(`Order item ${d.ORDER_ITEM_ID} tidak ditemukan`);
 
       const alreadyBilled = runningBilled[d.ORDER_ITEM_ID] ?? 0;
       const remaining = Number(item.quantity || 0) - alreadyBilled;
       if (d.QUANTITY_BILLED > remaining) {
         throw new Error(
-          `"${item.itemName}" sisa qty yang bisa ditagih cuma ${remaining}, tidak bisa tagih ${d.QUANTITY_BILLED}`
+          `"${item.itemName}" sisa qty yang bisa ditagih cuma ${remaining}, tidak bisa tagih ${d.QUANTITY_BILLED}`,
         );
       }
       // Akumulasi biar 2 baris item yang sama dalam 1 invoice yang sama juga kecek bareng.
@@ -189,7 +212,7 @@ export async function createInvoice(
 
 export async function updateInvoice(
   invoiceId: string,
-  updates: Partial<Invoice>
+  updates: Partial<Invoice>,
 ): Promise<boolean> {
   try {
     await prisma.invoice.update({
@@ -197,8 +220,8 @@ export async function updateInvoice(
       data: fromInvoiceUpdates(updates),
     });
     return true;
-  } catch (err: any) {
-    if (err?.code === 'P2025') return false; // record to update not found
+  } catch (err: unknown) {
+    if (isPrismaError(err, "P2025")) return false; // record to update not found
     throw err;
   }
 }
@@ -207,14 +230,20 @@ export async function updateInvoice(
 
 async function getBilledQtyByOrderItem(): Promise<Record<string, number>> {
   const details = await listInvoiceDetails();
-  return details.reduce((acc, d) => {
-    acc[d.ORDER_ITEM_ID] = (acc[d.ORDER_ITEM_ID] ?? 0) + Number(d.QUANTITY_BILLED || 0);
-    return acc;
-  }, {} as Record<string, number>);
+  return details.reduce(
+    (acc, d) => {
+      acc[d.ORDER_ITEM_ID] =
+        (acc[d.ORDER_ITEM_ID] ?? 0) + Number(d.QUANTITY_BILLED || 0);
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
 }
 
 /** Semua transaksi + status penagihan tiap item-nya (billed/sisa qty). */
-export async function listOrdersWithBillingSummary(): Promise<TransactionWithBilling[]> {
+export async function listOrdersWithBillingSummary(): Promise<
+  TransactionWithBilling[]
+> {
   const [orders, billedMap] = await Promise.all([
     listTransactionsWithDetails(),
     getBilledQtyByOrderItem(),
@@ -230,12 +259,12 @@ export async function listOrdersWithBillingSummary(): Promise<TransactionWithBil
     const totalQty = details.reduce((s, d) => s + Number(d.QUANTITY || 0), 0);
     const totalRemaining = details.reduce((s, d) => s + d.remainingQty, 0);
 
-    const invoiceStatus: TransactionWithBilling['invoiceStatus'] =
+    const invoiceStatus: TransactionWithBilling["invoiceStatus"] =
       totalRemaining === totalQty
-        ? 'NOT_INVOICED'
+        ? "NOT_INVOICED"
         : totalRemaining === 0
-          ? 'FULLY_INVOICED'
-          : 'PARTIAL';
+          ? "FULLY_INVOICED"
+          : "PARTIAL";
 
     return { ...order, details, invoiceStatus };
   });
@@ -243,14 +272,16 @@ export async function listOrdersWithBillingSummary(): Promise<TransactionWithBil
 
 /** Billing summary untuk satu transaksi (dipakai di halaman create invoice). */
 export async function getOrderBillingSummary(
-  orderId: string
+  orderId: string,
 ): Promise<TransactionWithBilling | null> {
   const orders = await listOrdersWithBillingSummary();
   return orders.find((o) => o.ORDER_ID === orderId) ?? null;
 }
 
 /** Invoice + nama item + data transaksi terkait, khusus untuk render PDF. */
-export async function getInvoicePdfData(invoiceId: string): Promise<InvoicePdfData | null> {
+export async function getInvoicePdfData(
+  invoiceId: string,
+): Promise<InvoicePdfData | null> {
   const invoice = await prisma.invoice.findUnique({
     where: { invoiceId },
     include: {
@@ -269,10 +300,10 @@ export async function getInvoicePdfData(invoiceId: string): Promise<InvoicePdfDa
 
   return {
     ...toInvoice(invoice),
-    orderId: firstDetail?.orderId ?? '',
-    customerName: firstDetail?.transaction.customerName ?? '',
-    customerAddress: firstDetail?.transaction.customerAddress ?? '',
-    customerPhone: firstDetail?.transaction.customerPhone ?? '',
+    orderId: firstDetail?.orderId ?? "",
+    customerName: firstDetail?.transaction.customerName ?? "",
+    customerAddress: firstDetail?.transaction.customerAddress ?? "",
+    customerPhone: firstDetail?.transaction.customerPhone ?? "",
     items: invoice.details.map((d) => ({
       ITEM_NAME: d.transactionDetail.itemName,
       QUANTITY_BILLED: d.quantityBilled.toNumber(),

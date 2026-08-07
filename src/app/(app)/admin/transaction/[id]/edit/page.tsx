@@ -1,19 +1,25 @@
-'use client';
+"use client";
 
-import {useEffect, useState} from 'react';
-import {useParams, useRouter} from 'next/navigation';
-import {App, Form, Spin, Typography} from 'antd';
-import RoleGuard from '@/components/common/RoleGuard';
-import {apiClient} from '@/lib/apiClient';
-import {Transaction, TransactionDetail, TransactionWithDetails} from '@/types';
-import TransactionForm, {TransactionFormValues} from "@/components/transaction/TransactionForm";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { App, Form, Spin, Typography } from "antd";
+import RoleGuard from "@/components/common/RoleGuard";
+import { apiClient } from "@/lib/apiClient";
+import {
+  Transaction,
+  TransactionDetail,
+  TransactionWithDetails,
+} from "@/types";
+import TransactionForm, {
+  TransactionFormValues,
+} from "@/components/transaction/TransactionForm";
 import clientDayJs from "@/lib/cleint.dayjs";
 
 const { Title } = Typography;
 
 export default function EditTransactionPage() {
   return (
-    <RoleGuard allow={['ADMIN']}>
+    <RoleGuard allow={["ADMIN"]}>
       <EditTransactionContent />
     </RoleGuard>
   );
@@ -46,8 +52,12 @@ function EditTransactionContent() {
           SHIPPING_FEE,
         } = res.transaction.details[0];
 
-        const deliveryDate = DELIVERY_DATE ? clientDayJs(DELIVERY_DATE) : undefined;
-        const deliveryTime = DELIVERY_TIME ? clientDayJs(DELIVERY_TIME) : undefined;
+        const deliveryDate = DELIVERY_DATE
+          ? clientDayJs(DELIVERY_DATE)
+          : undefined;
+        const deliveryTime = DELIVERY_TIME
+          ? clientDayJs(DELIVERY_TIME)
+          : undefined;
 
         form.setFieldsValue({
           ...res.transaction,
@@ -67,6 +77,8 @@ function EditTransactionContent() {
       })
       .catch((err) => message.error(err.message))
       .finally(() => setLoading(false));
+    // `message` dari antd stabil secara instance, sengaja gak dimasukkan ke deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, form]);
 
   async function handleSave(values: TransactionFormValues): Promise<boolean> {
@@ -90,8 +102,12 @@ function EditTransactionContent() {
         ...transaction
       } = values;
 
-      const deliveryDate = DELIVERY_DATE ? clientDayJs(DELIVERY_DATE).format('YYYY-MM-DD') : '';
-      const deliveryTime = DELIVERY_TIME ? clientDayJs(DELIVERY_TIME).format('HH:mm') : '';
+      const deliveryDate = DELIVERY_DATE
+        ? clientDayJs(DELIVERY_DATE).format("YYYY-MM-DD")
+        : "";
+      const deliveryTime = DELIVERY_TIME
+        ? clientDayJs(DELIVERY_TIME).format("HH:mm")
+        : "";
 
       await apiClient.put(`/api/transactions/${id}`, {
         transaction: {
@@ -113,8 +129,8 @@ function EditTransactionContent() {
           SHIPPING_FEE,
         })) as TransactionDetail[],
       });
-      message.success('Perubahan disimpan');
-      router.push('/admin/transaction');
+      message.success("Perubahan disimpan");
+      router.push("/admin/transaction");
       return true;
     } catch (err) {
       message.error((err as Error).message);
@@ -128,7 +144,11 @@ function EditTransactionContent() {
     <div>
       <Title level={3}>Ubah Transaksi {id}</Title>
       <Spin spinning={loading} description="Memuat data transaksi...">
-        <TransactionForm form={form} onSubmitAction={handleSave} submitting={saving} />
+        <TransactionForm
+          form={form}
+          onSubmitAction={handleSave}
+          submitting={saving}
+        />
       </Spin>
     </div>
   );

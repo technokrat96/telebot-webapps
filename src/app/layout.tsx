@@ -1,15 +1,15 @@
-import type { Metadata, Viewport } from 'next';
-import { AntdRegistry } from '@ant-design/nextjs-registry';
-import {App, ConfigProvider} from 'antd';
-import './globals.css';
+import type { Metadata, Viewport } from "next";
+import { AntdRegistry } from "@ant-design/nextjs-registry";
+import { App, ConfigProvider } from "antd";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: 'Florist Telegram App',
-  description: 'Admin, Florist & Kurir workflow for the flower shop',
+  title: "Florist Telegram App",
+  description: "Admin, Florist & Kurir workflow for the flower shop",
 };
 
 export const viewport: Viewport = {
-  width: 'device-width',
+  width: "device-width",
   initialScale: 1,
   maximumScale: 1,
 };
@@ -26,7 +26,7 @@ export default function RootLayout({
           <ConfigProvider
             theme={{
               token: {
-                colorPrimary: '#d6336c',
+                colorPrimary: "#d6336c",
                 borderRadius: 8,
               },
             }}

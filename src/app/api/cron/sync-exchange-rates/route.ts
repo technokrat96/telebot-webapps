@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { fetchExchangeRatesFromIdr } from '@/lib/exchangeRate';
-import { updateCurrencyRate } from '@/lib/db/currency';
+import { NextRequest, NextResponse } from "next/server";
+import { fetchExchangeRatesFromIdr } from "@/lib/exchangeRate";
+import { updateCurrencyRate } from "@/lib/db/currency";
 
 /**
  * Dipanggil Vercel Cron tiap hari (lihat jadwalnya di vercel.json) buat
@@ -16,14 +16,19 @@ import { updateCurrencyRate } from '@/lib/db/currency';
  * Di non-production (dev lokal), cek ini dilewati biar gampang di-test.
  */
 export async function GET(req: NextRequest) {
-  const isDev = process.env.NODE_ENV !== 'production';
-  const expectedAuth = process.env.CRON_SECRET ? `Bearer ${process.env.CRON_SECRET}` : null;
-  if (!isDev && (!expectedAuth || req.headers.get('authorization') !== expectedAuth)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const isDev = process.env.NODE_ENV !== "production";
+  const expectedAuth = process.env.CRON_SECRET
+    ? `Bearer ${process.env.CRON_SECRET}`
+    : null;
+  if (
+    !isDev &&
+    (!expectedAuth || req.headers.get("authorization") !== expectedAuth)
+  ) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const startedAt = Date.now();
-  console.log('[cron/sync-exchange-rates] mulai');
+  console.log("[cron/sync-exchange-rates] mulai");
 
   try {
     const ratesFromIdr = await fetchExchangeRatesFromIdr();
@@ -31,11 +36,11 @@ export async function GET(req: NextRequest) {
 
     const results: { code: string; rate?: number; error?: string }[] = [];
     for (const code of codes) {
-      if (code === 'IDR') continue; // base currency kita, rate selalu 1
+      if (code === "IDR") continue; // base currency kita, rate selalu 1
 
       const rateFromIdr = ratesFromIdr[code]; // "berapa <code> setara 1 IDR"
       if (!rateFromIdr) {
-        results.push({ code, error: 'rate dari ExchangeRate-API kosong/0' });
+        results.push({ code, error: "rate dari ExchangeRate-API kosong/0" });
         continue;
       }
 
@@ -45,10 +50,19 @@ export async function GET(req: NextRequest) {
       results.push({ code, rate });
     }
 
-    console.log(`[cron/sync-exchange-rates] selesai (${Date.now() - startedAt}ms):`, results);
+    console.log(
+      `[cron/sync-exchange-rates] selesai (${Date.now() - startedAt}ms):`,
+      results,
+    );
     return NextResponse.json({ ok: true, results });
   } catch (err) {
-    console.error(`[cron/sync-exchange-rates] gagal setelah ${Date.now() - startedAt}ms:`, (err as Error).message);
-    return NextResponse.json({ error: (err as Error).message }, { status: 502 });
+    console.error(
+      `[cron/sync-exchange-rates] gagal setelah ${Date.now() - startedAt}ms:`,
+      (err as Error).message,
+    );
+    return NextResponse.json(
+      { error: (err as Error).message },
+      { status: 502 },
+    );
   }
 }

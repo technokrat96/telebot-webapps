@@ -1,19 +1,21 @@
-'use client';
+"use client";
 
-import {useAuthStore} from '@/store/authStore';
-import {fileToDataUrl} from "@/lib/file.util";
-import {compressImage} from "@/lib/imageCompression";
+import { useAuthStore } from "@/store/authStore";
+import { fileToDataUrl } from "@/lib/file.util";
+import { compressImage } from "@/lib/imageCompression";
 
 export function getAuthHeader(): Record<string, string> {
   const token = useAuthStore.getState().token;
-  return token ? {Authorization: `Bearer ${token}`} : {} as Record<string, string>;
+  return token
+    ? { Authorization: `Bearer ${token}` }
+    : ({} as Record<string, string>);
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(path, {
     ...options,
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       ...getAuthHeader(),
       ...(options.headers ?? {}),
     },
@@ -33,15 +35,18 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const apiClient = {
-  get: <T>(path: string) => request<T>(path, { method: 'GET' }),
+  get: <T>(path: string) => request<T>(path, { method: "GET" }),
   post: <T>(path: string, body: unknown) =>
-    request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
+    request<T>(path, { method: "POST", body: JSON.stringify(body) }),
   put: <T>(path: string, body: unknown) =>
-    request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
+    request<T>(path, { method: "PUT", body: JSON.stringify(body) }),
   patch: <T>(path: string, body: unknown) =>
-    request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
+    request<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
   delete: <T>(path: string, body?: unknown) =>
-    request<T>(path, {method: 'DELETE', body: body !== undefined ? JSON.stringify(body) : undefined}),
+    request<T>(path, {
+      method: "DELETE",
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    }),
   /**
    * Upload multipart (mis. gambar item pesanan). Tidak pakai `request()` di
    * atas karena Content-Type untuk FormData harus di-set otomatis oleh
@@ -55,11 +60,11 @@ export const apiClient = {
   uploadFile: async (path: string, file: File): Promise<{ url: string }> => {
     const compressed = await compressImage(file);
     const formData = new FormData();
-    formData.append('file', compressed);
+    formData.append("file", compressed);
 
     const res = await fetch(path, {
-      method: 'POST',
-      headers: {...getAuthHeader()},
+      method: "POST",
+      headers: { ...getAuthHeader() },
       body: formData,
     } as RequestInit);
 
@@ -82,7 +87,7 @@ export const apiClient = {
    */
   fetchPrivateImage: async (url: string): Promise<string> => {
     const res = await fetch(`/api/upload?url=${encodeURIComponent(url)}`, {
-      headers: {...getAuthHeader()},
+      headers: { ...getAuthHeader() },
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
@@ -90,5 +95,5 @@ export const apiClient = {
     }
     const blob = await res.blob();
     return fileToDataUrl(blob);
-  }
+  },
 };

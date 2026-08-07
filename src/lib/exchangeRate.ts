@@ -1,10 +1,10 @@
-import 'server-only';
+import "server-only";
 
 interface ExchangeRateApiResponse {
-  result: 'success' | 'error';
+  result: "success" | "error";
   base_code?: string;
   conversion_rates?: Record<string, number>;
-  'error-type'?: string;
+  "error-type"?: string;
 }
 
 /**
@@ -19,25 +19,29 @@ interface ExchangeRateApiResponse {
  * IDR). Pembalikan (1 / rate) dilakukan oleh caller, bukan di sini, biar
  * fungsi ini murni "ambil data mentah dari API".
  */
-export async function fetchExchangeRatesFromIdr(): Promise<Record<string, number>> {
+export async function fetchExchangeRatesFromIdr(): Promise<
+  Record<string, number>
+> {
   const apiKey = process.env.EXCHANGE_RATE_API_KEY;
   if (!apiKey) {
-    throw new Error('EXCHANGE_RATE_API_KEY belum diatur di .env');
+    throw new Error("EXCHANGE_RATE_API_KEY belum diatur di .env");
   }
 
   const url = `https://v6.exchangerate-api.com/v6/${apiKey}/latest/IDR`;
   const startedAt = Date.now();
-  console.log('[exchangeRate] -> GET latest/IDR');
+  console.log("[exchangeRate] -> GET latest/IDR");
 
-  const res = await fetch(url, { cache: 'no-store' });
+  const res = await fetch(url, { cache: "no-store" });
   const json = (await res.json().catch(() => ({}))) as ExchangeRateApiResponse;
 
   console.log(
-    `[exchangeRate] <- GET latest/IDR ${res.status} result=${json.result ?? '?'} (${Date.now() - startedAt}ms)`
+    `[exchangeRate] <- GET latest/IDR ${res.status} result=${json.result ?? "?"} (${Date.now() - startedAt}ms)`,
   );
 
-  if (!res.ok || json.result !== 'success' || !json.conversion_rates) {
-    throw new Error(`ExchangeRate-API error: ${json['error-type'] ?? res.statusText}`);
+  if (!res.ok || json.result !== "success" || !json.conversion_rates) {
+    throw new Error(
+      `ExchangeRate-API error: ${json["error-type"] ?? res.statusText}`,
+    );
   }
 
   return json.conversion_rates;

@@ -1,5 +1,5 @@
-import 'server-only';
-import { shopifyAdminGraphQL } from './client';
+import "server-only";
+import { shopifyAdminGraphQL } from "./client";
 
 /**
  * Cara baca query GraphQL di bawah, buat yang belum terbiasa: setiap baris
@@ -87,7 +87,7 @@ const SEARCH_QUERY = `
 `;
 
 function extractNumericId(gid: string): string {
-  const parts = gid.split('/');
+  const parts = gid.split("/");
   return parts[parts.length - 1] ?? gid;
 }
 
@@ -99,17 +99,22 @@ function extractNumericId(gid: string): string {
  *
  * Query syntax Shopify: https://shopify.dev/docs/api/usage/search-syntax
  */
-export async function searchShopifyProducts(keyword: string): Promise<ShopifyProductSearchResult[]> {
+export async function searchShopifyProducts(
+  keyword: string,
+): Promise<ShopifyProductSearchResult[]> {
   const trimmed = keyword.trim();
   if (!trimmed) return [];
 
   // Wildcard '*' di kedua sisi supaya cocok sebagian (bukan cuma prefix).
   // "/, \" dibuang biar tidak merusak search syntax-nya.
-  const escaped = trimmed.replace(/["\\]/g, '');
+  const escaped = trimmed.replace(/["\\]/g, "");
   const query = `title:*${escaped}* OR sku:*${escaped}*`;
 
-  const data = await shopifyAdminGraphQL<ProductsSearchQueryResult>(SEARCH_QUERY, { query });
-  const currency = data.shop?.currencyCode || 'IDR';
+  const data = await shopifyAdminGraphQL<ProductsSearchQueryResult>(
+    SEARCH_QUERY,
+    { query },
+  );
+  const currency = data.shop?.currencyCode || "IDR";
 
   const results: ShopifyProductSearchResult[] = [];
   for (const { node: product } of data.products.edges) {
@@ -125,10 +130,12 @@ export async function searchShopifyProducts(keyword: string): Promise<ShopifyPro
       // ditampilkan nama produknya saja (tanpa embel-embel "- Default
       // Title"). Produk dengan beberapa varian (mis. ukuran) tetap
       // disertakan nama variannya biar tidak ambigu di hasil pencarian.
-      const hasRealVariantTitle = variant.title && variant.title !== 'Default Title';
-      const namePart = isSingleVariant && !hasRealVariantTitle
-        ? product.title
-        : `${product.title} - ${variant.title}`;
+      const hasRealVariantTitle =
+        variant.title && variant.title !== "Default Title";
+      const namePart =
+        isSingleVariant && !hasRealVariantTitle
+          ? product.title
+          : `${product.title} - ${variant.title}`;
 
       results.push({
         productId: extractNumericId(product.id),

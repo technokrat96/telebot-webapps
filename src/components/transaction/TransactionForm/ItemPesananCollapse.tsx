@@ -1,19 +1,33 @@
-'use client';
+"use client";
 
-import {Button, Collapse, Form, FormListFieldData, FormListOperation, Space} from 'antd';
-import {MinusCircleOutlined, PlusOutlined} from '@ant-design/icons';
-import {Dispatch, SetStateAction, useEffect, useRef} from 'react';
-import ItemPesananFields from './ItemPesananFields';
-import type {TransactionFormValues} from './types';
+import {
+  Button,
+  Collapse,
+  Form,
+  FormListFieldData,
+  FormListOperation,
+  Space,
+} from "antd";
+import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
+import { Dispatch, SetStateAction, useEffect, useRef } from "react";
+import ItemPesananFields from "./ItemPesananFields";
+import type { TransactionFormValues } from "./types";
 
 /** Daftar Item Pesanan sebagai panel-panel Collapse yang bisa ditambah/dihapus. */
-export default function ItemPesananCollapse({fields, addAction, removeAction, activeKeys, setActiveKeysAction, expandAllSignal}: {
-  fields: FormListFieldData[],
-  addAction: FormListOperation["add"]
-  removeAction: FormListOperation["add"],
-  activeKeys: string[],
-  setActiveKeysAction: Dispatch<SetStateAction<string[]>>,
-  expandAllSignal: number,
+export default function ItemPesananCollapse({
+  fields,
+  addAction,
+  removeAction,
+  activeKeys,
+  setActiveKeysAction,
+  expandAllSignal,
+}: {
+  fields: FormListFieldData[];
+  addAction: FormListOperation["add"];
+  removeAction: FormListOperation["add"];
+  activeKeys: string[];
+  setActiveKeysAction: Dispatch<SetStateAction<string[]>>;
+  expandAllSignal: number;
 }) {
   const form = Form.useFormInstance<TransactionFormValues>();
   const isFirstExpandSignal = useRef(true);
@@ -23,7 +37,7 @@ export default function ItemPesananCollapse({fields, addAction, removeAction, ac
     if (fields.length === 1) {
       const onlyKey = fields[0].key.toString();
       setActiveKeysAction((prev: string[]) =>
-        prev.includes(onlyKey) ? prev : [onlyKey]
+        prev.includes(onlyKey) ? prev : [onlyKey],
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -43,39 +57,39 @@ export default function ItemPesananCollapse({fields, addAction, removeAction, ac
   return (
     <>
       {fields.length > 0 && (
-        <Collapse activeKey={activeKeys} onChange={(keys) => setActiveKeysAction(keys as string[])}
-                  style={{marginBottom: 16}}
-                  items={
-                    fields.map((field, idx) => {
-                      const {key, ...inputField} = field;
-                      const panelKey = field.key.toString();
-                      const isOnlyOneItem = fields.length === 1;
-                      return {
-                        key: panelKey,
-                        collapsible: isOnlyOneItem ? 'disabled' : 'header',
-                        showArrow: !isOnlyOneItem,
-                        label: (
-                          <>
-                            <Space style={{width: '100%', justifyContent: 'space-between'}}>
-                              <span style={{fontWeight: 'bold'}}>Item {idx + 1}</span>
-                              {fields.length > 1 && (
-                                <MinusCircleOutlined
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    removeAction(field.name);
-                                  }}
-                                  style={{color: '#ff4d4f'}}
-                                />
-                              )}
-                            </Space>
-                          </>
-                        ),
-                        children: (
-                          <ItemPesananFields field={inputField} form={form}/>
-                        )
-                      };
-                    })
-                  }
+        <Collapse
+          activeKey={activeKeys}
+          onChange={(keys) => setActiveKeysAction(keys as string[])}
+          style={{ marginBottom: 16 }}
+          items={fields.map((field, idx) => {
+            const { key: _key, ...inputField } = field;
+            const panelKey = field.key.toString();
+            const isOnlyOneItem = fields.length === 1;
+            return {
+              key: panelKey,
+              collapsible: isOnlyOneItem ? "disabled" : "header",
+              showArrow: !isOnlyOneItem,
+              label: (
+                <>
+                  <Space
+                    style={{ width: "100%", justifyContent: "space-between" }}
+                  >
+                    <span style={{ fontWeight: "bold" }}>Item {idx + 1}</span>
+                    {fields.length > 1 && (
+                      <MinusCircleOutlined
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeAction(field.name);
+                        }}
+                        style={{ color: "#ff4d4f" }}
+                      />
+                    )}
+                  </Space>
+                </>
+              ),
+              children: <ItemPesananFields field={inputField} form={form} />,
+            };
+          })}
         >
           {}
         </Collapse>
@@ -86,12 +100,13 @@ export default function ItemPesananCollapse({fields, addAction, removeAction, ac
           addAction();
           // key baru dari antd biasanya = max(existing keys) + 1
           setActiveKeysAction((prev: string[]) => {
-            const maxKey = fields.length > 0 ? Math.max(...fields.map((f: any) => f.key)) : -1;
+            const maxKey =
+              fields.length > 0 ? Math.max(...fields.map((f) => f.key)) : -1;
             return [...prev, (maxKey + 1).toString()];
           });
         }}
         block
-        icon={<PlusOutlined/>}
+        icon={<PlusOutlined />}
       >
         Tambah Item
       </Button>

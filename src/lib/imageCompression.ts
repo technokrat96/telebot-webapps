@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Kompres file gambar di browser sebelum diupload — supaya foto dari kamera
@@ -13,12 +13,15 @@
  * tidak dikoreksi hasil kompresi bisa jadi miring; (2) proses kompresinya
  * jalan di Web Worker, jadi tidak nge-freeze UI saat memproses foto besar.
  */
-import imageCompression from 'browser-image-compression';
-import {ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE_BYTES} from '@/lib/imageUploadConstraints';
+import imageCompression from "browser-image-compression";
+import {
+  ALLOWED_IMAGE_TYPES,
+  MAX_IMAGE_SIZE_BYTES,
+} from "@/lib/imageUploadConstraints";
 
 export async function compressImage(
   file: File,
-  maxBytes: number = MAX_IMAGE_SIZE_BYTES
+  maxBytes: number = MAX_IMAGE_SIZE_BYTES,
 ): Promise<File> {
   // Bukan tipe yang kita dukung (mis. HEIC lolos dari <input accept> di
   // sebagian browser) atau sudah cukup kecil -- biarkan lolos apa adanya,

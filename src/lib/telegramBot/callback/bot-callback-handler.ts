@@ -1,7 +1,14 @@
-import {Context, InlineKeyboard} from "grammy";
-import {parseDataTelegram, validateUser} from "@/lib/telegramBot/telegramBotUtil";
-import {clearBotSession, getBotSession, setBotSession} from "@/lib/db/botSession";
-import {getMasterData} from "@/lib/db/masterData";
+import { Context, InlineKeyboard } from "grammy";
+import {
+  parseDataTelegram,
+  validateUser,
+} from "@/lib/telegramBot/telegramBotUtil";
+import {
+  clearBotSession,
+  getBotSession,
+  setBotSession,
+} from "@/lib/db/botSession";
+import { getMasterData } from "@/lib/db/masterData";
 import {
   deleteUserByUsername,
   findUserByUsername,
@@ -9,7 +16,7 @@ import {
   replaceUserRoles,
   searchUsers,
 } from "@/lib/db/users";
-import {ADMIN_ROLE} from "@/lib/telegramBot/telegramBotConst";
+import { ADMIN_ROLE } from "@/lib/telegramBot/telegramBotConst";
 import {
   buildBackToMenuKeyboard,
   buildCheckedUserKeyboard,
@@ -50,7 +57,11 @@ export async function botCallbackHandler(ctx: Context) {
     if (data === CB.REGISTER) return await handleRegisterStart(ctx, info);
     if (data === CB.CHECK) return await handleCheckStart(ctx, info);
     if (data.startsWith(CB.ROLE_TOGGLE_PREFIX)) {
-      return await handleRoleToggle(ctx, chatId, data.slice(CB.ROLE_TOGGLE_PREFIX.length));
+      return await handleRoleToggle(
+        ctx,
+        chatId,
+        data.slice(CB.ROLE_TOGGLE_PREFIX.length),
+      );
     }
     if (data === CB.ROLE_SAVE) return await handleRoleSave(ctx, info);
     if (data === CB.ROLE_CANCEL) return await handleRoleCancel(ctx, info);
@@ -62,10 +73,15 @@ export async function botCallbackHandler(ctx: Context) {
     // callback_data tidak dikenali (misal tombol lama dari deploy sebelumnya).
     await ctx.answerCallbackQuery();
   } catch (e) {
-    const raw = e instanceof Error ? e.message : (typeof e === "string" ? e : "Terjadi kesalahan.");
+    const raw =
+      e instanceof Error
+        ? e.message
+        : typeof e === "string"
+          ? e
+          : "Terjadi kesalahan.";
     const plain = raw.replace(/<[^>]+>/g, "").slice(0, 200);
     try {
-      await ctx.answerCallbackQuery({text: plain, show_alert: true});
+      await ctx.answerCallbackQuery({ text: plain, show_alert: true });
     } catch {
       // Query mungkin sudah kedaluwarsa/terjawab -- tidak banyak yang bisa
       // dilakukan lagi, biarkan saja.
@@ -76,7 +92,7 @@ export async function botCallbackHandler(ctx: Context) {
 async function safeEditMessageText(
   ctx: Context,
   text: string,
-  other?: {parse_mode?: "HTML"; reply_markup?: InlineKeyboard},
+  other?: { parse_mode?: "HTML"; reply_markup?: InlineKeyboard },
 ) {
   try {
     await ctx.editMessageText(text, other);
@@ -85,16 +101,21 @@ async function safeEditMessageText(
   }
 }
 
-async function safeEditMessageReplyMarkup(ctx: Context, keyboard: InlineKeyboard) {
+async function safeEditMessageReplyMarkup(
+  ctx: Context,
+  keyboard: InlineKeyboard,
+) {
   try {
-    await ctx.editMessageReplyMarkup({reply_markup: keyboard});
+    await ctx.editMessageReplyMarkup({ reply_markup: keyboard });
   } catch (e) {
     if (!isNotModifiedError(e)) throw e;
   }
 }
 
 function isNotModifiedError(e: unknown): boolean {
-  const description = (e as {description?: string})?.description ?? (e instanceof Error ? e.message : "");
+  const description =
+    (e as { description?: string })?.description ??
+    (e instanceof Error ? e.message : "");
   return description.includes("message is not modified");
 }
 
@@ -109,7 +130,7 @@ async function handleMain(ctx: Context, info: ParsedInfo) {
   await safeEditMessageText(
     ctx,
     `Halo <b>${user.NAME || "Pengguna"}</b>! Silakan pilih menu di bawah ini:`,
-    {parse_mode: "HTML", reply_markup: buildMainMenuKeyboard(user)},
+    { parse_mode: "HTML", reply_markup: buildMainMenuKeyboard(user) },
   );
 }
 
@@ -120,14 +141,17 @@ async function handleWhoAmI(ctx: Context, info: ParsedInfo) {
   await safeEditMessageText(
     ctx,
     formatUserCard(user, "Berikut data Anda yang terdaftar di sistem"),
-    {parse_mode: "HTML", reply_markup: buildBackToMenuKeyboard()},
+    { parse_mode: "HTML", reply_markup: buildBackToMenuKeyboard() },
   );
 }
 
 async function handleRegisterStart(ctx: Context, info: ParsedInfo) {
   const adminUser = await validateUser(ctx, info);
   if (!isAdmin(adminUser.ROLES)) {
-    await ctx.answerCallbackQuery({text: "⛔ Anda tidak memiliki akses untuk menu ini.", show_alert: true});
+    await ctx.answerCallbackQuery({
+      text: "⛔ Anda tidak memiliki akses untuk menu ini.",
+      show_alert: true,
+    });
     return;
   }
   await setBotSession(info.chatId!, "AWAIT_REG_USERNAME");
@@ -135,14 +159,17 @@ async function handleRegisterStart(ctx: Context, info: ParsedInfo) {
   await safeEditMessageText(
     ctx,
     "➕ <b>Register User</b>\n\nKetik username Telegram yang ingin didaftarkan (tanpa @):",
-    {parse_mode: "HTML", reply_markup: buildBackToMenuKeyboard()},
+    { parse_mode: "HTML", reply_markup: buildBackToMenuKeyboard() },
   );
 }
 
 async function handleCheckStart(ctx: Context, info: ParsedInfo) {
   const adminUser = await validateUser(ctx, info);
   if (!isAdmin(adminUser.ROLES)) {
-    await ctx.answerCallbackQuery({text: "⛔ Anda tidak memiliki akses untuk menu ini.", show_alert: true});
+    await ctx.answerCallbackQuery({
+      text: "⛔ Anda tidak memiliki akses untuk menu ini.",
+      show_alert: true,
+    });
     return;
   }
   await setBotSession(info.chatId!, "AWAIT_CHK_USERNAME");
@@ -150,12 +177,14 @@ async function handleCheckStart(ctx: Context, info: ParsedInfo) {
   await safeEditMessageText(
     ctx,
     "🔍 <b>Check User</b>\n\nKetik sebagian username untuk mencari, atau pilih dari daftar di bawah:",
-    {parse_mode: "HTML", reply_markup: buildBackToMenuKeyboard()},
+    { parse_mode: "HTML", reply_markup: buildBackToMenuKeyboard() },
   );
 
-  const {items, total} = await searchUsers("", CHECK_USER_LIST_SIZE);
+  const { items, total } = await searchUsers("", CHECK_USER_LIST_SIZE);
   if (total === 0) {
-    await ctx.reply("Belum ada user yang terdaftar di sistem.", {parse_mode: "HTML"});
+    await ctx.reply("Belum ada user yang terdaftar di sistem.", {
+      parse_mode: "HTML",
+    });
     return;
   }
   await ctx.reply(formatUsernameListMessage(items, total), {
@@ -166,18 +195,31 @@ async function handleCheckStart(ctx: Context, info: ParsedInfo) {
 
 async function handleRoleToggle(ctx: Context, chatId: string, role: string) {
   const session = await getBotSession(chatId);
-  if (!session || (session.state !== "SELECT_REG_ROLES" && session.state !== "SELECT_EDIT_ROLES")) {
-    await ctx.answerCallbackQuery({text: "Sesi sudah kedaluwarsa. Ketik /start untuk mulai lagi.", show_alert: true});
+  if (
+    !session ||
+    (session.state !== "SELECT_REG_ROLES" &&
+      session.state !== "SELECT_EDIT_ROLES")
+  ) {
+    await ctx.answerCallbackQuery({
+      text: "Sesi sudah kedaluwarsa. Ketik /start untuk mulai lagi.",
+      show_alert: true,
+    });
     return;
   }
   const currentRoles = session.data.roles ?? [];
   const nextRoles = currentRoles.includes(role)
     ? currentRoles.filter((r) => r !== role)
     : [...currentRoles, role];
-  await setBotSession(chatId, session.state, {...session.data, roles: nextRoles});
+  await setBotSession(chatId, session.state, {
+    ...session.data,
+    roles: nextRoles,
+  });
   await ctx.answerCallbackQuery();
-  const {ROLES: allRoles} = await getMasterData();
-  await safeEditMessageReplyMarkup(ctx, buildRoleSelectKeyboard(allRoles, nextRoles));
+  const { ROLES: allRoles } = await getMasterData();
+  await safeEditMessageReplyMarkup(
+    ctx,
+    buildRoleSelectKeyboard(allRoles, nextRoles),
+  );
 }
 
 async function handleRoleSave(ctx: Context, info: ParsedInfo) {
@@ -185,41 +227,56 @@ async function handleRoleSave(ctx: Context, info: ParsedInfo) {
   const session = await getBotSession(chatId);
   if (
     !session ||
-    (session.state !== "SELECT_REG_ROLES" && session.state !== "SELECT_EDIT_ROLES") ||
+    (session.state !== "SELECT_REG_ROLES" &&
+      session.state !== "SELECT_EDIT_ROLES") ||
     !session.data.username
   ) {
-    await ctx.answerCallbackQuery({text: "Sesi sudah kedaluwarsa. Ketik /start untuk mulai lagi.", show_alert: true});
+    await ctx.answerCallbackQuery({
+      text: "Sesi sudah kedaluwarsa. Ketik /start untuk mulai lagi.",
+      show_alert: true,
+    });
     return;
   }
 
   const selectedRoles = session.data.roles ?? [];
   if (selectedRoles.length === 0) {
-    await ctx.answerCallbackQuery({text: "⚠️ Pilih minimal satu role terlebih dahulu.", show_alert: true});
+    await ctx.answerCallbackQuery({
+      text: "⚠️ Pilih minimal satu role terlebih dahulu.",
+      show_alert: true,
+    });
     return;
   }
 
   const adminUser = await validateUser(ctx, info);
   if (!isAdmin(adminUser.ROLES)) {
-    await ctx.answerCallbackQuery({text: "⛔ Anda tidak memiliki akses.", show_alert: true});
+    await ctx.answerCallbackQuery({
+      text: "⛔ Anda tidak memiliki akses.",
+      show_alert: true,
+    });
     return;
   }
 
   const targetUsername = session.data.username;
   let targetUser = await findUserByUsername(targetUsername);
   if (!targetUser) {
-    targetUser = await insertUser({username: targetUsername, name: "", chatId: null, telegramId: null});
+    targetUser = await insertUser({
+      username: targetUsername,
+      name: "",
+      chatId: null,
+      telegramId: null,
+    });
   }
 
   await replaceUserRoles(targetUser.USERNAME, selectedRoles);
 
   const isRegister = session.state === "SELECT_REG_ROLES";
   await clearBotSession(chatId);
-  await ctx.answerCallbackQuery({text: "✅ Berhasil disimpan."});
+  await ctx.answerCallbackQuery({ text: "✅ Berhasil disimpan." });
 
   await safeEditMessageText(
     ctx,
     `✅ <b>Berhasil.</b>\nRole user <b>@${targetUser.USERNAME}</b> ${isRegister ? "didaftarkan" : "diperbarui"} menjadi: <i>${selectedRoles.join(", ")}</i>.`,
-    {parse_mode: "HTML", reply_markup: buildBackToMenuKeyboard()},
+    { parse_mode: "HTML", reply_markup: buildBackToMenuKeyboard() },
   );
 
   const targetChatId = targetUser.CHAT_ID ?? targetUser.TELEGRAM_ID;
@@ -228,19 +285,19 @@ async function handleRoleSave(ctx: Context, info: ParsedInfo) {
       ? `⚠️ <b>User Registered</b>\n\nAdmin telah memberikan role <b>${selectedRoles.join(", ")}</b> untuk Anda. Ketik /start lalu tap "Who Am I" untuk cek role Anda.`
       : `ℹ️ <b>Role Diperbarui</b>\n\nRole Anda sekarang: <b>${selectedRoles.join(", ")}</b>.`;
     await ctx.api
-      .sendMessage(targetChatId, notifText, {parse_mode: "HTML"})
+      .sendMessage(targetChatId, notifText, { parse_mode: "HTML" })
       .catch(() => {});
   }
 }
 
 async function handleRoleCancel(ctx: Context, info: ParsedInfo) {
   await clearBotSession(info.chatId!);
-  await ctx.answerCallbackQuery({text: "Dibatalkan."});
+  await ctx.answerCallbackQuery({ text: "Dibatalkan." });
   const user = await validateUser(ctx, info);
   await safeEditMessageText(
     ctx,
     `Halo <b>${user.NAME || "Pengguna"}</b>! Silakan pilih menu di bawah ini:`,
-    {parse_mode: "HTML", reply_markup: buildMainMenuKeyboard(user)},
+    { parse_mode: "HTML", reply_markup: buildMainMenuKeyboard(user) },
   );
 }
 
@@ -248,30 +305,45 @@ async function handleCheckedEdit(ctx: Context, info: ParsedInfo) {
   const chatId = info.chatId!;
   const session = await getBotSession(chatId);
   if (!session || session.state !== "CHECKED_USER" || !session.data.username) {
-    await ctx.answerCallbackQuery({text: "Sesi sudah kedaluwarsa. Ketik /start untuk mulai lagi.", show_alert: true});
+    await ctx.answerCallbackQuery({
+      text: "Sesi sudah kedaluwarsa. Ketik /start untuk mulai lagi.",
+      show_alert: true,
+    });
     return;
   }
 
   const adminUser = await validateUser(ctx, info);
   if (!isAdmin(adminUser.ROLES)) {
-    await ctx.answerCallbackQuery({text: "⛔ Anda tidak memiliki akses.", show_alert: true});
+    await ctx.answerCallbackQuery({
+      text: "⛔ Anda tidak memiliki akses.",
+      show_alert: true,
+    });
     return;
   }
 
   const targetUser = await findUserByUsername(session.data.username);
   if (!targetUser) {
     await clearBotSession(chatId);
-    await ctx.answerCallbackQuery({text: "User tidak ditemukan.", show_alert: true});
+    await ctx.answerCallbackQuery({
+      text: "User tidak ditemukan.",
+      show_alert: true,
+    });
     return;
   }
 
-  await setBotSession(chatId, "SELECT_EDIT_ROLES", {username: targetUser.USERNAME, roles: [...targetUser.ROLES]});
+  await setBotSession(chatId, "SELECT_EDIT_ROLES", {
+    username: targetUser.USERNAME,
+    roles: [...targetUser.ROLES],
+  });
   await ctx.answerCallbackQuery();
-  const {ROLES: allRoles} = await getMasterData();
+  const { ROLES: allRoles } = await getMasterData();
   await safeEditMessageText(
     ctx,
     `✏️ <b>Edit Role User</b>\n\nUsername: <b>@${targetUser.USERNAME}</b>\nUbah role lalu tap "Simpan":`,
-    {parse_mode: "HTML", reply_markup: buildRoleSelectKeyboard(allRoles, targetUser.ROLES)},
+    {
+      parse_mode: "HTML",
+      reply_markup: buildRoleSelectKeyboard(allRoles, targetUser.ROLES),
+    },
   );
 }
 
@@ -279,59 +351,82 @@ async function handleCheckedDelete(ctx: Context, info: ParsedInfo) {
   const chatId = info.chatId!;
   const session = await getBotSession(chatId);
   if (!session || session.state !== "CHECKED_USER" || !session.data.username) {
-    await ctx.answerCallbackQuery({text: "Sesi sudah kedaluwarsa. Ketik /start untuk mulai lagi.", show_alert: true});
+    await ctx.answerCallbackQuery({
+      text: "Sesi sudah kedaluwarsa. Ketik /start untuk mulai lagi.",
+      show_alert: true,
+    });
     return;
   }
   const targetUsername = session.data.username;
 
   const adminUser = await validateUser(ctx, info);
   if (!isAdmin(adminUser.ROLES)) {
-    await ctx.answerCallbackQuery({text: "⛔ Anda tidak memiliki akses.", show_alert: true});
+    await ctx.answerCallbackQuery({
+      text: "⛔ Anda tidak memiliki akses.",
+      show_alert: true,
+    });
     return;
   }
 
   if (targetUsername.toLowerCase() === adminUser.USERNAME.toLowerCase()) {
-    await ctx.answerCallbackQuery({text: "⛔ Anda tidak bisa menghapus akun Anda sendiri.", show_alert: true});
+    await ctx.answerCallbackQuery({
+      text: "⛔ Anda tidak bisa menghapus akun Anda sendiri.",
+      show_alert: true,
+    });
     return;
   }
 
-  await setBotSession(chatId, "CONFIRM_DELETE", {username: targetUsername});
+  await setBotSession(chatId, "CONFIRM_DELETE", { username: targetUsername });
   await ctx.answerCallbackQuery();
   await safeEditMessageText(
     ctx,
     `⚠️ <b>Konfirmasi Hapus User</b>\n\nYakin ingin menghapus user <b>@${targetUsername}</b>? Tindakan ini tidak bisa dibatalkan.`,
-    {parse_mode: "HTML", reply_markup: buildConfirmDeleteKeyboard()},
+    { parse_mode: "HTML", reply_markup: buildConfirmDeleteKeyboard() },
   );
 }
 
 async function handleDeleteYes(ctx: Context, info: ParsedInfo) {
   const chatId = info.chatId!;
   const session = await getBotSession(chatId);
-  if (!session || session.state !== "CONFIRM_DELETE" || !session.data.username) {
-    await ctx.answerCallbackQuery({text: "Sesi sudah kedaluwarsa. Ketik /start untuk mulai lagi.", show_alert: true});
+  if (
+    !session ||
+    session.state !== "CONFIRM_DELETE" ||
+    !session.data.username
+  ) {
+    await ctx.answerCallbackQuery({
+      text: "Sesi sudah kedaluwarsa. Ketik /start untuk mulai lagi.",
+      show_alert: true,
+    });
     return;
   }
 
   const adminUser = await validateUser(ctx, info);
   if (!isAdmin(adminUser.ROLES)) {
-    await ctx.answerCallbackQuery({text: "⛔ Anda tidak memiliki akses.", show_alert: true});
+    await ctx.answerCallbackQuery({
+      text: "⛔ Anda tidak memiliki akses.",
+      show_alert: true,
+    });
     return;
   }
 
   const targetUsername = session.data.username;
   await deleteUserByUsername(targetUsername);
   await clearBotSession(chatId);
-  await ctx.answerCallbackQuery({text: "✅ User berhasil dihapus."});
+  await ctx.answerCallbackQuery({ text: "✅ User berhasil dihapus." });
   await safeEditMessageText(
     ctx,
     `✅ User <b>@${targetUsername}</b> berhasil dihapus dari sistem.`,
-    {parse_mode: "HTML", reply_markup: buildBackToMenuKeyboard()},
+    { parse_mode: "HTML", reply_markup: buildBackToMenuKeyboard() },
   );
 }
 
 async function handleDeleteNo(ctx: Context, chatId: string) {
   const session = await getBotSession(chatId);
-  if (!session || session.state !== "CONFIRM_DELETE" || !session.data.username) {
+  if (
+    !session ||
+    session.state !== "CONFIRM_DELETE" ||
+    !session.data.username
+  ) {
     await ctx.answerCallbackQuery();
     return;
   }
@@ -339,11 +434,16 @@ async function handleDeleteNo(ctx: Context, chatId: string) {
   const targetUser = await findUserByUsername(session.data.username);
   if (!targetUser) {
     await clearBotSession(chatId);
-    await ctx.answerCallbackQuery({text: "User tidak ditemukan.", show_alert: true});
+    await ctx.answerCallbackQuery({
+      text: "User tidak ditemukan.",
+      show_alert: true,
+    });
     return;
   }
 
-  await setBotSession(chatId, "CHECKED_USER", {username: targetUser.USERNAME});
+  await setBotSession(chatId, "CHECKED_USER", {
+    username: targetUser.USERNAME,
+  });
   await ctx.answerCallbackQuery();
   await safeEditMessageText(ctx, formatUserCard(targetUser), {
     parse_mode: "HTML",

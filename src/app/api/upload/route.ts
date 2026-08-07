@@ -1,18 +1,21 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { put, del, get } from '@vercel/blob';
-import { requireAuth } from '@/lib/auth';
+import { NextRequest, NextResponse } from "next/server";
+import { put, del, get } from "@vercel/blob";
+import { requireAuth } from "@/lib/auth";
 import {
   ALLOWED_IMAGE_TYPES,
   ALLOWED_IMAGE_TYPES_LABEL,
   MAX_IMAGE_SIZE_BYTES,
   MAX_IMAGE_SIZE_LABEL,
-} from '@/lib/imageUploadConstraints';
+} from "@/lib/imageUploadConstraints";
 
 // Host gambar produk Shopify (lihat src/lib/shopify/mapOrder.ts -- IMAGE_URLS
 // item dari webhook order Shopify bisa berisi URL CDN Shopify, bukan cuma
 // Vercel Blob kita sendiri). Dibatasi ke allowlist ini (bukan proxy bebas ke
 // URL manapun) supaya endpoint ini tidak jadi celah SSRF.
-const SHOPIFY_IMAGE_HOST_PATTERNS = [/(^|\.)cdn\.shopify\.com$/, /\.myshopify\.com$/];
+const SHOPIFY_IMAGE_HOST_PATTERNS = [
+  /(^|\.)cdn\.shopify\.com$/,
+  /\.myshopify\.com$/,
+];
 
 function isShopifyImageHost(hostname: string): boolean {
   return SHOPIFY_IMAGE_HOST_PATTERNS.some((re) => re.test(hostname));
@@ -26,30 +29,37 @@ function isShopifyImageHost(hostname: string): boolean {
  * diizinkan, bukan cuma ADMIN.
  */
 export async function POST(req: NextRequest) {
-  const auth = await requireAuth(req, ['ADMIN', 'KURIR']);
-  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await requireAuth(req, ["ADMIN", "KURIR"]);
+  if (!auth)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const formData = await req.formData();
-  const file = formData.get('file');
+  const file = formData.get("file");
 
   if (!(file instanceof File)) {
-    return NextResponse.json({ error: 'File tidak ditemukan' }, { status: 400 });
+    return NextResponse.json(
+      { error: "File tidak ditemukan" },
+      { status: 400 },
+    );
   }
   if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
     return NextResponse.json(
       { error: `Format file harus ${ALLOWED_IMAGE_TYPES_LABEL}` },
-      { status: 400 }
+      { status: 400 },
     );
   }
   if (file.size > MAX_IMAGE_SIZE_BYTES) {
-    return NextResponse.json({ error: `Ukuran file maksimal ${MAX_IMAGE_SIZE_LABEL}` }, { status: 400 });
+    return NextResponse.json(
+      { error: `Ukuran file maksimal ${MAX_IMAGE_SIZE_LABEL}` },
+      { status: 400 },
+    );
   }
 
-  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
   const key = `item-pesanan/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
   const blob = await put(key, file, {
-    access: 'private',
+    access: "private",
     addRandomSuffix: false,
     contentType: file.type,
   });
@@ -72,47 +82,58 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   // Cuma lihat (bukan upload/hapus), jadi FLORIST & KURIR juga boleh —
   // dipakai buat nampilin foto item pesanan di halaman mereka.
-  const auth = await requireAuth(req, ['ADMIN', 'FLORIST', 'KURIR']);
-  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await requireAuth(req, ["ADMIN", "FLORIST", "KURIR"]);
+  if (!auth)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const rawUrl = req.nextUrl.searchParams.get('url');
-  if (!rawUrl) return NextResponse.json({ error: 'URL wajib diisi' }, { status: 400 });
+  const rawUrl = req.nextUrl.searchParams.get("url");
+  if (!rawUrl)
+    return NextResponse.json({ error: "URL wajib diisi" }, { status: 400 });
 
   let parsedUrl: URL;
   try {
     parsedUrl = new URL(rawUrl);
   } catch {
-    return NextResponse.json({ error: 'URL tidak valid' }, { status: 400 });
+    return NextResponse.json({ error: "URL tidak valid" }, { status: 400 });
   }
 
   if (isShopifyImageHost(parsedUrl.hostname)) {
     const startedAt = Date.now();
     console.log(`[shopify] -> GET ${rawUrl}`);
-    const shopifyRes = await fetch(rawUrl, { cache: 'no-store' });
-    console.log(`[shopify] <- GET ${rawUrl} ${shopifyRes.status} ${shopifyRes.statusText} (${Date.now() - startedAt}ms)`);
+    const shopifyRes = await fetch(rawUrl, { cache: "no-store" });
+    console.log(
+      `[shopify] <- GET ${rawUrl} ${shopifyRes.status} ${shopifyRes.statusText} (${Date.now() - startedAt}ms)`,
+    );
     if (!shopifyRes.ok || !shopifyRes.body) {
-      return NextResponse.json({ error: 'Gambar tidak ditemukan' }, { status: 404 });
+      return NextResponse.json(
+        { error: "Gambar tidak ditemukan" },
+        { status: 404 },
+      );
     }
     return new NextResponse(shopifyRes.body, {
       headers: {
-        'Content-Type': shopifyRes.headers.get('content-type') || 'application/octet-stream',
-        'X-Content-Type-Options': 'nosniff',
-        'Cache-Control': 'private, no-cache',
+        "Content-Type":
+          shopifyRes.headers.get("content-type") || "application/octet-stream",
+        "X-Content-Type-Options": "nosniff",
+        "Cache-Control": "private, no-cache",
       },
     });
   }
 
-  const pathname = parsedUrl.pathname.replace(/^\//, '');
-  const result = await get(pathname, { access: 'private' });
+  const pathname = parsedUrl.pathname.replace(/^\//, "");
+  const result = await get(pathname, { access: "private" });
   if (!result || result.statusCode !== 200 || !result.stream) {
-    return NextResponse.json({ error: 'Gambar tidak ditemukan' }, { status: 404 });
+    return NextResponse.json(
+      { error: "Gambar tidak ditemukan" },
+      { status: 404 },
+    );
   }
 
   return new NextResponse(result.stream, {
     headers: {
-      'Content-Type': result.blob.contentType || 'application/octet-stream',
-      'X-Content-Type-Options': 'nosniff',
-      'Cache-Control': 'private, no-cache',
+      "Content-Type": result.blob.contentType || "application/octet-stream",
+      "X-Content-Type-Options": "nosniff",
+      "Cache-Control": "private, no-cache",
     },
   });
 }
@@ -123,11 +144,13 @@ export async function GET(req: NextRequest) {
  * file yatim di storage).
  */
 export async function DELETE(req: NextRequest) {
-  const auth = await requireAuth(req, ['ADMIN']);
-  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await requireAuth(req, ["ADMIN"]);
+  if (!auth)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { url } = (await req.json()) as { url?: string };
-  if (!url) return NextResponse.json({ error: 'URL wajib diisi' }, { status: 400 });
+  if (!url)
+    return NextResponse.json({ error: "URL wajib diisi" }, { status: 400 });
 
   try {
     await del(url);

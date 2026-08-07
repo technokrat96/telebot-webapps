@@ -1,20 +1,22 @@
-'use client';
+"use client";
 
-import {useState} from 'react';
-import {App, Typography} from 'antd';
-import {useRouter} from 'next/navigation';
-import RoleGuard from '@/components/common/RoleGuard';
-import TransactionForm, {TransactionFormValues,} from '@/components/transaction/TransactionForm';
-import {apiClient} from '@/lib/apiClient';
-import {useAuth} from "@/components/common/AuthProvider";
-import {Transaction, TransactionDetail} from "@/types";
+import { useState } from "react";
+import { App, Typography } from "antd";
+import { useRouter } from "next/navigation";
+import RoleGuard from "@/components/common/RoleGuard";
+import TransactionForm, {
+  TransactionFormValues,
+} from "@/components/transaction/TransactionForm";
+import { apiClient } from "@/lib/apiClient";
+import { useAuth } from "@/components/common/AuthProvider";
+import { Transaction, TransactionDetail } from "@/types";
 import clientDayJs from "@/lib/cleint.dayjs";
 
 const { Title } = Typography;
 
 export default function CreateTransactionPage() {
   return (
-    <RoleGuard allow={['ADMIN']}>
+    <RoleGuard allow={["ADMIN"]}>
       <CreateTransactionContent />
     </RoleGuard>
   );
@@ -47,10 +49,14 @@ function CreateTransactionContent() {
         ...transaction
       } = values;
 
-      const deliveryDate = DELIVERY_DATE ? clientDayJs(DELIVERY_DATE).format('YYYY-MM-DD') : '';
-      const deliveryTime = DELIVERY_TIME ? clientDayJs(DELIVERY_TIME).format('HH:mm') : '';
+      const deliveryDate = DELIVERY_DATE
+        ? clientDayJs(DELIVERY_DATE).format("YYYY-MM-DD")
+        : "";
+      const deliveryTime = DELIVERY_TIME
+        ? clientDayJs(DELIVERY_TIME).format("HH:mm")
+        : "";
 
-      await apiClient.post('/api/transactions', {
+      await apiClient.post("/api/transactions", {
         transaction: {
           ...transaction,
           SALES_NAME: username,
@@ -69,12 +75,12 @@ function CreateTransactionContent() {
           DELIVERY_DATE: deliveryDate,
           DELIVERY_TIME: deliveryTime,
           SHIPPING_FEE,
-          ITEM_STATUS: 'NEW ORDER',
-          CARD_STATUS: 'NEW ORDER',
+          ITEM_STATUS: "NEW ORDER",
+          CARD_STATUS: "NEW ORDER",
         })) as TransactionDetail[],
       });
-      message.success('Transaksi berhasil dibuat');
-      router.push('/admin/transaction');
+      message.success("Transaksi berhasil dibuat");
+      router.push("/admin/transaction");
       return true;
     } catch (err) {
       message.error((err as Error).message);
@@ -87,9 +93,13 @@ function CreateTransactionContent() {
   return (
     <div>
       <Title level={3}>Buat Transaksi</Title>
-      <TransactionForm onSubmitAction={handleSubmit} submitting={submitting} initialValues={{
-        SALES_NAME: username ?? "",
-      }} />
+      <TransactionForm
+        onSubmitAction={handleSubmit}
+        submitting={submitting}
+        initialValues={{
+          SALES_NAME: username ?? "",
+        }}
+      />
     </div>
   );
 }

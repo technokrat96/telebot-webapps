@@ -10,7 +10,4 @@ const COMMAND_LIST: Record<COMMAND_TYPE, COMMAND_TYPE> = {
 // Role yang boleh akses menu Register User / Check User / Edit / Hapus User.
 const ADMIN_ROLE = "ADMIN";
 
-export {
-  COMMAND_LIST,
-  ADMIN_ROLE,
-};
+export { COMMAND_LIST, ADMIN_ROLE };

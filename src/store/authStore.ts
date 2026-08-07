@@ -1,6 +1,10 @@
-import { create } from 'zustand';
-import { persist, type PersistStorage, type StorageValue } from 'zustand/middleware';
-import { packText, unpackText } from '@/lib/localStorageCipher';
+import { create } from "zustand";
+import {
+  persist,
+  type PersistStorage,
+  type StorageValue,
+} from "zustand/middleware";
+import { packText, unpackText } from "@/lib/localStorageCipher";
 
 interface AuthStoreState {
   // Satu-satunya hal yang disimpan di client (localStorage): JWT token.
@@ -13,7 +17,7 @@ interface AuthStoreState {
   clear: () => void;
 }
 
-type PersistedAuth = Pick<AuthStoreState, 'token'>;
+type PersistedAuth = Pick<AuthStoreState, "token">;
 
 // localStorage-nya dibungkus AES-GCM (lihat src/lib/localStorageCipher.ts)
 // sebelum ditulis, dan dibongkar sebelum dibaca — cuma obfuscation ringan
@@ -21,7 +25,7 @@ type PersistedAuth = Pick<AuthStoreState, 'token'>;
 // nyembunyiin token dari orang yang asal buka DevTools/localStorage.
 const obfuscatedStorage: PersistStorage<PersistedAuth> = {
   async getItem(name) {
-    if (typeof window === 'undefined') return null;
+    if (typeof window === "undefined") return null;
     const raw = window.localStorage.getItem(name);
     if (!raw) return null;
     const plain = await unpackText(raw);
@@ -33,12 +37,12 @@ const obfuscatedStorage: PersistStorage<PersistedAuth> = {
     }
   },
   async setItem(name, value) {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     const packed = await packText(JSON.stringify(value));
     window.localStorage.setItem(name, packed);
   },
   async removeItem(name) {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     window.localStorage.removeItem(name);
   },
 };
@@ -51,9 +55,9 @@ export const useAuthStore = create<AuthStoreState>()(
       clear: () => set({ token: null }),
     }),
     {
-      name: 'florist-app-auth',
+      name: "florist-app-auth",
       storage: obfuscatedStorage,
       partialize: (state) => ({ token: state.token }),
-    }
-  )
+    },
+  ),
 );

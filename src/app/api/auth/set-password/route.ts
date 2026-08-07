@@ -1,7 +1,11 @@
-import {NextRequest, NextResponse} from 'next/server';
-import {validateTelegramInitData} from '@/lib/telegram';
-import {findUserByUsername, setUserPassword, updateUserByUsername} from '@/lib/db/users';
-import {hashPassword} from '@/lib/password';
+import { NextRequest, NextResponse } from "next/server";
+import { validateTelegramInitData } from "@/lib/telegram";
+import {
+  findUserByUsername,
+  setUserPassword,
+  updateUserByUsername,
+} from "@/lib/db/users";
+import { hashPassword } from "@/lib/password";
 
 const MIN_PASSWORD_LENGTH = 6;
 
@@ -15,33 +19,46 @@ export async function POST(req: NextRequest) {
   try {
     const { initData, password } = await req.json();
     if (!initData || !password) {
-      return NextResponse.json({ error: 'Data tidak lengkap.' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Data tidak lengkap." },
+        { status: 400 },
+      );
     }
-    if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
+    if (typeof password !== "string" || password.length < MIN_PASSWORD_LENGTH) {
       return NextResponse.json(
         { error: `Password minimal ${MIN_PASSWORD_LENGTH} karakter.` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const telegramUser = validateTelegramInitData(
-      typeof initData !== 'string' ? new URLSearchParams(initData).toString() : initData
+      typeof initData !== "string"
+        ? new URLSearchParams(initData).toString()
+        : initData,
     );
     if (!telegramUser) {
-      return NextResponse.json({ error: 'Invalid Telegram signature' }, { status: 401 });
+      return NextResponse.json(
+        { error: "Invalid Telegram signature" },
+        { status: 401 },
+      );
     }
     if (!telegramUser.username) {
       return NextResponse.json(
-        { error: 'Akun Telegram kamu belum punya username. Set dulu di pengaturan Telegram.' },
-        { status: 403 }
+        {
+          error:
+            "Akun Telegram kamu belum punya username. Set dulu di pengaturan Telegram.",
+        },
+        { status: 403 },
       );
     }
 
     const user = await findUserByUsername(telegramUser.username);
     if (!user) {
       return NextResponse.json(
-        { error: `Username @${telegramUser.username} belum terdaftar. Minta admin daftarkan lewat bot dulu.` },
-        { status: 403 }
+        {
+          error: `Username @${telegramUser.username} belum terdaftar. Minta admin daftarkan lewat bot dulu.`,
+        },
+        { status: 403 },
       );
     }
 
@@ -58,6 +75,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error(err);
-    return NextResponse.json({ error: 'Gagal menyimpan password.' }, { status: 500 });
+    return NextResponse.json(
+      { error: "Gagal menyimpan password." },
+      { status: 500 },
+    );
   }
 }

@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { Input } from 'antd';
-import type { InputRef } from 'antd';
-import { forwardRef } from 'react';
+import { Input } from "antd";
+import type { InputRef } from "antd";
+import { forwardRef } from "react";
 
 function sanitizeNumber(value: string): string {
-  const hasLeadingZero = value.startsWith('0');
-  const digitsOnly = value.replace(/[^\d]|^0/g, '');
-  return hasLeadingZero ? value.length < 2 ? '0' : digitsOnly : digitsOnly;
+  const hasLeadingZero = value.startsWith("0");
+  const digitsOnly = value.replace(/[^\d]|^0/g, "");
+  return hasLeadingZero ? (value.length < 2 ? "0" : digitsOnly) : digitsOnly;
 }
 
 // Wraps antd Input so it only ever contains digits, with an optional
@@ -31,9 +31,9 @@ const NumberInput = forwardRef<InputRef, React.ComponentProps<typeof Input>>(
         }}
       />
     );
-  }
+  },
 );
 
-NumberInput.displayName = 'NumberInput';
+NumberInput.displayName = "NumberInput";
 
 export default NumberInput;

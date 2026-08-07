@@ -1,17 +1,30 @@
-import 'client-only';
+import "client-only";
 import dayjs from "dayjs";
 
 type FnDateJs =
   | (() => dayjs.Dayjs)
   | ((date?: dayjs.ConfigType) => dayjs.Dayjs)
-  | ((date?: dayjs.ConfigType, format?: dayjs.OptionType, strict?: boolean) => dayjs.Dayjs)
-  | ((date?: dayjs.ConfigType, format?: dayjs.OptionType, locale?: string, strict?: boolean) => dayjs.Dayjs);
+  | ((
+      date?: dayjs.ConfigType,
+      format?: dayjs.OptionType,
+      strict?: boolean,
+    ) => dayjs.Dayjs)
+  | ((
+      date?: dayjs.ConfigType,
+      format?: dayjs.OptionType,
+      locale?: string,
+      strict?: boolean,
+    ) => dayjs.Dayjs);
 type ParamDateJs =
   | []
   | [date: dayjs.ConfigType]
   | [date: dayjs.ConfigType, format: dayjs.OptionType, strict?: boolean]
-  | [date: dayjs.ConfigType, format: dayjs.OptionType, locale?: string, strict?: boolean];
-
+  | [
+      date: dayjs.ConfigType,
+      format: dayjs.OptionType,
+      locale?: string,
+      strict?: boolean,
+    ];
 
 const clientDayJs: FnDateJs = (...args: ParamDateJs): dayjs.Dayjs => {
   if (args.length == 1) {
@@ -23,7 +36,7 @@ const clientDayJs: FnDateJs = (...args: ParamDateJs): dayjs.Dayjs => {
   } else if (args.length == 3) {
     const [date, format, localeOrStrict] = args;
     if (localeOrStrict !== undefined) {
-      if (typeof localeOrStrict === 'string') {
+      if (typeof localeOrStrict === "string") {
         return dayjs(date, format, localeOrStrict);
       } else {
         return dayjs(date, format, localeOrStrict);
@@ -37,6 +50,6 @@ const clientDayJs: FnDateJs = (...args: ParamDateJs): dayjs.Dayjs => {
   } else {
     return dayjs();
   }
-}
+};
 
 export default clientDayJs;

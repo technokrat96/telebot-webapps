@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import {createContext, useContext, useEffect, useState} from 'react';
-import {App} from 'antd';
-import {apiClient} from '@/lib/apiClient';
-import {Attendance} from '@/types';
+import { createContext, useContext, useEffect, useState } from "react";
+import { App } from "antd";
+import { apiClient } from "@/lib/apiClient";
+import { Attendance } from "@/types";
 import clientDayJs from "@/lib/cleint.dayjs";
 
 interface AttendanceGateContextValue {
@@ -16,12 +16,14 @@ interface AttendanceGateContextValue {
   handleCheckOut: () => Promise<void>;
 }
 
-const AttendanceGateContext = createContext<AttendanceGateContextValue | null>(null);
+const AttendanceGateContext = createContext<AttendanceGateContextValue | null>(
+  null,
+);
 
 export function useAttendanceGate() {
   const ctx = useContext(AttendanceGateContext);
   if (!ctx) {
-    throw new Error('useAttendanceGate must be used inside AttendanceGate');
+    throw new Error("useAttendanceGate must be used inside AttendanceGate");
   }
   return ctx;
 }
@@ -29,19 +31,25 @@ export function useAttendanceGate() {
 // Dev-mode selalu anggap sudah check-in dengan data statis — dihitung sekali
 // di luar komponen (bukan lewat effect) supaya bisa langsung jadi nilai
 // awal useState, tidak perlu setState sinkron pas mount.
-const isDev = process.env.NODE_ENV !== 'production';
+const isDev = process.env.NODE_ENV !== "production";
 const DEV_ATTENDANCE: Attendance = {
-  USERNAME: 'Dev',
-  NAME: 'Dev',
-  CHECK_IN_AT: '00:00',
+  USERNAME: "Dev",
+  NAME: "Dev",
+  CHECK_IN_AT: "00:00",
   CHECK_OUT_AT: null,
-  DATE: clientDayJs().format('YYYY-MM-DD'),
+  DATE: clientDayJs().format("YYYY-MM-DD"),
 };
 
-export default function AttendanceGate({ children }: { children: React.ReactNode }) {
+export default function AttendanceGate({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const { message } = App.useApp();
   const [loading, setLoading] = useState(!isDev);
-  const [attendanceData, setAttendanceData] = useState<Attendance | null>(isDev ? DEV_ATTENDANCE : null);
+  const [attendanceData, setAttendanceData] = useState<Attendance | null>(
+    isDev ? DEV_ATTENDANCE : null,
+  );
   const [checkedIn, setCheckedIn] = useState(isDev);
   const [checkedOut, setCheckedOut] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -51,7 +59,9 @@ export default function AttendanceGate({ children }: { children: React.ReactNode
   async function fetchAttendance() {
     if (isDev) return;
     try {
-      const res = await apiClient.get<{ today: Attendance | null }>('/api/attendance');
+      const res = await apiClient.get<{ today: Attendance | null }>(
+        "/api/attendance",
+      );
       setCheckedIn(!!res.today?.CHECK_IN_AT);
       setCheckedOut(!!res.today?.CHECK_OUT_AT);
       setAttendanceData(res.today);
@@ -80,7 +90,7 @@ export default function AttendanceGate({ children }: { children: React.ReactNode
     // sebagai "sinkron", walau fungsi itu async/pakai await. setState di
     // dalam callback .then() inline begini baru dianggap aman.
     apiClient
-      .get<{ today: Attendance | null }>('/api/attendance')
+      .get<{ today: Attendance | null }>("/api/attendance")
       .then((res) => {
         setCheckedIn(!!res.today?.CHECK_IN_AT);
         setCheckedOut(!!res.today?.CHECK_OUT_AT);
@@ -92,13 +102,15 @@ export default function AttendanceGate({ children }: { children: React.ReactNode
       .finally(() => {
         setLoading(false);
       });
+    // `message` dari antd stabil secara instance, sengaja gak dimasukkan ke deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleCheckIn() {
     setBusy(true);
     try {
-      await apiClient.post('/api/attendance/check-in', {});
-      message.success('Check-in berhasil, selamat bekerja!');
+      await apiClient.post("/api/attendance/check-in", {});
+      message.success("Check-in berhasil, selamat bekerja!");
       setCheckedIn(true);
       await reloadAttendance();
     } catch (err) {
@@ -111,9 +123,9 @@ export default function AttendanceGate({ children }: { children: React.ReactNode
   async function handleCheckOut() {
     setBusy(true);
     try {
-      await apiClient.patch('/api/attendance/check-out', {});
-      message.success('Check-out berhasil');
-      setCheckedOut(true)
+      await apiClient.patch("/api/attendance/check-out", {});
+      message.success("Check-out berhasil");
+      setCheckedOut(true);
       await reloadAttendance();
     } catch (err) {
       message.error((err as Error).message);
@@ -123,7 +135,17 @@ export default function AttendanceGate({ children }: { children: React.ReactNode
   }
 
   return (
-    <AttendanceGateContext.Provider value={{ checkedIn, checkedOut, handleCheckIn, handleCheckOut, attendanceData, loading, busy }}>
+    <AttendanceGateContext.Provider
+      value={{
+        checkedIn,
+        checkedOut,
+        handleCheckIn,
+        handleCheckOut,
+        attendanceData,
+        loading,
+        busy,
+      }}
+    >
       {children}
     </AttendanceGateContext.Provider>
   );

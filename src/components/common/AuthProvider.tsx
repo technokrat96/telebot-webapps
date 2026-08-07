@@ -1,13 +1,20 @@
-'use client';
+"use client";
 
-import {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
-import {Spin} from 'antd';
-import {init} from '@tma.js/sdk';
-import {retrieveRawInitData} from '@tma.js/sdk-react';
-import {useAuthStore} from '@/store/authStore';
-import LoginScreen from './LoginScreen';
-import TelegramLinkGate from './TelegramLinkGate';
-import SetPasswordGate from './SetPasswordGate';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { Spin } from "antd";
+import { init } from "@tma.js/sdk";
+import { retrieveRawInitData } from "@tma.js/sdk-react";
+import { useAuthStore } from "@/store/authStore";
+import LoginScreen from "./LoginScreen";
+import TelegramLinkGate from "./TelegramLinkGate";
+import SetPasswordGate from "./SetPasswordGate";
 
 interface AuthState {
   loading: boolean;
@@ -43,7 +50,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) {
-    throw new Error('useAuth must be used inside AuthProvider');
+    throw new Error("useAuth must be used inside AuthProvider");
   }
   return ctx;
 }
@@ -59,13 +66,20 @@ const EMPTY_STATE: AuthState = {
   telegramInitData: null,
 };
 
-export default function AuthProvider({ children }: { children: React.ReactNode }) {
+export default function AuthProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   // const isDev = process.env.NODE_ENV !== 'production';
   const token = useAuthStore((s) => s.token);
   const clearToken = useAuthStore((s) => s.clear);
   const setToken = useAuthStore((s) => s.setToken);
 
-  const [state, setState] = useState<AuthState>({ ...EMPTY_STATE, loading: true });
+  const [state, setState] = useState<AuthState>({
+    ...EMPTY_STATE,
+    loading: true,
+  });
 
   const bootstrap = useCallback(async () => {
     // if (isDev) {
@@ -88,14 +102,17 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
     if (rawInitData) {
       try {
-        const res = await fetch('/api/auth/login-telegram', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const res = await fetch("/api/auth/login-telegram", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ initData: rawInitData }),
         });
         const data = await res.json();
         if (!res.ok) {
-          setState({ ...EMPTY_STATE, error: data?.error ?? 'Gagal login lewat Telegram.' });
+          setState({
+            ...EMPTY_STATE,
+            error: data?.error ?? "Gagal login lewat Telegram.",
+          });
           return;
         }
         setToken(data.token as string);
@@ -110,7 +127,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
           telegramInitData: rawInitData,
         });
       } catch {
-        setState({ ...EMPTY_STATE, error: 'Tidak bisa terhubung ke server.' });
+        setState({ ...EMPTY_STATE, error: "Tidak bisa terhubung ke server." });
       }
       return;
     }
@@ -125,13 +142,16 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       return;
     }
     try {
-      const res = await fetch('/api/auth/me', {
+      const res = await fetch("/api/auth/me", {
         headers: { Authorization: `Bearer ${currentToken}` },
       });
       const data = await res.json();
       if (!res.ok) {
         clearToken();
-        setState({ ...EMPTY_STATE, error: data?.error ?? 'Sesi berakhir, silakan login lagi.' });
+        setState({
+          ...EMPTY_STATE,
+          error: data?.error ?? "Sesi berakhir, silakan login lagi.",
+        });
         return;
       }
       setState({
@@ -145,7 +165,11 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         telegramInitData: null,
       });
     } catch {
-      setState((s) => ({ ...s, loading: false, error: 'Tidak bisa terhubung ke server.' }));
+      setState((s) => ({
+        ...s,
+        loading: false,
+        error: "Tidak bisa terhubung ke server.",
+      }));
     }
   }, [clearToken, setToken]);
 
@@ -159,7 +183,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       setToken(t);
       bootstrap();
     },
-    [setToken, bootstrap]
+    [setToken, bootstrap],
   );
 
   // Effects only ever run in the browser (never during SSR), so this alone
@@ -173,6 +197,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     if (didBootstrap.current) return;
     didBootstrap.current = true;
     bootstrap();
+    // Sengaja cuma jalan sekali saat mount (dijaga `didBootstrap` ref di atas),
+    // gak boleh re-run tiap `bootstrap` berubah identitas.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const logout = useCallback(() => {
@@ -186,7 +213,14 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const [passwordPromptSkipped, setPasswordPromptSkipped] = useState(false);
 
   const centered = (content: React.ReactNode) => (
-    <div style={{ display: 'flex', justifyContent: 'center', minHeight: '100vh', alignItems: 'center' }}>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        minHeight: "100vh",
+        alignItems: "center",
+      }}
+    >
       {content}
     </div>
   );
@@ -198,7 +232,12 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   // Error duluan (mis. gagal login-telegram, atau JWT expired) — supaya
   // pesannya kepakai, bukan ketiban kondisi "belum ada token" di bawahnya.
   if (state.error) {
-    return <LoginScreen onLoggedInAction={handleLoggedIn} initialError={state.error} />;
+    return (
+      <LoginScreen
+        onLoggedInAction={handleLoggedIn}
+        initialError={state.error}
+      />
+    );
   }
 
   // Kalau tidak sedang di dalam Telegram Mini App (tidak ada login-telegram
@@ -208,7 +247,13 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   }
 
   if (!state.telegramLinked) {
-    return <TelegramLinkGate name={state.name} onRecheckAction={bootstrap} onLogoutAction={logout} />;
+    return (
+      <TelegramLinkGate
+        name={state.name}
+        onRecheckAction={bootstrap}
+        onLogoutAction={logout}
+      />
+    );
   }
 
   // Baru login dari Telegram Mini App dan belum pernah set password —
@@ -226,7 +271,12 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
   return (
     <AuthContext.Provider
-      value={{ ...state, logout, refresh: bootstrap, isTelegramClient: !!state.telegramInitData }}
+      value={{
+        ...state,
+        logout,
+        refresh: bootstrap,
+        isTelegramClient: !!state.telegramInitData,
+      }}
     >
       {children}
     </AuthContext.Provider>

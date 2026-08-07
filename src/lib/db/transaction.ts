@@ -1,20 +1,21 @@
-import 'server-only';
-import {prisma} from '@/lib/prismaClient';
+import "server-only";
+import { prisma } from "@/lib/prismaClient";
 import {
   FloristAssignment,
   DeliveryDriverAssignment,
   Transaction,
   TransactionDetail,
   TransactionWithDetails,
-  TransactionWithDetailsAndAssignments
-} from '@/types';
-import {TransactionModel} from "@/generated/prisma/models/Transaction";
-import {TransactionDetailModel} from "@/generated/prisma/models/TransactionDetail";
-import {FloristAssignmentModel} from "@/generated/prisma/models/FloristAssignment";
-import {DeliveryDriverAssignmentModel} from "@/generated/prisma/models/DeliveryDriverAssignment";
-import {Decimal} from "@prisma/client-runtime-utils";
-import {generateOrderId, generateOrderItemId} from "@/lib/generateId";
+  TransactionWithDetailsAndAssignments,
+} from "@/types";
+import { TransactionModel } from "@/generated/prisma/models/Transaction";
+import { TransactionDetailModel } from "@/generated/prisma/models/TransactionDetail";
+import { FloristAssignmentModel } from "@/generated/prisma/models/FloristAssignment";
+import { DeliveryDriverAssignmentModel } from "@/generated/prisma/models/DeliveryDriverAssignment";
+import { Decimal } from "@prisma/client-runtime-utils";
+import { generateOrderId, generateOrderItemId } from "@/lib/generateId";
 import serverDayJs from "@/lib/server.dayjs";
+import { isPrismaError } from "@/lib/prismaErrorCode";
 
 export function toTransaction(row: TransactionModel): Transaction {
   return {
@@ -33,7 +34,9 @@ export function toTransaction(row: TransactionModel): Transaction {
   };
 }
 
-export function toTransactionDetail(row: TransactionDetailModel): TransactionDetail {
+export function toTransactionDetail(
+  row: TransactionDetailModel,
+): TransactionDetail {
   return {
     ORDER_ITEM_ID: row.orderItemId,
     ORDER_ID: row.orderId,
@@ -52,8 +55,12 @@ export function toTransactionDetail(row: TransactionDetailModel): TransactionDet
     CARD_CREATED_BY: row.cardCreatedBy ?? "",
     CARD_STATUS: row.cardStatus ?? "",
     DELIVERY_METHOD: row.deliveryMethod ?? "",
-    DELIVERY_DATE: row.deliveryDate ? serverDayJs(row.deliveryDate).format("YYYY-MM-DD HH:mm:ss") : "",
-    DELIVERY_TIME: row.deliveryTime ? serverDayJs(row.deliveryTime).format("YYYY-MM-DD HH:mm:ss") : "",
+    DELIVERY_DATE: row.deliveryDate
+      ? serverDayJs(row.deliveryDate).format("YYYY-MM-DD HH:mm:ss")
+      : "",
+    DELIVERY_TIME: row.deliveryTime
+      ? serverDayJs(row.deliveryTime).format("YYYY-MM-DD HH:mm:ss")
+      : "",
     SHIPPING_FEE: row.shippingFee.toNumber(),
     RECEIVER_NAME: row.receiverName ?? "",
     RECEIVER_ADDRESS: row.receiverAddress ?? "",
@@ -70,13 +77,19 @@ function toAssignmentLocal(row: FloristAssignmentModel): FloristAssignment {
     FLORIST_USERNAME: row.floristUsername,
     FLORIST_NAME: row.floristName,
     QUANTITY_ASSIGNED: Number(row.quantityAssigned),
-    ASSIGNED_AT: row.assignedAt ? serverDayJs(row.assignedAt).format("YYYY-MM-DD HH:mm:ss") : "",
+    ASSIGNED_AT: row.assignedAt
+      ? serverDayJs(row.assignedAt).format("YYYY-MM-DD HH:mm:ss")
+      : "",
     STATUS: row.status,
-    COMPLETED_AT: row.completedAt ? serverDayJs(row.completedAt).format("YYYY-MM-DD HH:mm:ss") : "",
+    COMPLETED_AT: row.completedAt
+      ? serverDayJs(row.completedAt).format("YYYY-MM-DD HH:mm:ss")
+      : "",
   };
 }
 
-function toDeliveryAssignmentLocal(row: DeliveryDriverAssignmentModel): DeliveryDriverAssignment {
+function toDeliveryAssignmentLocal(
+  row: DeliveryDriverAssignmentModel,
+): DeliveryDriverAssignment {
   return {
     ASSIGNMENT_ID: row.assignmentId,
     ORDER_ITEM_ID: row.orderItemId,
@@ -84,15 +97,21 @@ function toDeliveryAssignmentLocal(row: DeliveryDriverAssignmentModel): Delivery
     DELIVERY_DRIVER_USERNAME: row.deliveryDriverUsername,
     DELIVERY_DRIVER_NAME: row.deliveryDriverName,
     QUANTITY_ASSIGNED: row.quantityAssigned.toNumber(),
-    ASSIGNED_AT: row.assignedAt ? serverDayJs(row.assignedAt).format("YYYY-MM-DD HH:mm:ss") : "",
+    ASSIGNED_AT: row.assignedAt
+      ? serverDayJs(row.assignedAt).format("YYYY-MM-DD HH:mm:ss")
+      : "",
     STATUS: row.status,
     DELIVERY_STATUS: row.deliveryStatus ?? "",
-    COMPLETED_AT: row.completedAt ? serverDayJs(row.completedAt).format("YYYY-MM-DD HH:mm:ss") : "",
+    COMPLETED_AT: row.completedAt
+      ? serverDayJs(row.completedAt).format("YYYY-MM-DD HH:mm:ss")
+      : "",
     IMAGE_URLS: row.imageUrls ?? [],
   };
 }
 
-function fromTransaction(t: Omit<Transaction, 'ORDER_ID'>): Omit<TransactionModel, "orderId" | "createdAt"> {
+function fromTransaction(
+  t: Omit<Transaction, "ORDER_ID">,
+): Omit<TransactionModel, "orderId" | "createdAt"> {
   return {
     orderSource: t.ORDER_SOURCE,
     salesName: t.SALES_NAME,
@@ -108,7 +127,9 @@ function fromTransaction(t: Omit<Transaction, 'ORDER_ID'>): Omit<TransactionMode
   };
 }
 
-function fromTransactionDetail(d: Omit<TransactionDetail, 'ORDER_ID' | 'ORDER_ITEM_ID'>): Omit<TransactionDetailModel, "orderId" | "orderItemId"> {
+function fromTransactionDetail(
+  d: Omit<TransactionDetail, "ORDER_ID" | "ORDER_ITEM_ID">,
+): Omit<TransactionDetailModel, "orderId" | "orderItemId"> {
   return {
     itemName: d.ITEM_NAME,
     quantity: Number(d.QUANTITY || 0),
@@ -125,8 +146,14 @@ function fromTransactionDetail(d: Omit<TransactionDetail, 'ORDER_ID' | 'ORDER_IT
     cardCreatedBy: d.CARD_CREATED_BY,
     cardStatus: d.CARD_STATUS,
     deliveryMethod: d.DELIVERY_METHOD,
-    deliveryDate: d.DELIVERY_DATE ? serverDayJs(d.DELIVERY_DATE).toDate() : null,
-    deliveryTime: d.DELIVERY_TIME ? serverDayJs(`${d.DELIVERY_DATE ? d.DELIVERY_DATE : serverDayJs().format("YYYY-MM-DD")} ${d.DELIVERY_TIME}`).toDate() : null,
+    deliveryDate: d.DELIVERY_DATE
+      ? serverDayJs(d.DELIVERY_DATE).toDate()
+      : null,
+    deliveryTime: d.DELIVERY_TIME
+      ? serverDayJs(
+          `${d.DELIVERY_DATE ? d.DELIVERY_DATE : serverDayJs().format("YYYY-MM-DD")} ${d.DELIVERY_TIME}`,
+        ).toDate()
+      : null,
     shippingFee: new Decimal(d.SHIPPING_FEE),
     receiverName: d.RECEIVER_NAME,
     receiverAddress: d.RECEIVER_ADDRESS,
@@ -142,14 +169,16 @@ function fromTransactionDetail(d: Omit<TransactionDetail, 'ORDER_ID' | 'ORDER_IT
  * kosong/0 kalau kebetulan tidak disertakan di request.
  */
 function fromTransactionDetailUpdates(
-  d: Partial<Omit<TransactionDetail, 'ORDER_ID' | 'ORDER_ITEM_ID'>>
+  d: Partial<Omit<TransactionDetail, "ORDER_ID" | "ORDER_ITEM_ID">>,
 ): Partial<Omit<TransactionDetailModel, "orderId" | "orderItemId">> {
-  const data: Partial<Omit<TransactionDetailModel, "orderId" | "orderItemId">> = {};
+  const data: Partial<Omit<TransactionDetailModel, "orderId" | "orderItemId">> =
+    {};
   if (d.ITEM_NAME !== undefined) data.itemName = d.ITEM_NAME;
   if (d.QUANTITY !== undefined) data.quantity = Number(d.QUANTITY || 0);
   if (d.UNIT_PRICE !== undefined) data.unitPrice = new Decimal(d.UNIT_PRICE);
   if (d.CURRENCY !== undefined) data.currency = d.CURRENCY;
-  if (d.CURRENCY_RATE !== undefined) data.currencyRate = new Decimal(d.CURRENCY_RATE);
+  if (d.CURRENCY_RATE !== undefined)
+    data.currencyRate = new Decimal(d.CURRENCY_RATE);
   if (d.CUSTOM_NOTES !== undefined) data.customNotes = d.CUSTOM_NOTES;
   if (d.SUBTOTAL !== undefined) data.subtotal = new Decimal(d.SUBTOTAL);
   if (d.ITEM_STATUS !== undefined) data.itemStatus = d.ITEM_STATUS;
@@ -161,40 +190,59 @@ function fromTransactionDetailUpdates(
   if (d.CARD_STATUS !== undefined) data.cardStatus = d.CARD_STATUS;
   if (d.DELIVERY_METHOD !== undefined) data.deliveryMethod = d.DELIVERY_METHOD;
   if (d.DELIVERY_DATE !== undefined) {
-    data.deliveryDate = d.DELIVERY_DATE ? serverDayJs(d.DELIVERY_DATE).toDate() : null;
+    data.deliveryDate = d.DELIVERY_DATE
+      ? serverDayJs(d.DELIVERY_DATE).toDate()
+      : null;
   }
   if (d.DELIVERY_TIME !== undefined) {
     data.deliveryTime = d.DELIVERY_TIME
-      ? serverDayJs(`${d.DELIVERY_DATE ? d.DELIVERY_DATE : serverDayJs().format("YYYY-MM-DD")} ${d.DELIVERY_TIME}`).toDate()
+      ? serverDayJs(
+          `${d.DELIVERY_DATE ? d.DELIVERY_DATE : serverDayJs().format("YYYY-MM-DD")} ${d.DELIVERY_TIME}`,
+        ).toDate()
       : null;
   }
-  if (d.SHIPPING_FEE !== undefined) data.shippingFee = new Decimal(d.SHIPPING_FEE);
+  if (d.SHIPPING_FEE !== undefined)
+    data.shippingFee = new Decimal(d.SHIPPING_FEE);
   if (d.RECEIVER_NAME !== undefined) data.receiverName = d.RECEIVER_NAME;
-  if (d.RECEIVER_ADDRESS !== undefined) data.receiverAddress = d.RECEIVER_ADDRESS;
+  if (d.RECEIVER_ADDRESS !== undefined)
+    data.receiverAddress = d.RECEIVER_ADDRESS;
   if (d.RECEIVER_PHONE !== undefined) data.receiverPhone = d.RECEIVER_PHONE;
   if (d.IMAGE_URLS !== undefined) data.imageUrls = d.IMAGE_URLS ?? [];
   return data;
 }
 
-function fromTransactionUpdates(updates: Partial<Transaction>): Partial<TransactionModel> {
+function fromTransactionUpdates(
+  updates: Partial<Transaction>,
+): Partial<TransactionModel> {
   const data: Partial<TransactionModel> = {};
-  if (updates.ORDER_SOURCE !== undefined) data.orderSource = updates.ORDER_SOURCE;
+  if (updates.ORDER_SOURCE !== undefined)
+    data.orderSource = updates.ORDER_SOURCE;
   if (updates.SALES_NAME !== undefined) data.salesName = updates.SALES_NAME;
-  if (updates.CUSTOMER_NAME !== undefined) data.customerName = updates.CUSTOMER_NAME;
-  if (updates.CUSTOMER_ADDRESS !== undefined) data.customerAddress = updates.CUSTOMER_ADDRESS;
-  if (updates.CUSTOMER_PHONE !== undefined) data.customerPhone = updates.CUSTOMER_PHONE;
-  if (updates.CUSTOMER_EMAIL !== undefined) data.customerEmail = updates.CUSTOMER_EMAIL;
-  if (updates.GRAND_TOTAL !== undefined) data.grandTotal = new Decimal(updates.GRAND_TOTAL);
-  if (updates.DOWN_PAYMENT !== undefined) data.downPayment = new Decimal(updates.DOWN_PAYMENT);
-  if (updates.REMAINING_BALANCE !== undefined) data.remainingBalance = new Decimal(updates.REMAINING_BALANCE);
-  if (updates.PAYMENT_METHOD !== undefined) data.paymentMethod = updates.PAYMENT_METHOD;
+  if (updates.CUSTOMER_NAME !== undefined)
+    data.customerName = updates.CUSTOMER_NAME;
+  if (updates.CUSTOMER_ADDRESS !== undefined)
+    data.customerAddress = updates.CUSTOMER_ADDRESS;
+  if (updates.CUSTOMER_PHONE !== undefined)
+    data.customerPhone = updates.CUSTOMER_PHONE;
+  if (updates.CUSTOMER_EMAIL !== undefined)
+    data.customerEmail = updates.CUSTOMER_EMAIL;
+  if (updates.GRAND_TOTAL !== undefined)
+    data.grandTotal = new Decimal(updates.GRAND_TOTAL);
+  if (updates.DOWN_PAYMENT !== undefined)
+    data.downPayment = new Decimal(updates.DOWN_PAYMENT);
+  if (updates.REMAINING_BALANCE !== undefined)
+    data.remainingBalance = new Decimal(updates.REMAINING_BALANCE);
+  if (updates.PAYMENT_METHOD !== undefined)
+    data.paymentMethod = updates.PAYMENT_METHOD;
   return data;
 }
 
 // ---- Public API (signature identik dengan versi Google Sheets) ----
 
 export async function listTransactions(): Promise<Transaction[]> {
-  const rows = await prisma.transaction.findMany({ orderBy: { createdAt: 'desc' } });
+  const rows = await prisma.transaction.findMany({
+    orderBy: { createdAt: "desc" },
+  });
   return rows.map(toTransaction);
 }
 
@@ -208,7 +256,7 @@ export async function listTransactionsWithDetails(): Promise<
   TransactionWithDetails[]
 > {
   const transactions = await prisma.transaction.findMany({
-    orderBy: { createdAt: 'desc' }, // newest first, dulu didapat dari .reverse()
+    orderBy: { createdAt: "desc" }, // newest first, dulu didapat dari .reverse()
     include: { details: true },
   });
 
@@ -219,7 +267,7 @@ export async function listTransactionsWithDetails(): Promise<
 }
 
 export async function getTransactionById(
-  orderId: string
+  orderId: string,
 ): Promise<TransactionWithDetailsAndAssignments | null> {
   const t = await prisma.transaction.findUnique({
     where: { orderId },
@@ -236,14 +284,16 @@ export async function getTransactionById(
     details: t.details.map((d) => ({
       ...toTransactionDetail(d),
       assignments: d.floristAssignments.map(toAssignmentLocal),
-      deliveryAssignments: d.deliveryDriverAssignments.map(toDeliveryAssignmentLocal),
+      deliveryAssignments: d.deliveryDriverAssignments.map(
+        toDeliveryAssignmentLocal,
+      ),
     })),
   };
 }
 
 export async function createTransaction(
-  transaction: Omit<Transaction, 'ORDER_ID'>,
-  details: Omit<TransactionDetail, 'ORDER_ID' | 'ORDER_ITEM_ID'>[]
+  transaction: Omit<Transaction, "ORDER_ID">,
+  details: Omit<TransactionDetail, "ORDER_ID" | "ORDER_ITEM_ID">[],
 ): Promise<string> {
   const orderId = generateOrderId();
   await prisma.transaction.create({
@@ -253,7 +303,7 @@ export async function createTransaction(
       details: {
         create: details.map((r, i) => ({
           ...fromTransactionDetail(r),
-          orderItemId: generateOrderItemId(orderId, i)
+          orderItemId: generateOrderItemId(orderId, i),
         })),
       },
     },
@@ -268,7 +318,7 @@ export async function createTransaction(
  * dobel.
  */
 export async function findTransactionByShopifyOrderId(
-  shopifyOrderId: string
+  shopifyOrderId: string,
 ): Promise<{ ORDER_ID: string } | null> {
   const row = await prisma.transaction.findUnique({
     where: { shopifyOrderId },
@@ -279,7 +329,7 @@ export async function findTransactionByShopifyOrderId(
 
 export async function updateTransaction(
   orderId: string,
-  updates: Partial<Transaction>
+  updates: Partial<Transaction>,
 ): Promise<boolean> {
   try {
     await prisma.transaction.update({
@@ -287,8 +337,8 @@ export async function updateTransaction(
       data: fromTransactionUpdates(updates),
     });
     return true;
-  } catch (err: any) {
-    if (err?.code === 'P2025') return false;
+  } catch (err: unknown) {
+    if (isPrismaError(err, "P2025")) return false;
     throw err;
   }
 }
@@ -310,15 +360,17 @@ export async function updateTransaction(
  * dipakai FloristAssignment/InvoiceDetail (FK-nya `onDelete: NoAction`), DB
  * akan menolak (P2003) dan seluruh perubahan di-rollback.
  */
-export type TransactionDetailUpdateInput = Partial<Omit<TransactionDetail, 'ORDER_ID' | 'ORDER_ITEM_ID'>> & {
+export type TransactionDetailUpdateInput = Partial<
+  Omit<TransactionDetail, "ORDER_ID" | "ORDER_ITEM_ID">
+> & {
   ORDER_ITEM_ID?: string;
 };
 
 export async function updateTransactionWithDetails(
   orderId: string,
   updates: Partial<Transaction>,
-  details: TransactionDetailUpdateInput[]
-): Promise<{ ok: true } | { ok: false; reason: 'NOT_FOUND' | 'ITEM_IN_USE' }> {
+  details: TransactionDetailUpdateInput[],
+): Promise<{ ok: true } | { ok: false; reason: "NOT_FOUND" | "ITEM_IN_USE" }> {
   const existingRows = await prisma.transactionDetail.findMany({
     where: { orderId },
     select: { orderItemId: true },
@@ -326,7 +378,7 @@ export async function updateTransactionWithDetails(
   const existingIds = new Set(existingRows.map((r) => r.orderItemId));
 
   const incomingIds = new Set(
-    details.map((d) => d.ORDER_ITEM_ID).filter((v): v is string => !!v)
+    details.map((d) => d.ORDER_ITEM_ID).filter((v): v is string => !!v),
   );
   const idsToDelete = [...existingIds].filter((id) => !incomingIds.has(id));
 
@@ -365,7 +417,9 @@ export async function updateTransactionWithDetails(
           nextIndex += 1;
           await tx.transactionDetail.create({
             data: {
-              ...fromTransactionDetail(rest as Omit<TransactionDetail, 'ORDER_ID' | 'ORDER_ITEM_ID'>),
+              ...fromTransactionDetail(
+                rest as Omit<TransactionDetail, "ORDER_ID" | "ORDER_ITEM_ID">,
+              ),
               orderItemId: generateOrderItemId(orderId, nextIndex - 1),
               orderId,
             },
@@ -374,44 +428,42 @@ export async function updateTransactionWithDetails(
       }
     });
     return { ok: true };
-  } catch (err: any) {
-    if (err?.code === 'P2025') return { ok: false, reason: 'NOT_FOUND' };
-    if (err?.code === 'P2003') return { ok: false, reason: 'ITEM_IN_USE' };
+  } catch (err: unknown) {
+    if (isPrismaError(err, "P2025")) return { ok: false, reason: "NOT_FOUND" };
+    if (isPrismaError(err, "P2003"))
+      return { ok: false, reason: "ITEM_IN_USE" };
     throw err;
   }
 }
 
 export async function updateTransactionDetailItemStatus(
   orderItemId: string,
-  updates: Partial<
-    Pick<TransactionDetail, 'ITEM_STATUS'>
-  >
+  updates: Partial<Pick<TransactionDetail, "ITEM_STATUS">>,
 ): Promise<boolean> {
   const data: Record<string, unknown> = {};
   if (updates.ITEM_STATUS !== undefined) data.itemStatus = updates.ITEM_STATUS;
   try {
     await prisma.transactionDetail.update({ where: { orderItemId }, data });
     return true;
-  } catch (err: any) {
-    if (err?.code === 'P2025') return false;
+  } catch (err: unknown) {
+    if (isPrismaError(err, "P2025")) return false;
     throw err;
   }
 }
 
 export async function updateTransactionDetailCardStatus(
   orderItemId: string,
-  updates: Partial<
-    Pick<TransactionDetail, 'CARD_STATUS' | 'CARD_CREATED_BY'>
-  >
+  updates: Partial<Pick<TransactionDetail, "CARD_STATUS" | "CARD_CREATED_BY">>,
 ): Promise<boolean> {
   const data: Record<string, unknown> = {};
   if (updates.CARD_STATUS !== undefined) data.cardStatus = updates.CARD_STATUS;
-  if (updates.CARD_CREATED_BY !== undefined) data.cardCreatedBy = updates.CARD_CREATED_BY;
+  if (updates.CARD_CREATED_BY !== undefined)
+    data.cardCreatedBy = updates.CARD_CREATED_BY;
   try {
     await prisma.transactionDetail.update({ where: { orderItemId }, data });
     return true;
-  } catch (err: any) {
-    if (err?.code === 'P2025') return false;
+  } catch (err: unknown) {
+    if (isPrismaError(err, "P2025")) return false;
     throw err;
   }
 }
@@ -425,7 +477,7 @@ export async function updateTransactionDetailCardStatus(
  */
 export async function updateAllItemStatusForOrder(
   orderId: string,
-  itemStatus: string
+  itemStatus: string,
 ): Promise<void> {
   await prisma.transactionDetail.updateMany({
     where: { orderId },
@@ -434,33 +486,43 @@ export async function updateAllItemStatusForOrder(
 }
 
 export async function listTransactionsWithDetailsAndAssignments(
-  options: { page?: number; pageSize?: number } = {}
-): Promise<{ transactions: TransactionWithDetailsAndAssignments[]; total: number }> {
+  options: { page?: number; pageSize?: number } = {},
+): Promise<{
+  transactions: TransactionWithDetailsAndAssignments[];
+  total: number;
+}> {
   const page = Math.max(1, options.page ?? 1);
   const pageSize = Math.min(100, Math.max(1, options.pageSize ?? 10)); // cap 100 biar gak disalahgunakan
 
   const [rows, total] = await Promise.all([
     prisma.transaction.findMany({
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       skip: (page - 1) * pageSize,
       take: pageSize,
       include: {
         details: {
-          include: { floristAssignments: true, deliveryDriverAssignments: true },
+          include: {
+            floristAssignments: true,
+            deliveryDriverAssignments: true,
+          },
         },
       },
     }),
     prisma.transaction.count(),
   ]);
 
-  const transactions: TransactionWithDetailsAndAssignments[] = rows.map((t) => ({
-    ...toTransaction(t),
-    details: t.details.map((d) => ({
-      ...toTransactionDetail(d),
-      assignments: d.floristAssignments.map(toAssignmentLocal),
-      deliveryAssignments: d.deliveryDriverAssignments.map(toDeliveryAssignmentLocal),
-    })),
-  }));
+  const transactions: TransactionWithDetailsAndAssignments[] = rows.map(
+    (t) => ({
+      ...toTransaction(t),
+      details: t.details.map((d) => ({
+        ...toTransactionDetail(d),
+        assignments: d.floristAssignments.map(toAssignmentLocal),
+        deliveryAssignments: d.deliveryDriverAssignments.map(
+          toDeliveryAssignmentLocal,
+        ),
+      })),
+    }),
+  );
 
   return { transactions, total };
 }
@@ -470,4 +532,4 @@ export async function listTransactionsWithDetailsAndAssignments(
 // src/app/florist/page.tsx and kurir/page.tsx). Kurir's own queue queries
 // (available/mine, based on DeliveryDriverAssignment claims) now live in
 // src/lib/db/deliveryDriverAssignment.ts.
-export { isOrderFullyDone } from '@/lib/statusUtils';
+export { isOrderFullyDone } from "@/lib/statusUtils";

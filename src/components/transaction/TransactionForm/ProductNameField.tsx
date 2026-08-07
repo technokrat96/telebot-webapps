@@ -1,11 +1,17 @@
-'use client';
+"use client";
 
-import { AutoComplete, Form, FormListFieldData, Input } from 'antd';
-import { useMemo, useState } from 'react';
-import debounce from 'lodash/debounce';
-import { apiClient } from '@/lib/apiClient';
-import type { ProductSearchResult } from '@/types';
-import type { TransactionFormValues } from './types';
+import {
+  AutoComplete,
+  Form,
+  FormInstance,
+  FormListFieldData,
+  Input,
+} from "antd";
+import { useMemo, useState } from "react";
+import debounce from "lodash/debounce";
+import { apiClient } from "@/lib/apiClient";
+import type { ProductSearchResult } from "@/types";
+import type { TransactionFormValues } from "./types";
 
 /**
  * Field "Nama Item": cari produk Shopify sambil ngetik (title/SKU). Kalau
@@ -18,13 +24,15 @@ import type { TransactionFormValues } from './types';
  * manual -- AutoComplete tidak memaksa pilih dari daftar.
  */
 export default function ProductNameField({
-                                            field,
-                                            form,
-                                          }: {
-  field: Omit<FormListFieldData, 'key'>;
-  form: ReturnType<typeof Form.useFormInstance<TransactionFormValues>>;
+  field,
+  form,
+}: {
+  field: Omit<FormListFieldData, "key">;
+  form: FormInstance<TransactionFormValues>;
 }) {
-  const [options, setOptions] = useState<{ value: string; product: ProductSearchResult }[]>([]);
+  const [options, setOptions] = useState<
+    { value: string; product: ProductSearchResult }[]
+  >([]);
   const [searching, setSearching] = useState(false);
 
   const doSearch = useMemo(
@@ -36,9 +44,9 @@ export default function ProductNameField({
         }
         setSearching(true);
         try {
-          const { results } = await apiClient.get<{ results: ProductSearchResult[] }>(
-            `/api/shopify/products/search?q=${encodeURIComponent(keyword)}`
-          );
+          const { results } = await apiClient.get<{
+            results: ProductSearchResult[];
+          }>(`/api/shopify/products/search?q=${encodeURIComponent(keyword)}`);
           setOptions(results.map((p) => ({ value: p.LABEL, product: p })));
         } catch {
           // Gagal cari (mis. Shopify belum dikonfigurasi / lagi down) --
@@ -48,41 +56,46 @@ export default function ProductNameField({
           setSearching(false);
         }
       }, 350),
-    []
+    [],
   );
 
   function handleSelect(value: string) {
     const found = options.find((o) => o.value === value)?.product;
     if (!found) return;
 
-    const currentDetails = form.getFieldValue('details') ?? [];
+    const currentDetails = form.getFieldValue("details") ?? [];
     const next = [...currentDetails];
     const currentRow = next[field.name] ?? {};
 
     // Tambahkan gambar produk Shopify ke Foto Item -- append (bukan
     // menimpa) & hindari duplikat kalau user pilih ulang produk yang sama.
     const currentImageUrls: string[] = currentRow.IMAGE_URLS ?? [];
-    const imageUrls = found.IMAGE_URL && !currentImageUrls.includes(found.IMAGE_URL)
-      ? [...currentImageUrls, found.IMAGE_URL]
-      : currentImageUrls;
+    const imageUrls =
+      found.IMAGE_URL && !currentImageUrls.includes(found.IMAGE_URL)
+        ? [...currentImageUrls, found.IMAGE_URL]
+        : currentImageUrls;
 
-    next[field.name] = { ...currentRow, UNIT_PRICE: found.PRICE, IMAGE_URLS: imageUrls };
+    next[field.name] = {
+      ...currentRow,
+      UNIT_PRICE: found.PRICE,
+      IMAGE_URLS: imageUrls,
+    };
     form.setFieldsValue({ details: next });
   }
 
   // Non-production (dev/staging lokal): jangan nyambung ke Shopify sama
   // sekali, biar tidak numpang query API asli tiap develop -- field jadi
   // free text biasa, persis kayak sebelum fitur cari produk ada.
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV !== "production") {
     return (
       <Form.Item
         {...field}
         label="Nama Item"
-        key={[field.name, 'ITEM_NAME'].join('-')}
-        name={[field.name, 'ITEM_NAME']}
-        rules={[{ required: true, message: 'Wajib diisi' }]}
+        key={[field.name, "ITEM_NAME"].join("-")}
+        name={[field.name, "ITEM_NAME"]}
+        rules={[{ required: true, message: "Wajib diisi" }]}
       >
-        <Input placeholder="Buket Mawar Merah (dev mode: free text, tidak connect Shopify)"/>
+        <Input placeholder="Buket Mawar Merah (dev mode: free text, tidak connect Shopify)" />
       </Form.Item>
     );
   }
@@ -91,10 +104,10 @@ export default function ProductNameField({
     <Form.Item
       {...field}
       label="Nama Item"
-      key={[field.name, 'ITEM_NAME'].join('-')}
-      name={[field.name, 'ITEM_NAME']}
-      rules={[{ required: true, message: 'Wajib diisi' }]}
-      extra={searching ? 'Mencari produk di Shopify…' : undefined}
+      key={[field.name, "ITEM_NAME"].join("-")}
+      name={[field.name, "ITEM_NAME"]}
+      rules={[{ required: true, message: "Wajib diisi" }]}
+      extra={searching ? "Mencari produk di Shopify…" : undefined}
     >
       <AutoComplete
         options={options.map((o) => ({ value: o.value }))}

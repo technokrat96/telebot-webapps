@@ -1,4 +1,4 @@
-import 'server-only';
+import "server-only";
 
 /**
  * Kredensial Shopify diambil dari .env (lihat README bagian "Setup
@@ -23,11 +23,11 @@ export function getShopifyAdminConfig(): ShopifyAdminConfig {
   const storeDomain = process.env.SHOPIFY_STORE_DOMAIN;
   const clientId = process.env.SHOPIFY_CLIENT_ID;
   const clientSecret = process.env.SHOPIFY_CLIENT_SECRET;
-  const apiVersion = process.env.SHOPIFY_API_VERSION || '2026-07';
+  const apiVersion = process.env.SHOPIFY_API_VERSION || "2026-07";
 
   if (!storeDomain || !clientId || !clientSecret) {
     throw new Error(
-      'SHOPIFY_STORE_DOMAIN / SHOPIFY_CLIENT_ID / SHOPIFY_CLIENT_SECRET belum diatur di .env — lihat README bagian Setup Shopify.'
+      "SHOPIFY_STORE_DOMAIN / SHOPIFY_CLIENT_ID / SHOPIFY_CLIENT_SECRET belum diatur di .env — lihat README bagian Setup Shopify.",
     );
   }
 
@@ -37,7 +37,9 @@ export function getShopifyAdminConfig(): ShopifyAdminConfig {
 export function getShopifyWebhookSecret(): string {
   const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
   if (!secret) {
-    throw new Error('SHOPIFY_WEBHOOK_SECRET belum diatur di .env — lihat README bagian Setup Shopify.');
+    throw new Error(
+      "SHOPIFY_WEBHOOK_SECRET belum diatur di .env — lihat README bagian Setup Shopify.",
+    );
   }
   return secret;
 }

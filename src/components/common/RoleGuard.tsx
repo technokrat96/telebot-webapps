@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { Result } from 'antd';
-import { useAuth } from './AuthProvider';
+import { Result } from "antd";
+import { useAuth } from "./AuthProvider";
 
 export default function RoleGuard({
   allow,
@@ -18,8 +18,8 @@ export default function RoleGuard({
       <Result
         status="403"
         title="Akses ditolak"
-        subTitle={`Halaman ini khusus untuk ${allow.join('/')}. Akun kamu (${
-          name ?? 'tidak dikenal'
+        subTitle={`Halaman ini khusus untuk ${allow.join("/")}. Akun kamu (${
+          name ?? "tidak dikenal"
         }) tidak punya akses.`}
       />
     );

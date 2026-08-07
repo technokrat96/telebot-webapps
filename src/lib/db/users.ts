@@ -1,26 +1,28 @@
-import 'server-only';
-import {prisma} from '@/lib/prismaClient';
-import {User} from '@/types';
-import {AppUserModel} from "@/generated/prisma/models/AppUser";
-import {UserRoleModel} from "@/generated/prisma/models/UserRole";
+import "server-only";
+import { prisma } from "@/lib/prismaClient";
+import { User } from "@/types";
+import { AppUserModel } from "@/generated/prisma/models/AppUser";
+import { UserRoleModel } from "@/generated/prisma/models/UserRole";
 
 function normalizedUsername(username: string) {
-  return username.replace(/^@/, '').toLowerCase();
+  return username.replace(/^@/, "").toLowerCase();
 }
 
-function toUser(row: AppUserModel & { roles: Omit<UserRoleModel, "username">[] }): User {
+function toUser(
+  row: AppUserModel & { roles: Omit<UserRoleModel, "username">[] },
+): User {
   return {
     CHAT_ID: row.chatId,
     TELEGRAM_ID: row.telegramId,
     USERNAME: row.username,
     NAME: row.name,
-    ROLES: row.roles.map(e => e.role),
+    ROLES: row.roles.map((e) => e.role),
     HAS_PASSWORD: Boolean(row.password),
   };
 }
 
 export async function findUserByUsername(
-  username: string
+  username: string,
 ): Promise<User | null> {
   const normalized = normalizedUsername(username);
   // Data Users biasanya kecil (puluhan/ratusan baris), jadi ambil semua
@@ -29,16 +31,16 @@ export async function findUserByUsername(
     where: {
       username: {
         equals: normalized,
-        mode: 'insensitive',
+        mode: "insensitive",
       },
     },
     include: {
       roles: {
         select: {
           role: true, // 💡 Hanya mengambil kolom role dari database
-        }
+        },
       },
-    }
+    },
   });
   return user ? toUser(user) : null;
 }
@@ -49,15 +51,17 @@ export async function findUserByUsername(
  * pernah di-set). Tidak lewat `toUser` supaya hash password tidak pernah
  * ikut ter-expose ke response API lain secara tidak sengaja.
  */
-export async function findUserAuthByUsername(username: string): Promise<
-  (AppUserModel & { roles: Omit<UserRoleModel, 'username'>[] }) | null
+export async function findUserAuthByUsername(
+  username: string,
+): Promise<
+  (AppUserModel & { roles: Omit<UserRoleModel, "username">[] }) | null
 > {
   const normalized = normalizedUsername(username);
   return prisma.appUser.findFirst({
     where: {
       username: {
         equals: normalized,
-        mode: 'insensitive',
+        mode: "insensitive",
       },
     },
     include: {
@@ -68,15 +72,20 @@ export async function findUserAuthByUsername(username: string): Promise<
   });
 }
 
-export async function setUserPassword(username: string, passwordHash: string): Promise<void> {
+export async function setUserPassword(
+  username: string,
+  passwordHash: string,
+): Promise<void> {
   const normalized = normalizedUsername(username);
   await prisma.appUser.updateMany({
-    where: { username: { equals: normalized, mode: 'insensitive' } },
+    where: { username: { equals: normalized, mode: "insensitive" } },
     data: { password: passwordHash },
   });
 }
 
-export async function findUsersAdminNotMeAndHasChatIdOrTelegramId(username: string): Promise<User[]> {
+export async function findUsersAdminNotMeAndHasChatIdOrTelegramId(
+  username: string,
+): Promise<User[]> {
   const user = await prisma.appUser.findMany({
     take: 2,
     orderBy: {
@@ -89,57 +98,64 @@ export async function findUsersAdminNotMeAndHasChatIdOrTelegramId(username: stri
       roles: {
         some: {
           role: {
-            in: ['ADMIN']
-          }
-        }
+            in: ["ADMIN"],
+          },
+        },
       },
-      OR: [
-        { chatId: { not: null } },
-        { telegramId: { not: null } }
-      ]
+      OR: [{ chatId: { not: null } }, { telegramId: { not: null } }],
     },
     include: {
       roles: {
         select: {
           role: true,
-        }
+        },
       },
-    }
+    },
   });
 
   return user.map(toUser);
 }
 
-export async function updateUserByUsername(username: string, {
-  name,
-  telegramId,
-  chatId,
-}: Partial<AppUserModel>): Promise<void> {
+export async function updateUserByUsername(
+  username: string,
+  { name, telegramId, chatId }: Partial<AppUserModel>,
+): Promise<void> {
   const normalized = normalizedUsername(username);
   const data: Partial<AppUserModel> = {};
   if (telegramId) data.telegramId = telegramId;
   if (chatId) data.chatId = chatId;
   if (name) data.name = name;
   await prisma.appUser.updateMany({
-    where: { username: { contains: normalized, mode: 'insensitive' } },
+    where: { username: { contains: normalized, mode: "insensitive" } },
     data,
   });
 }
 
-export async function insertUser({ username, name, chatId, telegramId }: Pick<AppUserModel, 'username' | 'name' | 'chatId' | 'telegramId'>): Promise<User> {
+export async function insertUser({
+  username,
+  name,
+  chatId,
+  telegramId,
+}: Pick<
+  AppUserModel,
+  "username" | "name" | "chatId" | "telegramId"
+>): Promise<User> {
   const user = await prisma.appUser.create({
     data: {
       username,
       name,
       chatId,
-      telegramId
+      telegramId,
     },
   });
 
   return toUser({ ...user, roles: [] });
 }
 
-export async function insertRoleUser(username: string, role: string): Promise<void> {
+export async function insertRoleUser(
+  username: string,
+  role: string,
+): Promise<void> {
   await prisma.userRole.create({
     data: {
       username,
@@ -155,11 +171,14 @@ export async function insertRoleUser(username: string, role: string): Promise<vo
  * hasil lowercase/normalize), karena UserRole.username adalah foreign key
  * yang case-sensitive ke AppUser.username.
  */
-export async function replaceUserRoles(exactUsername: string, roles: string[]): Promise<void> {
+export async function replaceUserRoles(
+  exactUsername: string,
+  roles: string[],
+): Promise<void> {
   await prisma.$transaction([
-    prisma.userRole.deleteMany({where: {username: exactUsername}}),
+    prisma.userRole.deleteMany({ where: { username: exactUsername } }),
     prisma.userRole.createMany({
-      data: roles.map((role) => ({username: exactUsername, role})),
+      data: roles.map((role) => ({ username: exactUsername, role })),
       skipDuplicates: true,
     }),
   ]);
@@ -169,7 +188,7 @@ export async function replaceUserRoles(exactUsername: string, roles: string[]): 
 export async function deleteUserByUsername(username: string): Promise<void> {
   const normalized = normalizedUsername(username);
   await prisma.appUser.deleteMany({
-    where: {username: {equals: normalized, mode: 'insensitive'}},
+    where: { username: { equals: normalized, mode: "insensitive" } },
   });
 }
 
@@ -182,41 +201,40 @@ export async function deleteUserByUsername(username: string): Promise<void> {
 export async function searchUsers(
   query: string,
   limit: number,
-): Promise<{items: {username: string; name: string}[]; total: number}> {
-  const trimmed = query.trim().replace(/^@/, '');
+): Promise<{ items: { username: string; name: string }[]; total: number }> {
+  const trimmed = query.trim().replace(/^@/, "");
   const where = trimmed
-    ? {username: {contains: trimmed, mode: 'insensitive' as const}}
+    ? { username: { contains: trimmed, mode: "insensitive" as const } }
     : {};
 
   const [items, total] = await Promise.all([
     prisma.appUser.findMany({
       where,
-      orderBy: {username: 'asc'},
+      orderBy: { username: "asc" },
       take: limit,
-      select: {username: true, name: true},
+      select: { username: true, name: true },
     }),
-    prisma.appUser.count({where}),
+    prisma.appUser.count({ where }),
   ]);
 
-  return {items, total};
+  return { items, total };
 }
 
 export async function getTelegramIdByUsername(username: string) {
   const normalized = normalizedUsername(username);
   const user = await prisma.appUser.findFirst({
-    where: { username: { contains: normalized, mode: 'insensitive' } },
+    where: { username: { contains: normalized, mode: "insensitive" } },
   });
   return user;
 }
 
 /** Untuk dropdown "kirim ke" — semua staff yang sudah pernah login (punya telegramId). */
-export async function listUsersWithTelegramId(): Promise<{ username: string; name: string }[]> {
+export async function listUsersWithTelegramId(): Promise<
+  { username: string; name: string }[]
+> {
   const rows = await prisma.appUser.findMany({
     where: {
-      OR: [
-        { telegramId: { not: null } },
-        { chatId: { not: null } },
-      ]
+      OR: [{ telegramId: { not: null } }, { chatId: { not: null } }],
     },
     select: { username: true, name: true },
   });
@@ -224,14 +242,16 @@ export async function listUsersWithTelegramId(): Promise<{ username: string; nam
 }
 
 /** Untuk dropdown "assign ke florist/kurir" di halaman detail transaksi admin. */
-export async function listUsersByRole(role: string): Promise<{ username: string; name: string }[]> {
+export async function listUsersByRole(
+  role: string,
+): Promise<{ username: string; name: string }[]> {
   const rows = await prisma.appUser.findMany({
     where: {
       roles: {
         some: { role },
       },
     },
-    orderBy: { name: 'asc' },
+    orderBy: { name: "asc" },
     select: { username: true, name: true },
   });
   return rows;

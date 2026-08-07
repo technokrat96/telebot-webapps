@@ -1,9 +1,9 @@
-import {Context, InlineKeyboard} from "grammy";
+import { Context, InlineKeyboard } from "grammy";
 import {
   findUserByUsername,
   findUsersAdminNotMeAndHasChatIdOrTelegramId,
   insertUser,
-  updateUserByUsername
+  updateUserByUsername,
 } from "@/lib/db/users";
 import telegramBot from "@/lib/telegramBot";
 
@@ -21,8 +21,8 @@ export async function parseDataTelegram(ctx: Context) {
   const userId = ctx.from?.id;
   const username = ctx.from?.username;
 
-  const firstName = ctx.from?.first_name ?? '';
-  const lastName = ctx.from?.last_name ?? '';
+  const firstName = ctx.from?.first_name ?? "";
+  const lastName = ctx.from?.last_name ?? "";
 
   const name = `${firstName} ${lastName}`.trim();
 
@@ -37,14 +37,14 @@ export async function parseDataTelegram(ctx: Context) {
     userId: userId ? String(userId) : undefined,
     username,
     name,
-  }
+  };
 }
 
 /** Domain publik webapp (tanpa trailing slash), atau undefined kalau APP_URL belum diatur. */
 export function getAppBaseUrl(): string | undefined {
   const appUrl = process.env.APP_URL;
   if (!appUrl) return undefined;
-  return appUrl.replace(/\/$/, '');
+  return appUrl.replace(/\/$/, "");
 }
 
 /**
@@ -58,9 +58,12 @@ export function telegramAppKeyboard(): InlineKeyboard | undefined {
   const base = getAppBaseUrl();
   if (!base) return undefined;
   return new InlineKeyboard()
-    .webApp('🌸 Buka Aplikasi', base)
+    .webApp("🌸 Buka Aplikasi", base)
     .row()
-    .webApp('🔑 Set / Ganti Password (opsional, buat akses browser)', `${base}/telegram-setup`);
+    .webApp(
+      "🔑 Set / Ganti Password (opsional, buat akses browser)",
+      `${base}/telegram-setup`,
+    );
 }
 
 /**
@@ -75,34 +78,42 @@ export function telegramAppKeyboard(): InlineKeyboard | undefined {
  */
 export async function notifyMissingPasswordViaTelegram(
   username: string,
-  targetChatId: string | null | undefined
+  targetChatId: string | null | undefined,
 ): Promise<boolean> {
   if (!targetChatId) return false;
   try {
     await telegramBot.api.sendMessage(
       targetChatId,
-      '⚠️ <b>Percobaan login webapp terdeteksi</b>\n\n' +
+      "⚠️ <b>Percobaan login webapp terdeteksi</b>\n\n" +
         `Username <b>@${username}</b> baru saja coba login lewat browser, tapi akun ini belum punya password. Ketuk tombol di bawah buat set password dulu.`,
       {
-        parse_mode: 'HTML',
+        parse_mode: "HTML",
         reply_markup: telegramAppKeyboard(),
-      }
+      },
     );
     return true;
   } catch (err) {
     // Bot mungkin diblokir user, atau chatId basi — jangan sampai gagal
     // kirim notif bikin request login-nya ikut error.
-    console.error('Gagal kirim notif set-password ke Telegram:', err);
+    console.error("Gagal kirim notif set-password ke Telegram:", err);
     return false;
   }
 }
 
-export async function validateUser(ctx: Context, {username, name, chatId, userId}: {
-  username: string,
-  name: string,
-  chatId?: string,
-  userId?: string,
-}) {
+export async function validateUser(
+  ctx: Context,
+  {
+    username,
+    name,
+    chatId,
+    userId,
+  }: {
+    username: string;
+    name: string;
+    chatId?: string;
+    userId?: string;
+  },
+) {
   const user = await findUserByUsername(username);
 
   if (!user) {
@@ -113,7 +124,8 @@ export async function validateUser(ctx: Context, {username, name, chatId, userId
       telegramId: userId ?? null,
     });
 
-    const adminUser = await findUsersAdminNotMeAndHasChatIdOrTelegramId(username);
+    const adminUser =
+      await findUsersAdminNotMeAndHasChatIdOrTelegramId(username);
     if (adminUser.length > 0) {
       for (const user of adminUser) {
         if (user.CHAT_ID == null && user.TELEGRAM_ID == null) continue;
@@ -142,7 +154,7 @@ User baru <b>@${username}</b> butuh di-assign role. Buka bot, ketik /start, tap 
     name: name,
     telegramId: userId ? String(userId) : undefined,
     chatId: chatId ? String(chatId) : undefined,
-  })
+  });
 
   return user;
 }

@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import {Button, Image, Typography} from 'antd';
-import {DeleteOutlined} from '@ant-design/icons';
-import {useEffect, useState} from 'react';
-import {apiClient} from '@/lib/apiClient';
-import {fileToDataUrl} from '@/lib/file.util';
+import { Button, Image, Typography } from "antd";
+import { DeleteOutlined } from "@ant-design/icons";
+import { useEffect, useState } from "react";
+import { apiClient } from "@/lib/apiClient";
+import { fileToDataUrl } from "@/lib/file.util";
 
 /**
  * Satu baris di list foto item pesanan. Bisa merepresentasikan salah satu:
@@ -14,10 +14,10 @@ import {fileToDataUrl} from '@/lib/file.util';
  *   proxy /api/upload (ter-otentikasi) buat ambil isinya.
  */
 export default function ImageListItem({
-                                         file,
-                                         url,
-                                         onRemoveAction,
-                                       }: {
+  file,
+  url,
+  onRemoveAction,
+}: {
   file?: File;
   url?: string;
   onRemoveAction: () => void;
@@ -58,7 +58,8 @@ export default function ImageListItem({
 
     let cancelled = false;
 
-    apiClient.fetchPrivateImage(url)
+    apiClient
+      .fetchPrivateImage(url)
       .then((dataUrl) => {
         if (cancelled) return;
         setRemoteSrc(dataUrl);
@@ -81,11 +82,11 @@ export default function ImageListItem({
   return (
     <div
       style={{
-        display: 'flex',
-        alignItems: 'center',
+        display: "flex",
+        alignItems: "center",
         gap: 12,
-        padding: '8px 12px',
-        border: '1px solid #f0f0f0',
+        padding: "8px 12px",
+        border: "1px solid #f0f0f0",
         borderRadius: 8,
       }}
     >
@@ -95,11 +96,11 @@ export default function ImageListItem({
           height: 48,
           flexShrink: 0,
           borderRadius: 6,
-          overflow: 'hidden',
-          background: '#f5f5f5',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          overflow: "hidden",
+          background: "#f5f5f5",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
         {displaySrc && !renderError ? (
@@ -108,19 +109,26 @@ export default function ImageListItem({
             alt="Foto item"
             width={48}
             height={48}
-            style={{objectFit: 'cover'}}
+            style={{ objectFit: "cover" }}
             onError={() => setErroredSrc(displaySrc)}
           />
         ) : (
-          <Typography.Text type={hasError ? 'danger' : 'secondary'} style={{fontSize: 10}}>
-            {loading ? '...' : (hasError ? '!' : '')}
+          <Typography.Text
+            type={hasError ? "danger" : "secondary"}
+            style={{ fontSize: 10 }}
+          >
+            {loading ? "..." : hasError ? "!" : ""}
           </Typography.Text>
         )}
       </div>
-      <Typography.Text style={{flex: 1, minWidth: 0}} ellipsis type={hasError ? 'danger' : undefined}>
-        {file ? file.name : (hasError ? 'Gagal memuat gambar' : 'Foto tersimpan')}
+      <Typography.Text
+        style={{ flex: 1, minWidth: 0 }}
+        ellipsis
+        type={hasError ? "danger" : undefined}
+      >
+        {file ? file.name : hasError ? "Gagal memuat gambar" : "Foto tersimpan"}
       </Typography.Text>
-      <Button danger icon={<DeleteOutlined/>} onClick={onRemoveAction}/>
+      <Button danger icon={<DeleteOutlined />} onClick={onRemoveAction} />
     </div>
   );
 }

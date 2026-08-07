@@ -1,5 +1,5 @@
-import 'server-only';
-import {prisma} from '@/lib/prismaClient';
+import "server-only";
+import { prisma } from "@/lib/prismaClient";
 
 /**
  * State percakapan bot Telegram per chat, dipakai buat flow inline keyboard
@@ -16,12 +16,12 @@ import {prisma} from '@/lib/prismaClient';
  */
 
 export type BotSessionState =
-  | 'AWAIT_REG_USERNAME'
-  | 'SELECT_REG_ROLES'
-  | 'AWAIT_CHK_USERNAME'
-  | 'CHECKED_USER'
-  | 'SELECT_EDIT_ROLES'
-  | 'CONFIRM_DELETE';
+  | "AWAIT_REG_USERNAME"
+  | "SELECT_REG_ROLES"
+  | "AWAIT_CHK_USERNAME"
+  | "CHECKED_USER"
+  | "SELECT_EDIT_ROLES"
+  | "CONFIRM_DELETE";
 
 export type BotSessionData = {
   username?: string;
@@ -48,14 +48,18 @@ async function ensureTable(): Promise<void> {
   tableEnsured = true;
 }
 
-export async function getBotSession(chatId: string): Promise<BotSession | null> {
+export async function getBotSession(
+  chatId: string,
+): Promise<BotSession | null> {
   await ensureTable();
-  const rows = await prisma.$queryRaw<{ state: string; data: BotSessionData }[]>`
+  const rows = await prisma.$queryRaw<
+    { state: string; data: BotSessionData }[]
+  >`
     SELECT state, data FROM bot_session WHERE chat_id = ${chatId}
   `;
   const row = rows[0];
   if (!row) return null;
-  return {state: row.state as BotSessionState, data: row.data ?? {}};
+  return { state: row.state as BotSessionState, data: row.data ?? {} };
 }
 
 export async function setBotSession(

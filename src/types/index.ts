@@ -24,7 +24,7 @@ export type Transaction = {
   // ID order Shopify asal (dari webhook /api/webhook/shopify). Kosong untuk
   // transaksi yang dibuat manual lewat form admin.
   SHOPIFY_ORDER_ID?: string;
-}
+};
 
 export type TransactionDetail = {
   ORDER_ITEM_ID: string;
@@ -51,7 +51,7 @@ export type TransactionDetail = {
   RECEIVER_ADDRESS: string;
   RECEIVER_PHONE: string;
   IMAGE_URLS: string[];
-}
+};
 
 export type Invoice = {
   INVOICE_ID: string;
@@ -64,7 +64,7 @@ export type Invoice = {
   BILLED_TO: string;
   BILLED_ADDRESS: string;
   BILLED_PHONE: string;
-}
+};
 
 export type InvoiceDetail = {
   INVOICE_ITEM_ID: string;
@@ -72,7 +72,7 @@ export type InvoiceDetail = {
   ORDER_ITEM_ID: string;
   QUANTITY_BILLED: number;
   PRICE_BILLED: number;
-}
+};
 
 export type FloristAssignment = {
   ASSIGNMENT_ID: string;
@@ -84,7 +84,7 @@ export type FloristAssignment = {
   ASSIGNED_AT: string;
   STATUS: string;
   COMPLETED_AT: string;
-}
+};
 
 export type DeliveryDriverAssignment = {
   ASSIGNMENT_ID: string;
@@ -98,7 +98,7 @@ export type DeliveryDriverAssignment = {
   DELIVERY_STATUS: string;
   COMPLETED_AT: string;
   IMAGE_URLS: string[];
-}
+};
 
 export type Attendance = {
   USERNAME: string;
@@ -129,7 +129,7 @@ export type MasterData = {
   INVOICE_STATUSES: string[];
   FLORIST_ASSIGNMENT_STATUSES: string[];
   CURRENCY: { label: string; value: string; locale: string; rate: number }[];
-}
+};
 
 export type AvailableFloristItem = TransactionDetail & {
   ORDER_ID: string;
@@ -144,7 +144,7 @@ export type MyFloristAssignment = FloristAssignment & {
 
 export type TransactionWithDetails = Transaction & {
   details: TransactionDetail[];
-}
+};
 
 // Item yang qty-nya belum habis diklaim kurir (ITEM_STATUS sudah READY TO
 // PICKUP, siap dikirim) -- ditampilkan di tab "Order Tersedia" halaman
@@ -166,7 +166,7 @@ export type MyDeliveryAssignment = DeliveryDriverAssignment & {
 
 export type InvoiceWithDetails = Invoice & {
   details: InvoiceDetail[];
-}
+};
 
 export type TransactionDetailWithAssignments = TransactionDetail & {
   assignments: FloristAssignment[];
@@ -182,9 +182,9 @@ export type OrderItemWithBilling = TransactionDetail & {
   remainingQty: number;
 };
 
-export type TransactionWithBilling = Omit<TransactionWithDetails, 'details'> & {
+export type TransactionWithBilling = Omit<TransactionWithDetails, "details"> & {
   details: OrderItemWithBilling[];
-  invoiceStatus: 'NOT_INVOICED' | 'PARTIAL' | 'FULLY_INVOICED';
+  invoiceStatus: "NOT_INVOICED" | "PARTIAL" | "FULLY_INVOICED";
 };
 
 export type InvoicePdfData = Invoice & {

@@ -1,7 +1,7 @@
-import {TransactionDetail} from '@/types';
+import { TransactionDetail } from "@/types";
 
 export function isOrderFullyDone(details: TransactionDetail[]): boolean {
-  return details.length > 0 && details.every((d) => d.ITEM_STATUS === 'DONE');
+  return details.length > 0 && details.every((d) => d.ITEM_STATUS === "DONE");
 }
 
 // filterOrdersByDeliveryStatus dulu ada di sini (filter berdasarkan

@@ -1,11 +1,15 @@
-'use client';
+"use client";
 
-import {App, Button, Form, FormListFieldData, Space, Upload} from 'antd';
-import {CloudUploadOutlined} from '@ant-design/icons';
-import {apiClient} from '@/lib/apiClient';
-import {ALLOWED_IMAGE_TYPES, ALLOWED_IMAGE_TYPES_LABEL, MAX_IMAGE_SIZE_LABEL,} from '@/lib/imageUploadConstraints';
-import ImageListItem from './ImageListItem';
-import type {TransactionFormValues} from './types';
+import { App, Button, Form, FormListFieldData, Space, Upload } from "antd";
+import { CloudUploadOutlined } from "@ant-design/icons";
+import { apiClient } from "@/lib/apiClient";
+import {
+  ALLOWED_IMAGE_TYPES,
+  ALLOWED_IMAGE_TYPES_LABEL,
+  MAX_IMAGE_SIZE_LABEL,
+} from "@/lib/imageUploadConstraints";
+import ImageListItem from "./ImageListItem";
+import type { TransactionFormValues } from "./types";
 
 type PendingFile = { clientId: string; file: File };
 
@@ -32,18 +36,22 @@ function SilentFieldRegistrar() {
  * menyimpan File-nya (field IMAGE_FILES) dan menampilkan preview lokal.
  */
 export default function ItemImagesField({
-                                           field,
-                                           form,
-                                         }: {
+  field,
+  form,
+}: {
   field: Omit<FormListFieldData, "key">;
   form: ReturnType<typeof Form.useFormInstance<TransactionFormValues>>;
 }) {
   const { message } = App.useApp();
-  const imageUrls = (Form.useWatch(['details', field.name, 'IMAGE_URLS'], form) as string[] | undefined) ?? [];
-  const imageFiles = (Form.useWatch(['details', field.name, 'IMAGE_FILES'], form) as PendingFile[] | undefined) ?? [];
+  const imageUrls =
+    (Form.useWatch(["details", field.name, "IMAGE_URLS"], form) as
+      string[] | undefined) ?? [];
+  const imageFiles =
+    (Form.useWatch(["details", field.name, "IMAGE_FILES"], form) as
+      PendingFile[] | undefined) ?? [];
 
   function patchDetail(patch: Record<string, unknown>) {
-    const currentDetails = form.getFieldValue('details') ?? [];
+    const currentDetails = form.getFieldValue("details") ?? [];
     const next = [...currentDetails];
     next[field.name] = { ...next[field.name], ...patch };
     form.setFieldsValue({ details: next });
@@ -75,12 +83,14 @@ export default function ItemImagesField({
 
   function handleRemoveFile(clientId: string) {
     // Belum pernah diupload sama sekali, cukup buang dari daftar pending.
-    patchDetail({ IMAGE_FILES: imageFiles.filter((f) => f.clientId !== clientId) });
+    patchDetail({
+      IMAGE_FILES: imageFiles.filter((f) => f.clientId !== clientId),
+    });
   }
 
   function handleRemoveUrl(url: string) {
     // Sudah pernah tersimpan di Blob (mis. sedang edit item lama) — hapus beneran.
-    apiClient.delete('/api/upload', { url }).catch(() => {});
+    apiClient.delete("/api/upload", { url }).catch(() => {});
     patchDetail({ IMAGE_URLS: imageUrls.filter((u) => u !== url) });
   }
 
@@ -90,28 +100,40 @@ export default function ItemImagesField({
     <>
       <Form.Item
         {...field}
-        name={[field.name, 'IMAGE_URLS']}
-        key={[field.name, 'IMAGE_URLS'].join("-")}
+        name={[field.name, "IMAGE_URLS"]}
+        key={[field.name, "IMAGE_URLS"].join("-")}
         noStyle
       >
-        <SilentFieldRegistrar/>
+        <SilentFieldRegistrar />
       </Form.Item>
       <Form.Item
         {...field}
-        name={[field.name, 'IMAGE_FILES']}
-        key={[field.name, 'IMAGE_FILES'].join("-")}
+        name={[field.name, "IMAGE_FILES"]}
+        key={[field.name, "IMAGE_FILES"].join("-")}
         noStyle
       >
-        <SilentFieldRegistrar/>
+        <SilentFieldRegistrar />
       </Form.Item>
       <Form.Item label="Foto Item">
         {hasImages && (
-          <Space orientation="vertical" size={8} style={{width: '100%', marginBottom: 12}}>
+          <Space
+            orientation="vertical"
+            size={8}
+            style={{ width: "100%", marginBottom: 12 }}
+          >
             {imageUrls.map((url) => (
-              <ImageListItem key={url} url={url} onRemoveAction={() => handleRemoveUrl(url)}/>
+              <ImageListItem
+                key={url}
+                url={url}
+                onRemoveAction={() => handleRemoveUrl(url)}
+              />
             ))}
-            {imageFiles.map(({clientId, file}) => (
-              <ImageListItem key={clientId} file={file} onRemoveAction={() => handleRemoveFile(clientId)}/>
+            {imageFiles.map(({ clientId, file }) => (
+              <ImageListItem
+                key={clientId}
+                file={file}
+                onRemoveAction={() => handleRemoveFile(clientId)}
+              />
             ))}
           </Space>
         )}
@@ -120,20 +142,23 @@ export default function ItemImagesField({
           multiple
           showUploadList={false}
           beforeUpload={handleSelectFile}
-          style={{ padding: '24px 16px' }}
+          style={{ padding: "24px 16px" }}
         >
           <p style={{ marginBottom: 12 }}>
-            <CloudUploadOutlined style={{ fontSize: 40, color: 'rgba(0, 0, 0, 0.45)' }}/>
+            <CloudUploadOutlined
+              style={{ fontSize: 40, color: "rgba(0, 0, 0, 0.45)" }}
+            />
           </p>
           <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
-            {hasImages ? 'Tambah foto lagi atau seret & lepas di sini' : 'Pilih foto atau seret & lepas di sini'}
+            {hasImages
+              ? "Tambah foto lagi atau seret & lepas di sini"
+              : "Pilih foto atau seret & lepas di sini"}
           </p>
-          <p style={{ color: 'rgba(0, 0, 0, 0.45)', marginBottom: 16 }}>
-            {ALLOWED_IMAGE_TYPES_LABEL} — file di atas {MAX_IMAGE_SIZE_LABEL} otomatis dikompres
+          <p style={{ color: "rgba(0, 0, 0, 0.45)", marginBottom: 16 }}>
+            {ALLOWED_IMAGE_TYPES_LABEL} — file di atas {MAX_IMAGE_SIZE_LABEL}{" "}
+            otomatis dikompres
           </p>
-          <Button>
-            Cari File
-          </Button>
+          <Button>Cari File</Button>
         </Upload.Dragger>
       </Form.Item>
     </>

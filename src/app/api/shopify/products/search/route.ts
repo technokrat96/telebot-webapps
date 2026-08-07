@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
-import { searchShopifyProducts } from '@/lib/shopify/products';
-import { ProductSearchResult } from '@/types';
+import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/auth";
+import { searchShopifyProducts } from "@/lib/shopify/products";
+import { ProductSearchResult } from "@/types";
 
 /**
  * Dipakai field "Nama Item" di form transaksi (lihat
@@ -11,10 +11,11 @@ import { ProductSearchResult } from '@/types';
  * cuma bantu isi otomatis nama & harga kalau produknya ada.
  */
 export async function GET(req: NextRequest) {
-  const auth = await requireAuth(req, ['ADMIN']);
-  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await requireAuth(req, ["ADMIN"]);
+  if (!auth)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const q = req.nextUrl.searchParams.get('q') ?? '';
+  const q = req.nextUrl.searchParams.get("q") ?? "";
   console.log(`[shopify] <- GET /api/shopify/products/search?q="${q}"`);
   if (!q.trim()) return NextResponse.json({ results: [] });
 
@@ -29,14 +30,17 @@ export async function GET(req: NextRequest) {
       IMAGE_URL: p.imageUrl,
     }));
     console.log(
-      `[shopify] -> GET /api/shopify/products/search?q="${q}" ok, ${results.length} hasil (${Date.now() - startedAt}ms)`
+      `[shopify] -> GET /api/shopify/products/search?q="${q}" ok, ${results.length} hasil (${Date.now() - startedAt}ms)`,
     );
     return NextResponse.json({ results });
   } catch (err) {
     console.error(
       `[shopify] -> GET /api/shopify/products/search?q="${q}" gagal setelah ${Date.now() - startedAt}ms:`,
-      (err as Error).message
+      (err as Error).message,
     );
-    return NextResponse.json({ error: (err as Error).message }, { status: 502 });
+    return NextResponse.json(
+      { error: (err as Error).message },
+      { status: 502 },
+    );
   }
 }

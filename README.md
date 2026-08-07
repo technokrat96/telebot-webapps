@@ -28,21 +28,21 @@ pelanggan). Database-nya **PostgreSQL**, diakses lewat **Prisma 7**.
 
 ## 1. Tech stack
 
-| Bagian | Package | Catatan |
-|---|---|---|
-| Framework | Next.js 16 (App Router) | `output: "standalone"`, build tetap sukses walau ada error TypeScript (`ignoreBuildErrors: true`) |
-| UI | React 19 + Ant Design 6 | `@ant-design/nextjs-registry` untuk SSR style |
-| Database | PostgreSQL | via `pg` + `@prisma/adapter-pg` |
-| ORM | Prisma 7 | client generated ke `src/generated/prisma` (gitignored, jalankan `prisma generate`) |
-| Bot Telegram | grammY | webhook-based, bukan polling |
-| Telegram Mini App SDK | `@tma.js/sdk-react`, `@tma.js/init-data-node` | pengganti `@telegram-apps/*` yang deprecated |
-| Auth | JWT (`jsonwebtoken`) + `bcryptjs` | token 30 hari, disimpan client via Zustand + localStorage |
-| State client | Zustand | `src/store/authStore.ts` |
-| Storage gambar | Vercel Blob | private access, di-proxy lewat API route |
-| PDF | pdfkit | generate invoice |
-| E-commerce | Shopify Admin API (`@shopify/admin-api-client`) | opsional: cari produk + webhook order |
-| Kurs mata uang | ExchangeRate-API | disinkron harian via Vercel Cron |
-| Fetching data client | SWR | |
+| Bagian                | Package                                         | Catatan                                                                                           |
+| --------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Framework             | Next.js 16 (App Router)                         | `output: "standalone"`, build tetap sukses walau ada error TypeScript (`ignoreBuildErrors: true`) |
+| UI                    | React 19 + Ant Design 6                         | `@ant-design/nextjs-registry` untuk SSR style                                                     |
+| Database              | PostgreSQL                                      | via `pg` + `@prisma/adapter-pg`                                                                   |
+| ORM                   | Prisma 7                                        | client generated ke `src/generated/prisma` (gitignored, jalankan `prisma generate`)               |
+| Bot Telegram          | grammY                                          | webhook-based, bukan polling                                                                      |
+| Telegram Mini App SDK | `@tma.js/sdk-react`, `@tma.js/init-data-node`   | pengganti `@telegram-apps/*` yang deprecated                                                      |
+| Auth                  | JWT (`jsonwebtoken`) + `bcryptjs`               | token 30 hari, disimpan client via Zustand + localStorage                                         |
+| State client          | Zustand                                         | `src/store/authStore.ts`                                                                          |
+| Storage gambar        | Vercel Blob                                     | private access, di-proxy lewat API route                                                          |
+| PDF                   | pdfkit                                          | generate invoice                                                                                  |
+| E-commerce            | Shopify Admin API (`@shopify/admin-api-client`) | opsional: cari produk + webhook order                                                             |
+| Kurs mata uang        | ExchangeRate-API                                | disinkron harian via Vercel Cron                                                                  |
+| Fetching data client  | SWR                                             |                                                                                                   |
 
 Node.js minimum **>= 20.9**.
 
@@ -99,12 +99,12 @@ Satu user boleh punya lebih dari satu role. Role dicek dua kali — di UI
 setiap API route lewat `requireAuth(req, ['ROLE', ...])` supaya bukan cuma
 disembunyikan di frontend.
 
-| Role | Bisa akses |
-|---|---|
-| Admin | Semua halaman `/admin/*` (transaksi, invoice, rekap absensi), plus fitur umum |
-| Florist | `/florist` — klaim & kerjakan item pesanan |
-| Kurir | `/kurir` — klaim & antar pesanan yang siap kirim |
-| Semua role | `/`, `/account`, `/attendance` (absensi harian) |
+| Role       | Bisa akses                                                                    |
+| ---------- | ----------------------------------------------------------------------------- |
+| Admin      | Semua halaman `/admin/*` (transaksi, invoice, rekap absensi), plus fitur umum |
+| Florist    | `/florist` — klaim & kerjakan item pesanan                                    |
+| Kurir      | `/kurir` — klaim & antar pesanan yang siap kirim                              |
+| Semua role | `/`, `/account`, `/attendance` (absensi harian)                               |
 
 Manajemen user (register, lihat, edit role, hapus) **hanya lewat bot
 Telegram**, bukan lewat halaman web — lihat [bagian 6](#6-bot-telegram).

@@ -13,7 +13,8 @@ export function fileToDataUrl(file: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(reader.error ?? new Error('Gagal membaca file'));
+    reader.onerror = () =>
+      reject(reader.error ?? new Error("Gagal membaca file"));
     reader.readAsDataURL(file);
   });
 }

@@ -1,4 +1,4 @@
-import { validate, parse } from '@tma.js/init-data-node';
+import { validate, parse } from "@tma.js/init-data-node";
 
 export interface TelegramUserPayload {
   id: number;
@@ -6,10 +6,10 @@ export interface TelegramUserPayload {
 }
 
 export function validateTelegramInitData(
-  initDataRaw: string
+  initDataRaw: string,
 ): TelegramUserPayload | null {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  if (!botToken) throw new Error('Missing TELEGRAM_BOT_TOKEN env var');
+  if (!botToken) throw new Error("Missing TELEGRAM_BOT_TOKEN env var");
 
   try {
     validate(initDataRaw, botToken, { expiresIn: 3600 });

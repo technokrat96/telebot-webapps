@@ -1,9 +1,9 @@
-import 'server-only';
-import {NextRequest} from 'next/server';
-import {verifyAuthToken} from '@/lib/jwt';
-import {findUserByUsername} from '@/lib/db/users';
-import {hasAnyRole} from '@/lib/roles';
-import {User} from '@/types';
+import "server-only";
+import { NextRequest } from "next/server";
+import { verifyAuthToken } from "@/lib/jwt";
+import { findUserByUsername } from "@/lib/db/users";
+import { hasAnyRole } from "@/lib/roles";
+import { User } from "@/types";
 
 export interface AuthContext {
   TELEGRAM_ID: string;
@@ -25,22 +25,22 @@ export interface AuthContext {
  */
 export async function requireAuth(
   req: NextRequest,
-  allowedRoles?: string[]
+  allowedRoles?: string[],
 ): Promise<AuthContext | null> {
-  if (process.env.NODE_ENV !== 'production') {
-    const ROLES = ['ADMIN', 'FLORIST', 'KURIR'];
+  if (process.env.NODE_ENV !== "production") {
+    const ROLES = ["ADMIN", "FLORIST", "KURIR"];
     const USER = {
-      USERNAME: 'DEV',
-      NAME: 'DEV',
+      USERNAME: "DEV",
+      NAME: "DEV",
       ROLES,
-      CHAT_ID: '1',
-      TELEGRAM_ID: '1',
+      CHAT_ID: "1",
+      TELEGRAM_ID: "1",
     };
-    return {TELEGRAM_ID: '1', TELEGRAM_USER: 'DEV', USER} as AuthContext;
+    return { TELEGRAM_ID: "1", TELEGRAM_USER: "DEV", USER } as AuthContext;
   }
 
-  const prefixBearer = "bearer "
-  const authHeader = req.headers.get('authorization');
+  const prefixBearer = "bearer ";
+  const authHeader = req.headers.get("authorization");
   const token = authHeader?.toLowerCase().startsWith(prefixBearer)
     ? authHeader?.slice(prefixBearer.length).trim()
     : null;
@@ -56,7 +56,7 @@ export async function requireAuth(
   if (allowedRoles && !hasAnyRole(ROLES, allowedRoles)) return null;
 
   return {
-    TELEGRAM_ID: user.CHAT_ID ?? user.TELEGRAM_ID ?? '',
+    TELEGRAM_ID: user.CHAT_ID ?? user.TELEGRAM_ID ?? "",
     TELEGRAM_USER: user.USERNAME,
     USER: user,
   } as AuthContext;

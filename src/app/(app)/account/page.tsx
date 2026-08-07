@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { Alert, Card, Descriptions, Tag, Typography, Space } from 'antd';
-import { useAuth } from '@/components/common/AuthProvider';
+import { Alert, Card, Descriptions, Tag, Typography, Space } from "antd";
+import { useAuth } from "@/components/common/AuthProvider";
 
 const { Title } = Typography;
 
@@ -22,7 +22,12 @@ export default function AccountPage() {
           <Descriptions.Item label="Role">
             <Space wrap>
               {roles.map((r) => (
-                <Tag key={r} color={r === 'ADMIN' ? 'gold' : r === 'FLORIST' ? 'green' : 'blue'}>
+                <Tag
+                  key={r}
+                  color={
+                    r === "ADMIN" ? "gold" : r === "FLORIST" ? "green" : "blue"
+                  }
+                >
                   {r}
                 </Tag>
               ))}
@@ -37,8 +42,9 @@ export default function AccountPage() {
         message="Mau ganti password?"
         description={
           <span>
-            Buka bot Telegram{BOT_USERNAME ? ` @${BOT_USERNAME}` : ''}, kirim <code>/start</code>,
-            lalu ketuk tombol &quot;Set / Ganti Password Webapp&quot;.
+            Buka bot Telegram{BOT_USERNAME ? ` @${BOT_USERNAME}` : ""}, kirim{" "}
+            <code>/start</code>, lalu ketuk tombol &quot;Set / Ganti Password
+            Webapp&quot;.
           </span>
         }
       />

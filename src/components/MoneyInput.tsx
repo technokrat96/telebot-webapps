@@ -1,11 +1,14 @@
-'use client';
+"use client";
 
-import {Input} from 'antd';
-import type {GetProps, InputRef} from 'antd';
-import type {ClipboardEvent, FocusEvent, KeyboardEvent} from 'react';
-import {useLayoutEffect, useMemo, useRef, useState} from 'react';
+import { Input } from "antd";
+import type { GetProps, InputRef } from "antd";
+import type { ClipboardEvent, FocusEvent, KeyboardEvent } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 
-type MoneyInputProps = Omit<GetProps<typeof Input>, 'value' | 'onChange' | 'type'> & {
+type MoneyInputProps = Omit<
+  GetProps<typeof Input>,
+  "value" | "onChange" | "type"
+> & {
   currency?: string;
   value?: number;
   onChange?: (value: number) => void;
@@ -14,13 +17,20 @@ type MoneyInputProps = Omit<GetProps<typeof Input>, 'value' | 'onChange' | 'type
   /** Set false kalau currency-nya sudah ditunjukkan di tempat lain (mis.
    * dropdown CURRENCY di sebelahnya), biar tidak dobel. Default true. */
   showCurrencySymbol?: boolean;
-}
+};
 
 // Tombol navigasi/kontrol dibiarkan lewat apa adanya, sisanya di-handle
 // manual di handleKeyDown biar perilaku "ketik = geser digit" konsisten.
 const PASSTHROUGH_KEYS = [
-  'Tab', 'Escape', 'Enter',
-  'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End',
+  "Tab",
+  "Escape",
+  "Enter",
+  "ArrowLeft",
+  "ArrowRight",
+  "ArrowUp",
+  "ArrowDown",
+  "Home",
+  "End",
 ];
 
 /**
@@ -39,34 +49,38 @@ const PASSTHROUGH_KEYS = [
  * format, bukan karakter yang disisipkan.
  */
 export default function MoneyInput({
-                                      currency = 'IDR',
-                                      disabled,
-                                      value,
-                                      onChange,
-                                      min = 0,
-                                      max = Number.MAX_SAFE_INTEGER,
-                                      style,
-                                      showCurrencySymbol = true,
-                                      ...restProps
-                                    }: MoneyInputProps) {
+  currency = "IDR",
+  disabled,
+  value,
+  onChange,
+  min = 0,
+  max = Number.MAX_SAFE_INTEGER,
+  style,
+  showCurrencySymbol = true,
+  ...restProps
+}: MoneyInputProps) {
   // Semua currency (termasuk IDR) sekarang boleh punya 2 digit desimal,
   // format angkanya (pemisah ribuan/desimal) disamakan ke id-ID. Formatter
   // ini murni angka polos (BUKAN style:'currency') -- simbol currency-nya
   // ditampilkan lewat prop `prefix` bawaan Input AntD (lihat di bawah).
-  const { decimalDigits, formatter, decimalSeparator, currencySymbol } = useMemo(() => {
-    const decimalDigits = 2;
-    const formatter = new Intl.NumberFormat('id-ID', {
-      minimumFractionDigits: decimalDigits,
-      maximumFractionDigits: decimalDigits,
-    });
-    const decimalSeparator = formatter.formatToParts(1.1).find((p) => p.type === 'decimal')?.value ?? '.';
-    // Cuma dipakai buat narik simbol/kode currency-nya (mis. "Rp"/"IDR",
-    // "$", "SGD"), bukan buat format angka yang tampil di dalam input.
-    const currencySymbol = new Intl.NumberFormat('id-ID', { style: 'currency', currency })
-      .formatToParts(0)
-      .find((p) => p.type === 'currency')?.value ?? currency;
-    return { decimalDigits, formatter, decimalSeparator, currencySymbol };
-  }, [currency]);
+  const { decimalDigits, formatter, decimalSeparator, currencySymbol } =
+    useMemo(() => {
+      const decimalDigits = 2;
+      const formatter = new Intl.NumberFormat("id-ID", {
+        minimumFractionDigits: decimalDigits,
+        maximumFractionDigits: decimalDigits,
+      });
+      const decimalSeparator =
+        formatter.formatToParts(1.1).find((p) => p.type === "decimal")?.value ??
+        ".";
+      // Cuma dipakai buat narik simbol/kode currency-nya (mis. "Rp"/"IDR",
+      // "$", "SGD"), bukan buat format angka yang tampil di dalam input.
+      const currencySymbol =
+        new Intl.NumberFormat("id-ID", { style: "currency", currency })
+          .formatToParts(0)
+          .find((p) => p.type === "currency")?.value ?? currency;
+      return { decimalDigits, formatter, decimalSeparator, currencySymbol };
+    }, [currency]);
 
   const scale = 10 ** decimalDigits;
   const minMinor = Math.round(min * scale);
@@ -80,7 +94,10 @@ export default function MoneyInput({
     return formatter.format(minor / scale);
   }
 
-  const currentMinor = Math.min(Math.max(toMinorUnits(value), minMinor), maxMinor);
+  const currentMinor = Math.min(
+    Math.max(toMinorUnits(value), minMinor),
+    maxMinor,
+  );
   const displayText = formatMinorUnits(currentMinor);
 
   // Prop `prefix` bawaan Input AntD dikelola lewat "affix-wrapper" internal
@@ -163,11 +180,14 @@ export default function MoneyInput({
     const selStart = el.selectionStart ?? text.length;
     const selEnd = el.selectionEnd ?? selStart;
     const hasSelection = selEnd > selStart;
-    const isFullSelection = hasSelection && selStart === 0 && selEnd === text.length;
+    const isFullSelection =
+      hasSelection && selStart === 0 && selEnd === text.length;
 
-    const decimalSepIndex = decimalDigits > 0 ? text.indexOf(decimalSeparator) : -1;
+    const decimalSepIndex =
+      decimalDigits > 0 ? text.indexOf(decimalSeparator) : -1;
     const intTextLen = decimalSepIndex === -1 ? text.length : decimalSepIndex;
-    const inDecimalSegment = decimalSepIndex !== -1 && selStart > decimalSepIndex;
+    const inDecimalSegment =
+      decimalSepIndex !== -1 && selStart > decimalSepIndex;
 
     const intPart = Math.trunc(currentMinor / scale);
     const fracPart = currentMinor % scale;
@@ -191,19 +211,23 @@ export default function MoneyInput({
       }
 
       const intDigitsOld = String(baseIntPart);
-      const digitIdx = Math.min(countDigitsBefore(text, baseCursor), intDigitsOld.length);
-      const newIntDigitsRaw = intDigitsOld.slice(0, digitIdx) + digit + intDigitsOld.slice(digitIdx);
-      const newIntDigits = newIntDigitsRaw.replace(/^0+(?=\d)/, '');
+      const digitIdx = Math.min(
+        countDigitsBefore(text, baseCursor),
+        intDigitsOld.length,
+      );
+      const newIntDigitsRaw =
+        intDigitsOld.slice(0, digitIdx) + digit + intDigitsOld.slice(digitIdx);
+      const newIntDigits = newIntDigitsRaw.replace(/^0+(?=\d)/, "");
       const trimmed = newIntDigitsRaw.length - newIntDigits.length;
-      const newIntPart = Number(newIntDigits || '0');
+      const newIntPart = Number(newIntDigits || "0");
       const newMinor = newIntPart * scale + baseFracPart;
       const newText = formatMinorUnits(newMinor);
-      const targetDigitCount = Math.max((digitIdx + 1) - trimmed, 1);
+      const targetDigitCount = Math.max(digitIdx + 1 - trimmed, 1);
       commit(newMinor, cursorPosForDigitCount(newText, targetDigitCount));
       return;
     }
 
-    if (e.key === 'Backspace' || e.key === 'Delete') {
+    if (e.key === "Backspace" || e.key === "Delete") {
       e.preventDefault();
 
       if (hasSelection) {
@@ -221,17 +245,26 @@ export default function MoneyInput({
       }
 
       const intDigitsOld = String(intPart);
-      const digitIdxInIntText = Math.min(countDigitsBefore(text, Math.min(selStart, intTextLen)), intDigitsOld.length);
-      const removeIdx = e.key === 'Backspace' ? digitIdxInIntText - 1 : digitIdxInIntText;
+      const digitIdxInIntText = Math.min(
+        countDigitsBefore(text, Math.min(selStart, intTextLen)),
+        intDigitsOld.length,
+      );
+      const removeIdx =
+        e.key === "Backspace" ? digitIdxInIntText - 1 : digitIdxInIntText;
       if (removeIdx < 0 || removeIdx >= intDigitsOld.length) return;
 
-      const newIntDigitsRaw = intDigitsOld.slice(0, removeIdx) + intDigitsOld.slice(removeIdx + 1);
-      const newIntDigits = newIntDigitsRaw.replace(/^0+(?=\d)/, '') || '0';
+      const newIntDigitsRaw =
+        intDigitsOld.slice(0, removeIdx) + intDigitsOld.slice(removeIdx + 1);
+      const newIntDigits = newIntDigitsRaw.replace(/^0+(?=\d)/, "") || "0";
       const trimmed = newIntDigitsRaw.length - newIntDigits.length;
       const newIntPart = Number(newIntDigits);
       const newMinor = newIntPart * scale + fracPart;
       const newText = formatMinorUnits(newMinor);
-      const targetDigitCount = Math.max((e.key === 'Backspace' ? digitIdxInIntText - 1 : digitIdxInIntText) - trimmed, 0);
+      const targetDigitCount = Math.max(
+        (e.key === "Backspace" ? digitIdxInIntText - 1 : digitIdxInIntText) -
+          trimmed,
+        0,
+      );
       commit(newMinor, cursorPosForDigitCount(newText, targetDigitCount));
       return;
     }
@@ -251,7 +284,7 @@ export default function MoneyInput({
     <Input
       {...restProps}
       ref={inputRef}
-      style={style ?? { width: '100%' }}
+      style={style ?? { width: "100%" }}
       disabled={disabled}
       inputMode="decimal"
       prefix={showCurrencySymbol ? pinnedSymbol : undefined}

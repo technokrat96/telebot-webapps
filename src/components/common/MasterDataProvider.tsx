@@ -1,8 +1,14 @@
-'use client';
+"use client";
 
-import {createContext, useCallback, useContext, useEffect, useState} from 'react';
-import {MasterData,} from '@/types';
-import {apiClient} from '@/lib/apiClient';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import { MasterData } from "@/types";
+import { apiClient } from "@/lib/apiClient";
 
 const EMPTY_MASTER_DATA: MasterData = {
   ROLES: [],
@@ -29,14 +35,14 @@ const MasterDataContext = createContext<MasterDataContextValue | null>(null);
 export function useMasterData() {
   const ctx = useContext(MasterDataContext);
   if (!ctx) {
-    throw new Error('useMasterData must be used inside MasterDataProvider');
+    throw new Error("useMasterData must be used inside MasterDataProvider");
   }
   return ctx;
 }
 
 export default function MasterDataProvider({
-                                             children,
-                                           }: {
+  children,
+}: {
   children: React.ReactNode;
 }) {
   const [data, setData] = useState<MasterData>(EMPTY_MASTER_DATA);
@@ -60,7 +66,7 @@ export default function MasterDataProvider({
     // dalamnya ada setState, walau fungsi itu sendiri async/pakai await.
     // setState di dalam callback .then() inline begini baru dianggap aman.
     apiClient
-      .get<{ masterData: MasterData }>('/api/master-data')
+      .get<{ masterData: MasterData }>("/api/master-data")
       .then(({ masterData }) => {
         setError(null);
         setData(masterData);

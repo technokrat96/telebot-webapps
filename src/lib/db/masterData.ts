@@ -1,22 +1,23 @@
-import 'server-only';
-import {prisma} from "@/lib/prismaClient";
-import {MasterData} from "@/types";
-import {CurrencyModel} from "@/generated/prisma/models/Currency";
-import {MasterDataModel} from "@/generated/prisma/models/MasterData";
+import "server-only";
+import { prisma } from "@/lib/prismaClient";
+import { MasterData } from "@/types";
+import { CurrencyModel } from "@/generated/prisma/models/Currency";
+import { MasterDataModel } from "@/generated/prisma/models/MasterData";
 
 function mapCurrency(list: CurrencyModel[]): MasterData["CURRENCY"] {
-  return list.map(e => ({
+  return list.map((e) => ({
     label: e.label,
     locale: e.locale,
     value: e.code,
-    rate: Number(e.rate).valueOf()
-  }))
+    rate: Number(e.rate).valueOf(),
+  }));
 }
 
 function groupCategory(category: string, list: MasterDataModel[]): string[] {
-  return list.filter((item) => category === item.category)
-    .sort((a,b)=> a.sortOrder - b.sortOrder)
-    .map(e => e.value)
+  return list
+    .filter((item) => category === item.category)
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((e) => e.value);
 }
 
 export async function getMasterData(): Promise<MasterData> {
@@ -32,7 +33,10 @@ export async function getMasterData(): Promise<MasterData> {
     DELIVERY_STATUSES: groupCategory("DELIVERY_STATUS", masterDataItems),
     CARD_STATUSES: groupCategory("CARD_STATUS", masterDataItems),
     INVOICE_STATUSES: groupCategory("INVOICE_STATUS", masterDataItems),
-    FLORIST_ASSIGNMENT_STATUSES: groupCategory("FLORIST_ASSIGNMENT_STATUS", masterDataItems),
+    FLORIST_ASSIGNMENT_STATUSES: groupCategory(
+      "FLORIST_ASSIGNMENT_STATUS",
+      masterDataItems,
+    ),
     CURRENCY: mapCurrency(currencyItems),
   };
 

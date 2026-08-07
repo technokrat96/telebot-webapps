@@ -21,9 +21,12 @@ export function generateInvoiceId(): string {
 }
 
 export function generateOrderItemId(orderId: string, index: number): string {
-  return `${orderId}-${String(index + 1).padStart(2, '0')}`;
+  return `${orderId}-${String(index + 1).padStart(2, "0")}`;
 }
 
-export function generateInvoiceItemId(invoiceId: string, orderItemId: string): string {
+export function generateInvoiceItemId(
+  invoiceId: string,
+  orderItemId: string,
+): string {
   return `${invoiceId}-${orderItemId}`;
 }

@@ -1,8 +1,8 @@
-import 'server-only';
-import { createAdminApiClient } from '@shopify/admin-api-client';
-import type { LogContent } from '@shopify/admin-api-client';
-import { getShopifyAdminConfig } from './config';
-import { getShopifyAccessToken } from './accessToken';
+import "server-only";
+import { createAdminApiClient } from "@shopify/admin-api-client";
+import type { LogContent } from "@shopify/admin-api-client";
+import { getShopifyAdminConfig } from "./config";
+import { getShopifyAccessToken } from "./accessToken";
 
 /**
  * Log retry otomatis dari library (kena rate limit 429 / Service
@@ -11,13 +11,15 @@ import { getShopifyAccessToken } from './accessToken';
  * sebelum akhirnya sukses/gagal total.
  */
 function logShopifyClientEvent(logContent: LogContent) {
-  if (logContent.type === 'HTTP-Retry') {
+  if (logContent.type === "HTTP-Retry") {
     const { retryAttempt, maxRetries, requestParams } = logContent.content as {
       retryAttempt: number;
       maxRetries: number;
       requestParams: [string, unknown?];
     };
-    console.warn(`[shopify] retry ${retryAttempt}/${maxRetries} -> ${requestParams[0]}`);
+    console.warn(
+      `[shopify] retry ${retryAttempt}/${maxRetries} -> ${requestParams[0]}`,
+    );
   }
 }
 
@@ -32,7 +34,7 @@ function logShopifyClientEvent(logContent: LogContent) {
  */
 export async function shopifyAdminGraphQL<T>(
   query: string,
-  variables?: Record<string, unknown>
+  variables?: Record<string, unknown>,
 ): Promise<T> {
   const { storeDomain, apiVersion } = getShopifyAdminConfig();
   const accessToken = await getShopifyAccessToken();
@@ -54,14 +56,18 @@ export async function shopifyAdminGraphQL<T>(
   console.log(`[shopify] <- POST ${url} (${Date.now() - startedAt}ms)`);
 
   if (errors) {
-    console.error('[shopify] graphql error:', errors);
+    console.error("[shopify] graphql error:", errors);
     if (errors.graphQLErrors?.length) {
-      throw new Error(`Shopify GraphQL error: ${errors.graphQLErrors.map((e) => e.message).join('; ')}`);
+      throw new Error(
+        `Shopify GraphQL error: ${errors.graphQLErrors.map((e) => e.message).join("; ")}`,
+      );
     }
-    throw new Error(`Shopify API error (${errors.networkStatusCode ?? '?'}): ${errors.message ?? 'unknown'}`);
+    throw new Error(
+      `Shopify API error (${errors.networkStatusCode ?? "?"}): ${errors.message ?? "unknown"}`,
+    );
   }
   if (!data) {
-    throw new Error('Shopify GraphQL: respons kosong');
+    throw new Error("Shopify GraphQL: respons kosong");
   }
   return data;
 }

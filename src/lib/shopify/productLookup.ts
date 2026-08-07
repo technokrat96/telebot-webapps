@@ -1,6 +1,6 @@
-import 'server-only';
-import { shopifyAdminGraphQL } from './client';
-import { getShopifyAdminConfig } from './config';
+import "server-only";
+import { shopifyAdminGraphQL } from "./client";
+import { getShopifyAdminConfig } from "./config";
 
 export interface ShopifyProductInfo {
   imageUrl: string | null;
@@ -12,15 +12,12 @@ interface NodesQueryResult {
   // `nodes()` balikin array SEJAJAR dengan array ID yang diminta -- kalau
   // salah satu produknya sudah dihapus/tidak ketemu, elemennya `null`
   // (bukan di-skip), makanya union-nya termasuk `null`.
-  nodes: (
-    | {
-        id: string; // GID, mis. "gid://shopify/Product/123" -> di-extract jadi "123"
-        handle: string; // slug URL produk, mis. "buket-mawar-merah"
-        onlineStoreUrl: string | null; // null kalau produk tidak dipublish ke channel Online Store
-        featuredImage: { url: string } | null;
-      }
-    | null
-  )[];
+  nodes: ({
+    id: string; // GID, mis. "gid://shopify/Product/123" -> di-extract jadi "123"
+    handle: string; // slug URL produk, mis. "buket-mawar-merah"
+    onlineStoreUrl: string | null; // null kalau produk tidak dipublish ke channel Online Store
+    featuredImage: { url: string } | null;
+  } | null)[];
 }
 
 const NODES_QUERY = `
@@ -57,7 +54,7 @@ const NODES_QUERY = `
  * halaman produk di Shopify Admin (selalu ada, tapi butuh login admin).
  */
 export async function getProductInfoByIds(
-  productIds: string[]
+  productIds: string[],
 ): Promise<Map<string, ShopifyProductInfo>> {
   const uniqueIds = [...new Set(productIds.filter(Boolean))];
   const result = new Map<string, ShopifyProductInfo>();
@@ -65,13 +62,17 @@ export async function getProductInfoByIds(
 
   const { storeDomain } = getShopifyAdminConfig();
   const gids = uniqueIds.map((id) => `gid://shopify/Product/${id}`);
-  const data = await shopifyAdminGraphQL<NodesQueryResult>(NODES_QUERY, { ids: gids });
+  const data = await shopifyAdminGraphQL<NodesQueryResult>(NODES_QUERY, {
+    ids: gids,
+  });
 
   for (const node of data.nodes) {
     if (!node) continue; // produk sudah dihapus / tidak ketemu -- skip, biarkan detail item tanpa gambar/link
 
-    const numericId = node.id.split('/').pop() ?? node.id;
-    const productUrl = node.onlineStoreUrl || `https://${storeDomain}/admin/products/${numericId}`;
+    const numericId = node.id.split("/").pop() ?? node.id;
+    const productUrl =
+      node.onlineStoreUrl ||
+      `https://${storeDomain}/admin/products/${numericId}`;
     result.set(numericId, {
       imageUrl: node.featuredImage?.url ?? null,
       productUrl,

@@ -1,6 +1,6 @@
-import 'server-only';
-import crypto from 'node:crypto';
-import { getShopifyWebhookSecret } from './config';
+import "server-only";
+import crypto from "node:crypto";
+import { getShopifyWebhookSecret } from "./config";
 
 /**
  * Verifikasi signature webhook Shopify (header `X-Shopify-Hmac-Sha256`):
@@ -9,11 +9,17 @@ import { getShopifyWebhookSecret } from './config';
  * bagian Setup Shopify). Wajib pakai raw body (belum di-JSON.parse) karena
  * signature dihitung dari bytes mentahnya.
  */
-export function verifyShopifyWebhook(rawBody: string, hmacHeader: string | null): boolean {
+export function verifyShopifyWebhook(
+  rawBody: string,
+  hmacHeader: string | null,
+): boolean {
   if (!hmacHeader) return false;
 
   const secret = getShopifyWebhookSecret();
-  const digest = crypto.createHmac('sha256', secret).update(rawBody, 'utf8').digest('base64');
+  const digest = crypto
+    .createHmac("sha256", secret)
+    .update(rawBody, "utf8")
+    .digest("base64");
 
   const digestBuffer = Buffer.from(digest);
   const headerBuffer = Buffer.from(hmacHeader);

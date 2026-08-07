@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import {useState} from 'react';
-import {Empty, Table, Tag, Typography} from 'antd';
-import useSWR from 'swr';
-import {apiClient} from '@/lib/apiClient';
-import {useAuth} from '@/components/common/AuthProvider';
-import {Attendance} from '@/types';
+import { useState } from "react";
+import { Empty, Table, Tag, Typography } from "antd";
+import useSWR from "swr";
+import { apiClient } from "@/lib/apiClient";
+import { useAuth } from "@/components/common/AuthProvider";
+import { Attendance } from "@/types";
 import clientDayJs from "@/lib/cleint.dayjs";
 
 const { Title, Paragraph } = Typography;
@@ -26,7 +26,7 @@ export default function AbsensiPage() {
   const { data, isLoading } = useSWR<AttendanceHistoryResponse>(
     `/api/attendance?page=${page}&pageSize=${pageSize}`,
     fetcher,
-    { keepPreviousData: true } // biar pas ganti halaman gak flash loading
+    { keepPreviousData: true }, // biar pas ganti halaman gak flash loading
   );
 
   const history = data?.history ?? [];
@@ -34,7 +34,9 @@ export default function AbsensiPage() {
   return (
     <div>
       <Title level={4}>Riwayat Absensi Saya</Title>
-      <Paragraph type="secondary">Halo, {name}. Catat kehadiranmu hari ini.</Paragraph>
+      <Paragraph type="secondary">
+        Halo, {name}. Catat kehadiranmu hari ini.
+      </Paragraph>
       <Table
         rowKey="DATE"
         scroll={{ x: true }}
@@ -55,16 +57,31 @@ export default function AbsensiPage() {
             setPageSize(nextPageSize);
           },
         }}
-        locale={{ emptyText: <Empty description="Belum ada riwayat absensi" /> }}
+        locale={{
+          emptyText: <Empty description="Belum ada riwayat absensi" />,
+        }}
         columns={[
-          { title: 'Tanggal', dataIndex: 'DATE', render: (v) => clientDayJs(v).format('DD MMM YYYY') },
-          { title: 'Masuk', dataIndex: 'CHECK_IN_AT', render: (v) => (v ? clientDayJs(v).format('HH:mm') : '-') },
-          { title: 'Pulang', dataIndex: 'CHECK_OUT_AT', render: (v) => (v ? clientDayJs(v).format('HH:mm') : '-') },
           {
-            title: 'Status',
-            key: 'status',
+            title: "Tanggal",
+            dataIndex: "DATE",
+            render: (v) => clientDayJs(v).format("DD MMM YYYY"),
+          },
+          {
+            title: "Masuk",
+            dataIndex: "CHECK_IN_AT",
+            render: (v) => (v ? clientDayJs(v).format("HH:mm") : "-"),
+          },
+          {
+            title: "Pulang",
+            dataIndex: "CHECK_OUT_AT",
+            render: (v) => (v ? clientDayJs(v).format("HH:mm") : "-"),
+          },
+          {
+            title: "Status",
+            key: "status",
             render: (_, r) => {
-              if (r.CHECK_IN_AT && r.CHECK_OUT_AT) return <Tag color="green">Lengkap</Tag>;
+              if (r.CHECK_IN_AT && r.CHECK_OUT_AT)
+                return <Tag color="green">Lengkap</Tag>;
               if (r.CHECK_IN_AT) return <Tag color="gold">Belum Pulang</Tag>;
               return <Tag>-</Tag>;
             },

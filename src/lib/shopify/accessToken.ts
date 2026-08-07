@@ -1,5 +1,5 @@
-import 'server-only';
-import { getShopifyAdminConfig } from './config';
+import "server-only";
+import { getShopifyAdminConfig } from "./config";
 
 /**
  * Tukar Client ID + Client Secret jadi Admin API access token pakai OAuth
@@ -34,26 +34,33 @@ export async function getShopifyAccessToken(): Promise<string> {
   let res: Response;
   try {
     res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
-        grant_type: 'client_credentials',
+        grant_type: "client_credentials",
         client_id: clientId,
         client_secret: clientSecret,
       }),
-      cache: 'no-store',
+      cache: "no-store",
     });
   } catch (err) {
-    console.error(`[shopify] <- POST ${url} FAILED after ${Date.now() - startedAt}ms:`, (err as Error).message);
+    console.error(
+      `[shopify] <- POST ${url} FAILED after ${Date.now() - startedAt}ms:`,
+      (err as Error).message,
+    );
     throw err;
   }
 
-  console.log(`[shopify] <- POST ${url} ${res.status} ${res.statusText} (${Date.now() - startedAt}ms)`);
+  console.log(
+    `[shopify] <- POST ${url} ${res.status} ${res.statusText} (${Date.now() - startedAt}ms)`,
+  );
 
   if (!res.ok) {
-    const text = await res.text().catch(() => '');
+    const text = await res.text().catch(() => "");
     console.error(`[shopify] access_token error body:`, text);
-    throw new Error(`Gagal ambil Shopify access token (${res.status}): ${text || res.statusText}`);
+    throw new Error(
+      `Gagal ambil Shopify access token (${res.status}): ${text || res.statusText}`,
+    );
   }
 
   const { access_token, expires_in } = (await res.json()) as {

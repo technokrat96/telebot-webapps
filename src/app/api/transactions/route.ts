@@ -1,27 +1,33 @@
-import {NextRequest, NextResponse} from 'next/server';
-import {requireAuth} from '@/lib/auth';
-import {createTransaction, listTransactionsWithDetailsAndAssignments,} from '@/lib/db/transaction';
-import {Transaction, TransactionDetail} from '@/types';
+import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/auth";
+import {
+  createTransaction,
+  listTransactionsWithDetailsAndAssignments,
+} from "@/lib/db/transaction";
+import { Transaction, TransactionDetail } from "@/types";
 
 export async function GET(req: NextRequest) {
-  const auth = await requireAuth(req, ['ADMIN']);
-  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await requireAuth(req, ["ADMIN"]);
+  if (!auth)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
-  const page = Number(searchParams.get('page') ?? '1') || 1;
-  const pageSize = Number(searchParams.get('pageSize') ?? '10') || 10;
+  const page = Number(searchParams.get("page") ?? "1") || 1;
+  const pageSize = Number(searchParams.get("pageSize") ?? "10") || 10;
 
-  const { transactions, total } = await listTransactionsWithDetailsAndAssignments({ page, pageSize });
+  const { transactions, total } =
+    await listTransactionsWithDetailsAndAssignments({ page, pageSize });
   return NextResponse.json({ transactions, total, page, pageSize });
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAuth(req, ['ADMIN']);
-  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await requireAuth(req, ["ADMIN"]);
+  if (!auth)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = (await req.json()) as {
-    transaction: Omit<Transaction, 'ORDER_ID'>;
-    details: Omit<TransactionDetail, 'ORDER_ID' | 'ORDER_ITEM_ID'>[];
+    transaction: Omit<Transaction, "ORDER_ID">;
+    details: Omit<TransactionDetail, "ORDER_ID" | "ORDER_ITEM_ID">[];
   };
 
   await createTransaction(body.transaction, body.details ?? []);

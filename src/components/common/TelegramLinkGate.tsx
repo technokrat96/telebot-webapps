@@ -1,8 +1,12 @@
-'use client';
+"use client";
 
-import { Button, Card, Result, Space, Typography } from 'antd';
-import { LogoutOutlined, ReloadOutlined, SendOutlined } from '@ant-design/icons';
-import { useState } from 'react';
+import { Button, Card, Result, Space, Typography } from "antd";
+import {
+  LogoutOutlined,
+  ReloadOutlined,
+  SendOutlined,
+} from "@ant-design/icons";
+import { useState } from "react";
 
 const { Paragraph } = Typography;
 
@@ -29,18 +33,28 @@ export default function TelegramLinkGate({
   }
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', padding: 24 }}>
-      <Card style={{ maxWidth: 420, width: '100%' }}>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        minHeight: "100vh",
+        padding: 24,
+      }}
+    >
+      <Card style={{ maxWidth: 420, width: "100%" }}>
         <Result
           status="warning"
           title="Satu langkah lagi"
-          subTitle={`Halo ${name ?? ''}, akun kamu belum terhubung ke Telegram. Buka bot Telegram minimal sekali supaya kami bisa mengirim notifikasi ke kamu.`}
+          subTitle={`Halo ${name ?? ""}, akun kamu belum terhubung ke Telegram. Buka bot Telegram minimal sekali supaya kami bisa mengirim notifikasi ke kamu.`}
         />
-        <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+        <Space orientation="vertical" size={12} style={{ width: "100%" }}>
           <Paragraph style={{ margin: 0 }}>
-            1. Buka bot Telegram di bawah ini{BOT_USERNAME ? '' : ' (link bot belum di-set admin)'}.<br />
+            1. Buka bot Telegram di bawah ini
+            {BOT_USERNAME ? "" : " (link bot belum di-set admin)"}.<br />
             2. Kirim <code>/start</code>.<br />
-            3. Ketuk tombol yang muncul untuk set/cek password, lalu kembali ke sini.
+            3. Ketuk tombol yang muncul untuk set/cek password, lalu kembali ke
+            sini.
           </Paragraph>
           {BOT_USERNAME && (
             <Button
@@ -54,10 +68,21 @@ export default function TelegramLinkGate({
               Buka Bot Telegram
             </Button>
           )}
-          <Button icon={<ReloadOutlined />} loading={checking} onClick={handleRecheck} block>
+          <Button
+            icon={<ReloadOutlined />}
+            loading={checking}
+            onClick={handleRecheck}
+            block
+          >
             Sudah, Cek Lagi
           </Button>
-          <Button type="text" danger icon={<LogoutOutlined />} onClick={onLogoutAction} block>
+          <Button
+            type="text"
+            danger
+            icon={<LogoutOutlined />}
+            onClick={onLogoutAction}
+            block
+          >
             Logout
           </Button>
         </Space>

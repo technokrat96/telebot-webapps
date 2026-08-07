@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import {useEffect, useRef, useState} from 'react';
-import {App, Button, Progress, Tooltip, Typography} from 'antd';
-import {PlusOutlined} from '@ant-design/icons';
-import {useRouter} from 'next/navigation';
-import RoleGuard from '@/components/common/RoleGuard';
-import TransactionCardList from '@/components/transaction/TransactionCardList';
-import {apiClient} from '@/lib/apiClient';
-import {TransactionWithDetailsAndAssignments} from '@/types';
+import { useEffect, useRef, useState } from "react";
+import { App, Button, Progress, Tooltip, Typography } from "antd";
+import { PlusOutlined } from "@ant-design/icons";
+import { useRouter } from "next/navigation";
+import RoleGuard from "@/components/common/RoleGuard";
+import TransactionCardList from "@/components/transaction/TransactionCardList";
+import { apiClient } from "@/lib/apiClient";
+import { TransactionWithDetailsAndAssignments } from "@/types";
 import useSWR from "swr";
 
 const { Title } = Typography;
@@ -22,7 +22,7 @@ const POLL_INTERVAL = 1000 * 60;
 
 export default function AdminTransactionPage() {
   return (
-    <RoleGuard allow={['ADMIN']}>
+    <RoleGuard allow={["ADMIN"]}>
       <TransactionListContent />
     </RoleGuard>
   );
@@ -84,17 +84,28 @@ function TransactionListContent() {
       refreshInterval: POLL_INTERVAL,
       onSuccess: reset, // progress balik ke 0 tiap kali fetch sukses
       keepPreviousData: true, // biar pas ganti halaman gak flash loading, tabel lama tetep kelihatan sampe data baru datang
-    }
+    },
   );
 
   if (error) message.error(error.message);
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <Title level={3} style={{ margin: 0 }}>Transaksi</Title>
-          <Tooltip title="Waktu sampai refresh data berikutnya" placement={"right"}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginBottom: 16,
+        }}
+      >
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <Title level={3} style={{ margin: 0 }}>
+            Transaksi
+          </Title>
+          <Tooltip
+            title="Waktu sampai refresh data berikutnya"
+            placement={"right"}
+          >
             <Progress
               type="circle"
               percent={progress}
@@ -106,7 +117,7 @@ function TransactionListContent() {
         <Button
           type="primary"
           icon={<PlusOutlined />}
-          onClick={() => router.push('/admin/transaction/create')}
+          onClick={() => router.push("/admin/transaction/create")}
         >
           Buat Transaksi
         </Button>
