@@ -1,10 +1,10 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { Spin } from 'antd';
-import { init } from '@tma.js/sdk';
-import { retrieveRawInitData } from '@tma.js/sdk-react';
-import { useAuthStore } from '@/store/authStore';
+import {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
+import {Spin} from 'antd';
+import {init} from '@tma.js/sdk';
+import {retrieveRawInitData} from '@tma.js/sdk-react';
+import {useAuthStore} from '@/store/authStore';
 import LoginScreen from './LoginScreen';
 import TelegramLinkGate from './TelegramLinkGate';
 import SetPasswordGate from './SetPasswordGate';
@@ -47,17 +47,6 @@ export function useAuth() {
   }
   return ctx;
 }
-
-const DEV_STATE: AuthState = {
-  loading: false,
-  error: null,
-  name: 'DEV',
-  roles: ['ADMIN', 'FLORIST', 'KURIR'],
-  username: 'DEV',
-  telegramLinked: true,
-  hasPassword: true,
-  telegramInitData: null,
-};
 
 const EMPTY_STATE: AuthState = {
   loading: false,
@@ -184,7 +173,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     if (didBootstrap.current) return;
     didBootstrap.current = true;
     bootstrap();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const logout = useCallback(() => {

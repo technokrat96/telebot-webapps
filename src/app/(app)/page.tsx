@@ -1,6 +1,6 @@
 'use client';
 
-import {App, Button, Card, Col, Row, Space, Tag, Typography} from 'antd';
+import {Button, Card, Col, Row, Space, Tag, Typography} from 'antd';
 import {
   CarOutlined,
   ClockCircleOutlined,
@@ -19,7 +19,6 @@ const { Title, Paragraph, Text } = Typography;
 
 export default function HomePage() {
   const { name, roles } = useAuth();
-  const { message } = App.useApp();
   const router = useRouter();
   const { checkedIn, checkedOut, handleCheckOut, handleCheckIn, attendanceData, loading, busy} = useAttendanceGate();
 

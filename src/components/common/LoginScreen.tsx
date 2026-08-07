@@ -2,11 +2,9 @@
 
 import { useState } from 'react';
 import { Alert, Button, Card, Form, Input, Typography } from 'antd';
-import { LockOutlined, SendOutlined, UserOutlined } from '@ant-design/icons';
+import { LockOutlined, UserOutlined } from '@ant-design/icons';
 
 const { Title, Paragraph } = Typography;
-
-const BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
 
 interface LoginFormValues {
   username: string;
@@ -22,15 +20,10 @@ export default function LoginScreen({
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(initialError ?? null);
-  // true kalau server bilang akun ini belum pernah set password sama
-  // sekali (beda dari "salah password") — nawarin tombol ke bot Telegram
-  // langsung, bukan cuma teks instruksi.
-  const [needsTelegramSetup, setNeedsTelegramSetup] = useState(false);
 
   async function handleSubmit(values: LoginFormValues) {
     setLoading(true);
     setError(null);
-    setNeedsTelegramSetup(false);
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
@@ -40,7 +33,6 @@ export default function LoginScreen({
       const data = await res.json();
       if (!res.ok) {
         setError(data?.error ?? 'Login gagal.');
-        setNeedsTelegramSetup(data?.code === 'NO_PASSWORD');
         return;
       }
       onLoggedInAction(data.token as string);

@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
-import { getTodayAttendance, checkIn, listMyAttendance } from '@/lib/db/attendance';
+import {NextRequest, NextResponse} from 'next/server';
+import {requireAuth} from '@/lib/auth';
+import {getTodayAttendance, listMyAttendance} from '@/lib/db/attendance';
 
 // Siapa saja yang sudah login (role apapun) boleh absen.
 export async function GET(req: NextRequest) {

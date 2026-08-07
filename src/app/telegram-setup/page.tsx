@@ -1,10 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { Alert, Button, Card, Form, Input, Spin, Tag, Typography, Space } from 'antd';
-import { LockOutlined } from '@ant-design/icons';
-import { init } from '@tma.js/sdk';
-import { retrieveRawInitData } from '@tma.js/sdk-react';
+import {useCallback, useEffect, useState} from 'react';
+import {Alert, Button, Card, Form, Input, Space, Spin, Tag, Typography} from 'antd';
+import {LockOutlined} from '@ant-design/icons';
+import {init} from '@tma.js/sdk';
+import {retrieveRawInitData} from '@tma.js/sdk-react';
 
 const { Title, Paragraph } = Typography;
 
@@ -56,6 +56,9 @@ export default function TelegramSetupPage() {
   }, []);
 
   useEffect(() => {
+    // Cek initData Telegram itu panggilan imperatif ke SDK (bisa throw, dan
+    // hasilnya tidak bisa dihitung murni saat render) — jadi setState sinkron
+    // di sini memang perlu, bukan sesuatu yang bisa di-derive.
     let raw: string | undefined;
     try {
       init();
@@ -64,6 +67,7 @@ export default function TelegramSetupPage() {
       raw = undefined;
     }
     if (!raw) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(false);
       setError('Halaman ini hanya bisa dibuka dari dalam Telegram. Kirim /start ke bot lalu ketuk tombolnya.');
       return;

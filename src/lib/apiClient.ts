@@ -2,10 +2,11 @@
 
 import {useAuthStore} from '@/store/authStore';
 import {fileToDataUrl} from "@/lib/file.util";
+import {compressImage} from "@/lib/imageCompression";
 
 export function getAuthHeader(): Record<string, string> {
   const token = useAuthStore.getState().token;
-  return token ? {Authorization: `Bearer ${token}`} : {};
+  return token ? {Authorization: `Bearer ${token}`} : {} as Record<string, string>;
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -45,16 +46,22 @@ export const apiClient = {
    * Upload multipart (mis. gambar item pesanan). Tidak pakai `request()` di
    * atas karena Content-Type untuk FormData harus di-set otomatis oleh
    * browser (dengan boundary-nya), bukan 'application/json'.
+   *
+   * File dikompres dulu (kalau perlu) lewat compressImage sebelum dikirim --
+   * ditaruh di sini (bukan di tiap komponen pemanggil) supaya semua alur
+   * upload (foto bukti kurir, foto item pesanan admin/florist) otomatis
+   * kebagian tanpa duplikasi logic.
    */
   uploadFile: async (path: string, file: File): Promise<{ url: string }> => {
+    const compressed = await compressImage(file);
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', compressed);
 
     const res = await fetch(path, {
       method: 'POST',
       headers: {...getAuthHeader()},
       body: formData,
-    });
+    } as RequestInit);
 
     if (res.status === 401) {
       useAuthStore.getState().clear();

@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import {Button, Card, Form, Input, InputNumber, Table, Tag, Typography, App} from 'antd';
+import {useEffect, useState} from 'react';
+import {useParams, useRouter} from 'next/navigation';
+import {App, Form, Spin, Typography} from 'antd';
 import RoleGuard from '@/components/common/RoleGuard';
-import { apiClient } from '@/lib/apiClient';
+import {apiClient} from '@/lib/apiClient';
 import {Transaction, TransactionDetail, TransactionWithDetails} from '@/types';
 import TransactionForm, {TransactionFormValues} from "@/components/transaction/TransactionForm";
 import clientDayJs from "@/lib/cleint.dayjs";
@@ -97,7 +97,7 @@ function EditTransactionContent() {
         transaction: {
           ...transaction,
         } as Transaction,
-        details: (details ?? []).map((d, idx) => ({
+        details: (details ?? []).map((d) => ({
           ...d,
           RECEIVER_NAME,
           RECEIVER_ADDRESS,
@@ -127,7 +127,9 @@ function EditTransactionContent() {
   return (
     <div>
       <Title level={3}>Ubah Transaksi {id}</Title>
-      <TransactionForm form={form} onSubmitAction={handleSave} submitting={loading || saving} />
+      <Spin spinning={loading} description="Memuat data transaksi...">
+        <TransactionForm form={form} onSubmitAction={handleSave} submitting={saving} />
+      </Spin>
     </div>
   );
 }

@@ -1,5 +1,4 @@
 {
-  "$schema": "https://raw.githubusercontent.com/SchemaStore/schemastore/refs/heads/master/src/schemas/json/tsconfig.json",
   "compilerOptions": {
     "target": "ES2017",
     "lib": [

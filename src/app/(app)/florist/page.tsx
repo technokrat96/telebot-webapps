@@ -2,24 +2,23 @@
 
 import {useEffect, useRef, useState} from 'react';
 import {
+  App,
   Button,
   Card,
+  Divider,
+  Empty,
+  InputNumber,
+  Popconfirm,
+  Progress,
   Space,
   Tag,
-  Typography,
-  Popconfirm,
-  App,
-  InputNumber,
-  Progress,
-  Empty,
-  Divider,
-  Tooltip
+  Tooltip,
+  Typography
 } from 'antd';
 import RoleGuard from '@/components/common/RoleGuard';
 import ItemImageGallery from '@/components/common/ItemImageGallery';
-import { useAuth } from '@/components/common/AuthProvider';
-import { apiClient } from '@/lib/apiClient';
-import { AvailableFloristItem, MyFloristAssignment } from '@/types';
+import {apiClient} from '@/lib/apiClient';
+import {AvailableFloristItem, MyFloristAssignment} from '@/types';
 import useSWRInfinite from 'swr/infinite';
 
 const { Title, Text, Paragraph } = Typography;

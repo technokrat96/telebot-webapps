@@ -1,5 +1,5 @@
 import 'server-only';
-import {Bot, InputFile} from "grammy";
+import {Bot} from "grammy";
 import telegramBotCommand from "@/lib/telegramBot/telegramBotCommand";
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;

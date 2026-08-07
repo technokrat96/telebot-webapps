@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import {useEffect, useMemo, useState} from 'react';
+import {useParams, useRouter} from 'next/navigation';
 import {
-  App,
   Alert,
+  App,
   Button,
   Card,
   Checkbox,
@@ -18,11 +18,11 @@ import {
   Tag,
   Typography,
 } from 'antd';
-import { Dayjs } from 'dayjs';
+import {Dayjs} from 'dayjs';
 import RoleGuard from '@/components/common/RoleGuard';
-import { apiClient } from '@/lib/apiClient';
+import {apiClient} from '@/lib/apiClient';
 import MoneyInput from '@/components/MoneyInput';
-import { InvoiceDetail, TransactionWithBilling } from '@/types';
+import {InvoiceDetail, TransactionWithBilling} from '@/types';
 import clientDayJs from "@/lib/cleint.dayjs";
 
 const { Title, Paragraph, Text } = Typography;
@@ -51,24 +51,39 @@ function CreateInvoiceForOrderContent() {
   const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
   const [qtyMap, setQtyMap] = useState<Record<string, number>>({});
 
-  // Ditagihkan Ke
+  // Ditagihkan Ke — untuk CUSTOMER/RECEIVER nilainya di-derive langsung dari
+  // `order` (lihat billedTo/billedAddress/billedPhone di bawah), state di
+  // sini cuma dipakai buat mode MANUAL.
   const [billSource, setBillSource] = useState<BillSource>('CUSTOMER');
-  const [billedTo, setBilledTo] = useState('');
-  const [billedAddress, setBilledAddress] = useState('');
-  const [billedPhone, setBilledPhone] = useState('');
+  const [manualBilledTo, setManualBilledTo] = useState('');
+  const [manualBilledAddress, setManualBilledAddress] = useState('');
+  const [manualBilledPhone, setManualBilledPhone] = useState('');
 
   // Ringkasan invoice
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [invoiceDate, setInvoiceDate] = useState<Dayjs>(clientDayJs());
   const [dueDate, setDueDate] = useState<Dayjs | null>(null);
   const [isPaidFull, setIsPaidFull] = useState(true);
-  const [amountPaid, setAmountPaid] = useState(0);
+  const [manualAmountPaid, setManualAmountPaid] = useState(0);
 
-  async function load() {
+  // Reset loading & order pas orderId berubah (mis. navigasi antar order
+  // tanpa remount) — di-set langsung saat render (pola "adjusting state
+  // when a prop changes" dari React docs), bukan lewat effect, supaya tidak
+  // ada setState sinkron di useEffect.
+  const [prevOrderId, setPrevOrderId] = useState(orderId);
+  if (orderId !== prevOrderId) {
+    setPrevOrderId(orderId);
     setLoading(true);
+    setOrder(null);
+  }
+
+  // Dipakai dari event handler (handleSubmit, buat refresh sisa qty) — aman
+  // pakai async/await biasa karena bukan dipanggil langsung dari body
+  // useEffect.
+  async function fetchOrder(id: string) {
     try {
       const res = await apiClient.get<{ order: TransactionWithBilling }>(
-        `/api/invoice-details/${orderId}`
+        `/api/invoice-details/${id}`
       );
       setOrder(res.order);
     } catch (err) {
@@ -79,32 +94,49 @@ function CreateInvoiceForOrderContent() {
   }
 
   useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Ditulis inline pakai .then()/.catch()/.finally() (bukan panggil
+    // `fetchOrder` langsung) — react-hooks/set-state-in-effect tetap
+    // menganggap panggilan langsung ke fungsi lokal yang isinya setState
+    // sebagai "sinkron", walau fungsi itu async/pakai await. setState di
+    // dalam callback .then() inline begini baru dianggap aman.
+    apiClient
+      .get<{ order: TransactionWithBilling }>(`/api/invoice-details/${orderId}`)
+      .then((res) => {
+        setOrder(res.order);
+      })
+      .catch((err) => {
+        message.error((err as Error).message);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, [orderId]);
 
-  // Auto-suggest nomor invoice sekali order sudah kebaca
-  useEffect(() => {
-    if (order && !invoiceNumber) {
-      setInvoiceNumber(`INV-${order.ORDER_ID}-${clientDayJs().valueOf().toString().slice(-6)}`);
-    }
-  }, [order, invoiceNumber]);
+  // Auto-suggest nomor invoice begitu order (baru) kebaca — dihitung
+  // langsung saat render, dibandingkan dengan render sebelumnya, sesuai
+  // pola resmi React buat "derive state dari perubahan value lain".
+  const [invoiceNumberSuggestedFor, setInvoiceNumberSuggestedFor] = useState<TransactionWithBilling | null>(null);
+  if (order && order !== invoiceNumberSuggestedFor && !invoiceNumber) {
+    setInvoiceNumberSuggestedFor(order);
+    setInvoiceNumber(`INV-${order.ORDER_ID}-${clientDayJs().valueOf().toString().slice(-6)}`);
+  }
 
-  // Sinkron Ditagihkan Ke berdasar sumber yang dipilih
-  useEffect(() => {
-    if (!order) return;
-    if (billSource === 'CUSTOMER') {
-      setBilledTo(order.CUSTOMER_NAME ?? '');
-      setBilledAddress(order.CUSTOMER_ADDRESS ?? '');
-      setBilledPhone(order.CUSTOMER_PHONE ?? '');
-    } else if (billSource === 'RECEIVER') {
-      const first = order.details[0];
-      setBilledTo(first?.RECEIVER_NAME ?? '');
-      setBilledAddress(first?.RECEIVER_ADDRESS ?? '');
-      setBilledPhone(first?.RECEIVER_PHONE ?? '');
-    }
-    // MANUAL: biarkan apa adanya, USER isi sendiri
-  }, [billSource, order]);
+  // Ditagihkan Ke — derived, bukan state+effect. MANUAL pakai state manual.
+  const billedTo = billSource === 'CUSTOMER'
+    ? (order?.CUSTOMER_NAME ?? '')
+    : billSource === 'RECEIVER'
+    ? (order?.details[0]?.RECEIVER_NAME ?? '')
+    : manualBilledTo;
+  const billedAddress = billSource === 'CUSTOMER'
+    ? (order?.CUSTOMER_ADDRESS ?? '')
+    : billSource === 'RECEIVER'
+    ? (order?.details[0]?.RECEIVER_ADDRESS ?? '')
+    : manualBilledAddress;
+  const billedPhone = billSource === 'CUSTOMER'
+    ? (order?.CUSTOMER_PHONE ?? '')
+    : billSource === 'RECEIVER'
+    ? (order?.details[0]?.RECEIVER_PHONE ?? '')
+    : manualBilledPhone;
 
   const totalAmount = useMemo(() => {
     if (!order) return 0;
@@ -116,9 +148,9 @@ function CreateInvoiceForOrderContent() {
     }, 0);
   }, [order, selectedKeys, qtyMap]);
 
-  useEffect(() => {
-    if (isPaidFull) setAmountPaid(totalAmount);
-  }, [isPaidFull, totalAmount]);
+  // Sudah Dibayar — derived juga: kalau ditandai lunas, ikut totalAmount;
+  // kalau tidak, pakai nilai manual yang diisi USER.
+  const amountPaid = isPaidFull ? totalAmount : manualAmountPaid;
 
   function resetSelectionForNextInvoice() {
     setSelectedKeys([]);
@@ -126,6 +158,7 @@ function CreateInvoiceForOrderContent() {
     setInvoiceNumber('');
     setDueDate(null);
     setIsPaidFull(true);
+    setManualAmountPaid(0);
   }
 
   async function handleSubmit() {
@@ -175,7 +208,10 @@ function CreateInvoiceForOrderContent() {
       message.success('Invoice berhasil dibuat');
       setJustCreated(true);
       resetSelectionForNextInvoice();
-      await load(); // refresh sisa qty yang masih bisa ditagih
+      // Dipanggil dari event handler (bukan effect), jadi aman setLoading(true)
+      // di sini — kasih indikasi loading di tabel pas refresh sisa qty.
+      setLoading(true);
+      await fetchOrder(orderId); // refresh sisa qty yang masih bisa ditagih
     } catch (err) {
       message.error((err as Error).message);
     } finally {
@@ -285,7 +321,7 @@ function CreateInvoiceForOrderContent() {
             <Text>Ditagihkan Ke</Text>
             <Input
               value={billedTo}
-              onChange={(e) => setBilledTo(e.target.value)}
+              onChange={(e) => setManualBilledTo(e.target.value)}
               disabled={billSource !== 'MANUAL'}
             />
           </div>
@@ -294,7 +330,7 @@ function CreateInvoiceForOrderContent() {
             <Input.TextArea
               rows={2}
               value={billedAddress}
-              onChange={(e) => setBilledAddress(e.target.value)}
+              onChange={(e) => setManualBilledAddress(e.target.value)}
               disabled={billSource !== 'MANUAL'}
             />
           </div>
@@ -302,7 +338,7 @@ function CreateInvoiceForOrderContent() {
             <Text>Telepon Tagihan</Text>
             <Input
               value={billedPhone}
-              onChange={(e) => setBilledPhone(e.target.value)}
+              onChange={(e) => setManualBilledPhone(e.target.value)}
               disabled={billSource !== 'MANUAL'}
             />
           </div>
@@ -340,7 +376,7 @@ function CreateInvoiceForOrderContent() {
               value={amountPaid}
               disabled={isPaidFull}
               max={totalAmount}
-              onChange={(v) => setAmountPaid(Number(v ?? 0))}
+              onChange={(v) => setManualAmountPaid(Number(v ?? 0))}
             />
           </div>
         </Space>

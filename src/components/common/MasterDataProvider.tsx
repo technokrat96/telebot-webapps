@@ -1,10 +1,8 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import {
-  MasterData,
-} from '@/types';
-import { apiClient } from '@/lib/apiClient';
+import {createContext, useCallback, useContext, useEffect, useState} from 'react';
+import {MasterData,} from '@/types';
+import {apiClient} from '@/lib/apiClient';
 
 const EMPTY_MASTER_DATA: MasterData = {
   ROLES: [],
@@ -44,26 +42,39 @@ export default function MasterDataProvider({
   const [data, setData] = useState<MasterData>(EMPTY_MASTER_DATA);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Dipakai buat trigger reload manual (lihat komentar di bawah).
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const load = useCallback(async () => {
+  // Dipanggil dari luar effect (event handler), jadi aman setLoading(true)
+  // langsung di sini. Cukup bump `refreshKey` biar effect di bawah jalan
+  // lagi, tidak perlu duplikasi logic fetch-nya.
+  const reload = useCallback(() => {
     setLoading(true);
-    setError(null);
-    try {
-      const { masterData } = await apiClient.get<{ masterData: MasterData }>('/api/master-data');
-      setData(masterData );
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
+    setRefreshKey((k) => k + 1);
   }, []);
 
   useEffect(() => {
-    load();
-  }, []);
+    // Fetch-nya ditulis inline pakai .then()/.catch()/.finally() (bukan
+    // fungsi terpisah yang dipanggil langsung) — react-hooks/set-state-in-effect
+    // tetap menganggap "sinkron" kalau kita panggil fungsi lokal yang di
+    // dalamnya ada setState, walau fungsi itu sendiri async/pakai await.
+    // setState di dalam callback .then() inline begini baru dianggap aman.
+    apiClient
+      .get<{ masterData: MasterData }>('/api/master-data')
+      .then(({ masterData }) => {
+        setError(null);
+        setData(masterData);
+      })
+      .catch((err) => {
+        setError((err as Error).message);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [refreshKey]);
 
   return (
-    <MasterDataContext.Provider value={{ data, loading, error, reload: load }}>
+    <MasterDataContext.Provider value={{ data, loading, error, reload }}>
       {children}
     </MasterDataContext.Provider>
   );

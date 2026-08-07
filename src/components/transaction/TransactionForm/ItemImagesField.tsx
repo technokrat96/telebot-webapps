@@ -3,12 +3,7 @@
 import {App, Button, Form, FormListFieldData, Space, Upload} from 'antd';
 import {CloudUploadOutlined} from '@ant-design/icons';
 import {apiClient} from '@/lib/apiClient';
-import {
-  ALLOWED_IMAGE_TYPES,
-  ALLOWED_IMAGE_TYPES_LABEL,
-  MAX_IMAGE_SIZE_BYTES,
-  MAX_IMAGE_SIZE_LABEL,
-} from '@/lib/imageUploadConstraints';
+import {ALLOWED_IMAGE_TYPES, ALLOWED_IMAGE_TYPES_LABEL, MAX_IMAGE_SIZE_LABEL,} from '@/lib/imageUploadConstraints';
 import ImageListItem from './ImageListItem';
 import type {TransactionFormValues} from './types';
 
@@ -55,22 +50,24 @@ export default function ItemImagesField({
   }
 
   function handleSelectFile(file: File) {
-    // Validasi di client dulu (tipe & ukuran) biar user langsung dapat
-    // feedback tanpa perlu nunggu roundtrip ke server — server tetap
-    // validasi ulang persis sama di /api/upload sebagai lapisan terakhir.
+    // Validasi tipe di client dulu biar user langsung dapat feedback tanpa
+    // perlu nunggu roundtrip ke server — server tetap validasi ulang persis
+    // sama di /api/upload sebagai lapisan terakhir.
+    //
+    // Ukuran file TIDAK ditolak di sini walau lebih dari MAX_IMAGE_SIZE_BYTES
+    // -- foto besar dari kamera akan otomatis dikompres di bawah batas saat
+    // benar-benar diupload (lihat compressImage, dipanggil dari
+    // apiClient.uploadFile). /api/upload tetap jadi penjaga terakhir kalau
+    // ternyata masih kelewatan setelah dikompres.
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
       message.error(`Format file harus ${ALLOWED_IMAGE_TYPES_LABEL}`);
       return Upload.LIST_IGNORE;
     }
-    if (file.size > MAX_IMAGE_SIZE_BYTES) {
-      message.error(`Ukuran file maksimal ${MAX_IMAGE_SIZE_LABEL}`);
-      return Upload.LIST_IGNORE;
-    }
 
     // Jangan upload sekarang. File-nya cukup ditambahkan ke daftar file
-    // pending di form, baru benar-benar diupload ke Blob storage saat form
-    // di-submit — biar tidak menyampah di storage kalau transaksinya batal
-    // dibuat.
+    // pending di form, baru benar-benar diupload (dan dikompres kalau perlu)
+    // ke Blob storage saat form di-submit — biar tidak menyampah di storage
+    // kalau transaksinya batal dibuat.
     const clientId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     patchDetail({ IMAGE_FILES: [...imageFiles, { clientId, file }] });
     return false; // cegah antd auto-upload bawaan
@@ -132,7 +129,7 @@ export default function ItemImagesField({
             {hasImages ? 'Tambah foto lagi atau seret & lepas di sini' : 'Pilih foto atau seret & lepas di sini'}
           </p>
           <p style={{ color: 'rgba(0, 0, 0, 0.45)', marginBottom: 16 }}>
-            {ALLOWED_IMAGE_TYPES_LABEL} — maksimal {MAX_IMAGE_SIZE_LABEL} per file
+            {ALLOWED_IMAGE_TYPES_LABEL} — file di atas {MAX_IMAGE_SIZE_LABEL} otomatis dikompres
           </p>
           <Button>
             Cari File

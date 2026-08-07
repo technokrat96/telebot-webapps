@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
-import { getTodayAttendance, checkIn, listMyAttendance } from '@/lib/db/attendance';
+import {NextRequest, NextResponse} from 'next/server';
+import {requireAuth} from '@/lib/auth';
+import {checkIn} from '@/lib/db/attendance';
 
 export async function POST(req: NextRequest) {
   const auth = await requireAuth(req);

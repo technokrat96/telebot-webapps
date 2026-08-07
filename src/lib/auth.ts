@@ -39,9 +39,10 @@ export async function requireAuth(
     return {TELEGRAM_ID: '1', TELEGRAM_USER: 'DEV', USER} as AuthContext;
   }
 
+  const prefixBearer = "bearer "
   const authHeader = req.headers.get('authorization');
-  const token = authHeader?.toLowerCase().startsWith('bearer ')
-    ? authHeader.slice(7).trim()
+  const token = authHeader?.toLowerCase().startsWith(prefixBearer)
+    ? authHeader?.slice(prefixBearer.length).trim()
     : null;
   if (!token) return null;
 

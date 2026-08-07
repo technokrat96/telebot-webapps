@@ -2,28 +2,27 @@
 
 import {Avatar, Button, Divider, Flex, Layout, Menu, Tag, Typography} from 'antd';
 import {
+  CarOutlined,
+  ClockCircleOutlined,
   DashboardOutlined,
   FileTextOutlined,
+  LogoutOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
+  ScheduleOutlined,
   ShoppingOutlined,
-  CarOutlined,
-  UserOutlined, MenuUnfoldOutlined, MenuFoldOutlined, ScheduleOutlined, ClockCircleOutlined, LogoutOutlined,
+  UserOutlined,
 } from '@ant-design/icons';
-import { usePathname, useRouter } from 'next/navigation';
-import { useAuth } from './AuthProvider';
+import {usePathname, useRouter} from 'next/navigation';
+import {useAuth} from './AuthProvider';
 import useBreakpoint from "antd/lib/grid/hooks/useBreakpoint";
 import Sider from "antd/lib/layout/Sider";
 import {useEffect, useState} from "react";
 import {useAttendanceGate} from "@/components/common/AttendanceGate";
 import {take} from "lodash";
 
-const { Header, Content, Footer } = Layout;
+const { Header, Content } = Layout;
 const { Text } = Typography;
-
-
-const layoutStyle: React.CSSProperties = {
-  position: 'relative',
-  minHeight: "100vh",
-};
 
 const siderStyle: React.CSSProperties = {
   position: 'fixed',
@@ -69,8 +68,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   ];
 
   useEffect(() => {
-    if (!collapsed) setCollapsed(true);
-  }, [breakpoint.xl]);
+    // Sinkronisasi sidebar dengan breakpoint viewport — `collapsed` juga
+    // di-toggle independen oleh user (klik menu/tombol), jadi tidak bisa
+    // di-derive murni dari `breakpoint.xl` saja. Cascading render di sini
+    // memang disengaja & tidak signifikan (hanya toggle sidebar).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!collapsed && breakpoint.xl) setCollapsed(true);
+  }, [breakpoint.xl, collapsed]);
 
   return (
     <Layout hasSider={!breakpoint.xl} style={{position:"relative" }}>

@@ -1,10 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
-import {
-  createTransaction,
-  listTransactionsWithDetails, listTransactionsWithDetailsAndAssignments,
-} from '@/lib/db/transaction';
-import { Transaction, TransactionDetail } from '@/types';
+import {NextRequest, NextResponse} from 'next/server';
+import {requireAuth} from '@/lib/auth';
+import {createTransaction, listTransactionsWithDetailsAndAssignments,} from '@/lib/db/transaction';
+import {Transaction, TransactionDetail} from '@/types';
 
 export async function GET(req: NextRequest) {
   const auth = await requireAuth(req, ['ADMIN']);

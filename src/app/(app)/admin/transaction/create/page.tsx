@@ -24,7 +24,7 @@ function CreateTransactionContent() {
   const [submitting, setSubmitting] = useState(false);
   const { message } = App.useApp();
   const router = useRouter();
-  const { name, roles, username } = useAuth();
+  const { username } = useAuth();
 
   async function handleSubmit(values: TransactionFormValues): Promise<boolean> {
     setSubmitting(true);
@@ -55,7 +55,7 @@ function CreateTransactionContent() {
           ...transaction,
           SALES_NAME: username,
         } as Transaction,
-        details: (details ?? []).map((d, idx) => ({
+        details: (details ?? []).map((d) => ({
           ...d,
           RECEIVER_NAME,
           RECEIVER_ADDRESS,
